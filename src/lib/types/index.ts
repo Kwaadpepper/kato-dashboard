@@ -75,6 +75,46 @@ export interface NormalizedIncident {
   resolvedAt: string | null;
   /** Durée d'interruption en secondes, null si l'incident est toujours en cours */
   duration: number | null;
+  /** Motif ou détail de l'incident (code HTTP, message d'erreur), optionnel */
+  cause?: string;
+}
+
+/**
+ * Événement chronologique d'historique de statut d'une sonde (UP, DOWN, DEGRADED).
+ */
+export interface ProbeStatusEvent {
+  /** ID de l'événement */
+  id: string;
+  /** Statut représenté */
+  status: ProbeStatus;
+  /** Date et heure de déclenchement (format ISO 8601) */
+  timestamp: string;
+  /** Date et heure de résolution si applicable */
+  resolvedAt?: string | null;
+  /** Durée de l'incident en secondes si applicable */
+  duration?: number | null;
+  /** Motif ou détail explicatif (ex: "HTTP 503", "Timeout"), optionnel */
+  cause?: string;
+}
+
+/**
+ * Créneau horaire de la barre de disponibilité 24h.
+ */
+export interface UptimeBarSlot {
+  /** Index du créneau (0 = H-24, 23 = heure actuelle) */
+  index: number;
+  /** Date/heure de début du créneau (ISO 8601) */
+  startTime: string;
+  /** Date/heure de fin du créneau (ISO 8601) */
+  endTime: string;
+  /** Statut effectif constaté sur le créneau */
+  status: 'up' | 'down' | 'degraded' | 'paused' | 'empty';
+  /** Libellé formaté pour infobulle / accessibilité */
+  label: string;
+  /** Nombre d'incidents ayant impacté ce créneau */
+  incidentCount: number;
+  /** Durée cumulée d'indisponibilité sur ce créneau en secondes */
+  downtimeSeconds: number;
 }
 
 // ============================================================================
@@ -151,6 +191,8 @@ export interface MonitoringAdapter {
   fetchIncidents(since: Date): Promise<NormalizedIncident[]>;
   /** Retourne l'intervalle de rafraîchissement (polling) recommandé en millisecondes */
   getPollingInterval(): number;
+  /** Récupère l'historique récent des événements/incidents pour une sonde spécifique (optionnel) */
+  fetchProbeHistory?(probeId: string): Promise<NormalizedIncident[]>;
 }
 
 // ============================================================================

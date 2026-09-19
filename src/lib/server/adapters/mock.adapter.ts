@@ -140,6 +140,15 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
+	 * Récupère l'historique récent des incidents pour une sonde spécifique.
+	 */
+	async fetchProbeHistory(probeId: string): Promise<NormalizedIncident[]> {
+		const past24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+		const incidents = await this.fetchIncidents(past24h);
+		return incidents.filter((i) => i.probeId === probeId);
+	}
+
+	/**
 	 * Intervalle de rafraîchissement recommandé (5 secondes pour le dev).
 	 */
 	getPollingInterval(): number {
@@ -195,7 +204,7 @@ export class MockAdapter implements MonitoringAdapter {
 			}
 		}
 
-		// Injecter 1 ou 2 incidents déjà résolus dans les dernières 24h pour enrichir le dashboard
+		// Injecter des incidents historiques réalistes résolus dans les dernières 24h
 		const probeOne = this.probes.get('mock:1') ?? Array.from(this.probes.values())[0];
 		if (probeOne) {
 			const pastIncidentId = `inc:${probeOne.id}:${now - 7200000}`;
@@ -206,7 +215,40 @@ export class MockAdapter implements MonitoringAdapter {
 				type: 'down',
 				startedAt: new Date(now - 2 * 3600 * 1000).toISOString(),
 				resolvedAt: new Date(now - (2 * 3600 - 320) * 1000).toISOString(),
-				duration: 320
+				duration: 320,
+				cause: 'HTTP 503 - Service Unavailable'
+			});
+		}
+
+		// Incident passé sur mock:3 (panne résolue de 12 min)
+		const probeThree = this.probes.get('mock:3');
+		if (probeThree) {
+			const pastIncId3 = `inc:${probeThree.id}:${now - 18000000}`;
+			this.incidents.set(pastIncId3, {
+				id: pastIncId3,
+				probeId: probeThree.id,
+				probeName: probeThree.name,
+				type: 'down',
+				startedAt: new Date(now - 5 * 3600 * 1000).toISOString(),
+				resolvedAt: new Date(now - (5 * 3600 - 720) * 1000).toISOString(),
+				duration: 720,
+				cause: 'Connection Pool Timeout (504)'
+			});
+		}
+
+		// Incident de dégradation sur mock:7 (instabilité résolue de 25 min)
+		const probeSeven = this.probes.get('mock:7');
+		if (probeSeven) {
+			const pastIncId7 = `inc:${probeSeven.id}:${now - 32400000}`;
+			this.incidents.set(pastIncId7, {
+				id: pastIncId7,
+				probeId: probeSeven.id,
+				probeName: probeSeven.name,
+				type: 'degraded',
+				startedAt: new Date(now - 9 * 3600 * 1000).toISOString(),
+				resolvedAt: new Date(now - (9 * 3600 - 1500) * 1000).toISOString(),
+				duration: 1500,
+				cause: 'Pic de latence (>1800ms) - GC Pause'
 			});
 		}
 	}

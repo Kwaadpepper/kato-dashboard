@@ -227,6 +227,11 @@
 					previousStatuses = updatedPrev;
 					probes = Array.from(probeMap.values());
 
+					// Maintient la sonde actuellement ouverte synchronisée avec les mises à jour SSE
+					if (selectedProbe && probeMap.has(selectedProbe.id)) {
+						selectedProbe = probeMap.get(selectedProbe.id)!;
+					}
+
 					// Active le flash sur les cartes de sondes qui viennent de tomber (sans aucun $effect enfant)
 					if (newFlashing.size > 0) {
 						flashingProbeIds = newFlashing;
@@ -527,5 +532,6 @@
 <!-- Modal plein écran sur mobile / Panneau latéral sur desktop -->
 <DetailModal
 	probe={selectedProbe}
+	{incidents}
 	onclose={() => (selectedProbe = null)}
 />

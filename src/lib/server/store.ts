@@ -68,6 +68,17 @@ class DashboardStore {
 		);
 	}
 
+	/**
+	 * Charge des incidents initiaux (ex: fournis par l'adaptateur au démarrage).
+	 */
+	loadInitialIncidents(incidents: NormalizedIncident[]): void {
+		for (const inc of incidents) {
+			if (!this.incidents.has(inc.id)) {
+				this.incidents.set(inc.id, inc);
+			}
+		}
+	}
+
 	// ============================================================================
 	// MISE À JOUR ET DÉTECTION DE DELTA
 	// ============================================================================

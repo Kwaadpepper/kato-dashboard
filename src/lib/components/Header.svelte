@@ -46,7 +46,6 @@
 		formatClock,
 		TIME_ZONE_PRESETS,
 		getTimeZoneShortLabel,
-		type TimeFormat,
 		type ClockConfig
 	} from '$lib/utils/clock';
 

@@ -54,6 +54,21 @@ export function startPolling(adapter: MonitoringAdapter, store: DashboardStore):
 		}
 	}
 
+	// Chargement des incidents initiaux depuis l'adaptateur (fenêtre 24h)
+	adapter
+		.fetchIncidents(new Date(Date.now() - 24 * 60 * 60 * 1000))
+		.then((initialIncidents) => {
+			if (initialIncidents && initialIncidents.length > 0) {
+				store.loadInitialIncidents(initialIncidents);
+				console.log(
+					`[Poller] Chargé ${initialIncidents.length} incident(s) initial(aux) — adapter: ${adapter.name}`
+				);
+			}
+		})
+		.catch((err) => {
+			console.warn('[Poller] Avertissement lors du chargement des incidents initiaux :', err);
+		});
+
 	// Premier appel immédiat
 	poll();
 

@@ -277,6 +277,91 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 	}
 
 	/**
+	 * Récupère l'historique récent d'une sonde spécifique via GET /monitors/{id}/logs
+	 * avec repli sur la mémoire en cas d'erreur ou d'épuisement de quota.
+	 */
+	async fetchProbeHistory(probeId: string): Promise<NormalizedIncident[]> {
+		const numericId = probeId.replace('ur:', '');
+		const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
+		const sinceIso = new Date(sinceMs).toISOString();
+		const incidents: NormalizedIncident[] = [];
+
+		// Récupérer le nom de la sonde depuis le cache
+		const probeName = this.cachedProbes.get(probeId)?.name || probeId;
+
+		// 1. Tenter la récupération des logs officiels depuis l'API Uptime Robot
+		try {
+			const response = await this.request<
+				Array<{
+					type: number;
+					datetime: string;
+					duration?: number;
+					reason?: { code?: string | number; detail?: string };
+				}>
+			>(`/monitors/${numericId}/logs`);
+
+			if (Array.isArray(response.data)) {
+				const downLogs = response.data.filter(
+					(log) => log.type === 1 && log.datetime >= sinceIso
+				);
+
+				for (const log of downLogs) {
+					const startMs = new Date(log.datetime).getTime();
+					const duration = typeof log.duration === 'number' && log.duration > 0 ? log.duration : null;
+					const resolvedAt = duration
+						? new Date(startMs + duration * 1000).toISOString()
+						: null;
+
+					const causeDetail = log.reason?.detail || '';
+					const causeCode = log.reason?.code ? String(log.reason.code) : '';
+					const cause = causeCode || causeDetail ? `${causeCode}${causeCode && causeDetail ? ' - ' : ''}${causeDetail}` : undefined;
+
+					incidents.push({
+						id: `ur:inc:${numericId}:${startMs}`,
+						probeId,
+						probeName,
+						type: 'down',
+						startedAt: log.datetime,
+						resolvedAt,
+						duration,
+						cause
+					});
+				}
+			}
+		} catch (err) {
+			console.warn(`[UptimeRobot] Impossible de récupérer les logs distants pour ${probeId} :`, err);
+		}
+
+		// 2. Fusionner avec l'incident actif en cours s'il existe en mémoire
+		const active = this.downMonitors.get(probeId);
+		if (active && !incidents.some((i) => i.resolvedAt === null)) {
+			incidents.unshift({
+				id: active.incidentId,
+				probeId,
+				probeName: active.probeName,
+				type: 'down',
+				startedAt: active.startedAt,
+				resolvedAt: null,
+				duration: null,
+				cause: 'Panne confirmée en cours'
+			});
+		}
+
+		// Si aucun incident récupéré via l'API, inclure les incidents résolus en mémoire
+		if (incidents.length === 0) {
+			for (const resolved of this.resolvedIncidents) {
+				if (resolved.probeId === probeId) {
+					incidents.push({ ...resolved });
+				}
+			}
+		}
+
+		return incidents.sort(
+			(a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+		);
+	}
+
+	/**
 	 * Intervalle de rafraîchissement recommandé en millisecondes.
 	 * Lit UPTIMEROBOT_POLL_INTERVAL ou retourne 30000 (30s) par défaut.
 	 */

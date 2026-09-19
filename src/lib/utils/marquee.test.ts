@@ -8,8 +8,7 @@ import {
 	getMarqueeConfig,
 	onMarqueeChange,
 	MARQUEE_STORAGE_KEY,
-	MARQUEE_DURATION_STORAGE_KEY,
-	MARQUEE_SPEED_PRESETS
+	MARQUEE_DURATION_STORAGE_KEY
 } from './marquee.ts';
 
 // Mock minimal de window et localStorage pour tests Node

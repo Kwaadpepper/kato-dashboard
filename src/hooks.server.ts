@@ -3,6 +3,7 @@ import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
 import { store } from '$lib/server/store';
 import { startPolling } from '$lib/server/poller';
 import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/auth';
+import { setActiveAdapter } from '$lib/server/adapter';
 import { redirect, type Handle } from '@sveltejs/kit';
 import type { MonitoringAdapter } from '$lib/types';
 
@@ -44,6 +45,9 @@ async function bootstrap(): Promise<void> {
 	}
 
 	console.log(`[Kato] Adaptateur initialisé — type: ${adapter.name}`);
+
+	// Enregistrement de l'adaptateur pour les endpoints de consultation unitaire
+	setActiveAdapter(adapter);
 
 	// Démarrage du polling (produit les mises à jour dans le store)
 	startPolling(adapter, store);
