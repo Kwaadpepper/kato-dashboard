@@ -25,6 +25,12 @@
 	import DetailModal from '$lib/components/DetailModal.svelte';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import ArrowDown from 'lucide-svelte/icons/arrow-down';
+	import {
+		playAlertDown,
+		playAlertRecovery,
+		playAlertCritical,
+		unlockAudio
+	} from '$lib/utils/sounds';
 
 	let { data }: { data: PageData } = $props();
 
@@ -223,16 +229,19 @@
 				previousStatuses = initStatusMap;
 			},
 			(delta: DashboardDelta) => {
-				// A. Détection des transitions UP → DOWN et fusion des sondes mises à jour
+				// A. Détection des transitions UP → DOWN et DOWN → UP avec alertes sonores
 				if (delta.changed.length > 0) {
-					let hasUpToDownTransition = false;
+					let upToDownCount = 0;
+					let downToUpCount = 0;
 					const updatedPrev = { ...previousStatuses };
 
 					const probeMap = new Map(probes.map((p) => [p.id, p]));
 					for (const updated of delta.changed) {
 						const oldStatus = previousStatuses[updated.id];
 						if (oldStatus === 'up' && updated.status === 'down') {
-							hasUpToDownTransition = true;
+							upToDownCount++;
+						} else if (oldStatus === 'down' && updated.status === 'up') {
+							downToUpCount++;
 						}
 						updatedPrev[updated.id] = updated.status;
 						probeMap.set(updated.id, updated);
@@ -242,8 +251,20 @@
 					probes = Array.from(probeMap.values());
 
 					// Flash visuel sur le container principal si au moins une sonde est tombée
-					if (hasUpToDownTransition) {
+					if (upToDownCount > 0) {
 						triggerContainerFlash();
+					}
+
+					// Notifications sonores selon les règles de surveillance :
+					// - ≥ 3 sondes passent DOWN simultanément : alerte critique (3 beeps)
+					// - Au moins 1 sonde passe DOWN : alerte coupure (beep aigu)
+					// - Rétablissement d'une sonde DOWN → UP : alerte retour à la normale (double beep)
+					if (upToDownCount >= 3) {
+						playAlertCritical();
+					} else if (upToDownCount > 0) {
+						playAlertDown();
+					} else if (downToUpCount > 0) {
+						playAlertRecovery();
 					}
 				}
 
@@ -318,10 +339,19 @@
 		};
 		window.addEventListener('probe-detail', handleCustomProbeDetail);
 
+		// Déverrouillage de l'AudioContext dès le premier geste utilisateur (politique autoplay)
+		const unlockHandler = () => {
+			unlockAudio();
+		};
+		window.addEventListener('pointerdown', unlockHandler, { once: true });
+		window.addEventListener('keydown', unlockHandler, { once: true });
+
 		return () => {
 			unsubTv();
 			cleanupInactivity();
 			window.removeEventListener('probe-detail', handleCustomProbeDetail);
+			window.removeEventListener('pointerdown', unlockHandler);
+			window.removeEventListener('keydown', unlockHandler);
 			void exitTvMode();
 		};
 	});

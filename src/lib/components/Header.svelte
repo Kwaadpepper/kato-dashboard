@@ -1,8 +1,11 @@
 <script lang="ts">
 	import type { NormalizedProbe } from '$lib/types';
 	import { applyTheme, onThemeChange, type Theme, type ResolvedTheme } from '$lib/utils/theme';
+	import { isSoundEnabled, toggleSound, onSoundChange } from '$lib/utils/sounds';
 	import Settings from 'lucide-svelte/icons/settings';
 	import Check from 'lucide-svelte/icons/check';
+	import Volume2 from 'lucide-svelte/icons/volume-2';
+	import VolumeX from 'lucide-svelte/icons/volume-x';
 
 	let {
 		probes = [],
@@ -19,15 +22,26 @@
 	let isSettingsOpen = $state(false);
 	let activeTheme = $state<Theme>('dark');
 	let activeResolved = $state<ResolvedTheme>('dark');
+	let isSoundOn = $state(false);
 
-	// Abonnements aux bascules de thème
+	// Abonnements aux bascules de thème et de son
 	$effect(() => {
 		const unsubscribe = onThemeChange((theme, resolved) => {
 			activeTheme = theme;
 			activeResolved = resolved;
 		});
-		return unsubscribe;
+		const unsubSound = onSoundChange((enabled) => {
+			isSoundOn = enabled;
+		});
+		return () => {
+			unsubscribe();
+			unsubSound();
+		};
 	});
+
+	function handleToggleSound() {
+		isSoundOn = toggleSound();
+	}
 
 	const themeOptions: Array<{ id: Theme; label: string; icon: string }> = [
 		{ id: 'dark', label: 'Sombre', icon: '🌙' },
@@ -201,6 +215,23 @@
 				↻ {freshnessSeconds}s
 			</span>
 		{/if}
+
+		<!-- Mini toggle son (🔊/🔇) -->
+		<button
+			type="button"
+			onclick={handleToggleSound}
+			class="p-1 rounded-md transition-colors cursor-pointer {isSoundOn
+				? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40'
+				: 'text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30'}"
+			title={isSoundOn ? 'Désactiver les alertes sonores (Actif)' : 'Activer les alertes sonores (Coupé)'}
+			aria-label={isSoundOn ? 'Désactiver les alertes sonores' : 'Activer les alertes sonores'}
+		>
+			{#if isSoundOn}
+				<Volume2 class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+			{:else}
+				<VolumeX class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+			{/if}
+		</button>
 
 		<!-- Bouton Menu Paramètres / Sélecteur de thème -->
 		<div class="relative">
