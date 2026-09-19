@@ -207,6 +207,13 @@ export type GridDensity = 'large' | 'medium' | 'compact' | 'micro' | 'pixel';
 export type Theme = 'dark' | 'light' | 'amoled' | 'auto';
 
 /**
+ * Format d'affichage de l'horloge.
+ * - `24h` : Format 24 heures (ex. 14:30:00).
+ * - `12h` : Format 12 heures avec AM/PM (ex. 02:30:00 PM).
+ */
+export type TimeFormat = '24h' | '12h';
+
+/**
  * Préférences utilisateur stockées côté client dans le LocalStorage.
  */
 export interface UserPreferences {
@@ -218,6 +225,12 @@ export interface UserPreferences {
   soundEnabled: boolean;
   /** Bascule automatique en plein écran en mode TV (?tv=1) */
   tvAutoFullscreen: boolean;
+  /** Format de l'heure (24h ou 12h) */
+  timeFormat?: TimeFormat;
+  /** Fuseau horaire (ex: 'local', 'UTC', 'Europe/Paris') */
+  timeZone?: string;
+  /** Affiche ou masque les secondes */
+  showSeconds?: boolean;
 }
 
 /**

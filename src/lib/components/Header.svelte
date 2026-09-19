@@ -8,6 +8,9 @@
 	import VolumeX from 'lucide-svelte/icons/volume-x';
 	import Grid2x2 from 'lucide-svelte/icons/grid-2x2';
 	import Smartphone from 'lucide-svelte/icons/smartphone';
+	import Maximize from 'lucide-svelte/icons/maximize';
+	import Minimize from 'lucide-svelte/icons/minimize';
+	import { toggleFullscreen, onFullscreenChange } from '$lib/utils/fullscreen';
 
 	let {
 		probes = [],
@@ -34,16 +37,44 @@
 		MARQUEE_SPEED_PRESETS,
 		type MarqueeSpeed
 	} from '$lib/utils/marquee';
+	import {
+		onClockConfigChange,
+		setTimeFormat,
+		setTimeZone,
+		setShowSeconds,
+		formatClock,
+		TIME_ZONE_PRESETS,
+		getTimeZoneShortLabel,
+		type TimeFormat,
+		type ClockConfig
+	} from '$lib/utils/clock';
+
+	let clockConfig = $state<ClockConfig>({
+		format: '24h',
+		timeZone: 'local',
+		showSeconds: true
+	});
 
 	let currentTime = $state('00:00:00');
+	let compactTime = $state('00:00');
+	let timeZoneBadge = $state('');
 	let now = $state(Date.now());
 	let isSettingsOpen = $state(false);
 	let activeTheme = $state<Theme>('dark');
 	let isSoundOn = $state(false);
+	let isFullscreenActive = $state(false);
 	let currentMarqueeSpeed = $state<MarqueeSpeed>('slow');
 	let currentMarqueeDuration = $state(60);
 
-	// Abonnements aux bascules de thème, de son et de vitesse de défilement
+	function updateCurrentTime() {
+		const d = new Date();
+		currentTime = formatClock(d, clockConfig);
+		compactTime = formatClock(d, clockConfig, { forceNoSeconds: true });
+		timeZoneBadge = clockConfig.timeZone !== 'local' ? getTimeZoneShortLabel(clockConfig.timeZone) : '';
+		now = Date.now();
+	}
+
+	// Abonnements aux bascules de thème, de son, de défilement, d'horloge et plein écran
 	$effect(() => {
 		const unsubscribe = onThemeChange((theme) => {
 			activeTheme = theme;
@@ -51,14 +82,23 @@
 		const unsubSound = onSoundChange((enabled) => {
 			isSoundOn = enabled;
 		});
+		const unsubFullscreen = onFullscreenChange((fs) => {
+			isFullscreenActive = fs;
+		});
 		const unsubMarquee = onMarqueeChange((cfg) => {
 			currentMarqueeSpeed = cfg.speed;
 			currentMarqueeDuration = cfg.duration;
 		});
+		const unsubClock = onClockConfigChange((cfg) => {
+			clockConfig = cfg;
+			updateCurrentTime();
+		});
 		return () => {
 			unsubscribe();
 			unsubSound();
+			unsubFullscreen();
 			unsubMarquee();
+			unsubClock();
 		};
 	});
 
@@ -75,13 +115,8 @@
 
 	// Horloge et indicateur de fraîcheur mis à jour chaque seconde
 	$effect(() => {
-		function tick() {
-			const d = new Date();
-			currentTime = d.toTimeString().split(' ')[0];
-			now = Date.now();
-		}
-		tick();
-		const interval = setInterval(tick, 1000);
+		updateCurrentTime();
+		const interval = setInterval(updateCurrentTime, 1000);
 		return () => clearInterval(interval);
 	});
 
@@ -238,10 +273,18 @@
 
 	<!-- Section droite : Horloge, Fraîcheur et Paramètres de Thème -->
 	<div class="flex items-center gap-2 sm:gap-3 shrink-0">
-		<!-- Horloge : format HH:MM sur mobile (<768px), HH:MM:SS sur desktop -->
-		<span class="text-[var(--kato-text-secondary)] font-mono text-xs sm:text-sm" aria-label="Horloge locale : {currentTime}">
-			<span class="inline md:hidden">{currentTime.slice(0, 5)}</span>
+		<!-- Horloge : format complet sur desktop, condensé sur mobile -->
+		<span
+			class="text-[var(--kato-text-secondary)] font-mono text-xs sm:text-sm flex items-center gap-1 shrink-0"
+			aria-label="Horloge ({clockConfig.format}, {clockConfig.timeZone}) : {currentTime}"
+		>
+			<span class="inline md:hidden">{compactTime}</span>
 			<span class="hidden md:inline">{currentTime}</span>
+			{#if timeZoneBadge}
+				<span class="text-[9px] px-1 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold border border-slate-700/60 shrink-0">
+					{timeZoneBadge}
+				</span>
+			{/if}
 		</span>
 
 		<!-- Indicateur de fraîcheur : visible en mode standard, en mode TV et systématiquement si déconnecté ou alerte -->
@@ -302,14 +345,31 @@
 			{/if}
 		</button>
 
+		<!-- Bascule Plein écran (Fullscreen) -->
+		<button
+			type="button"
+			onclick={() => void toggleFullscreen()}
+			class="p-1 rounded-md transition-colors cursor-pointer {isFullscreenActive
+				? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40'
+				: 'text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30'}"
+			title={isFullscreenActive ? 'Quitter le plein écran (Échap / F)' : 'Passer en plein écran (F)'}
+			aria-label={isFullscreenActive ? 'Quitter le plein écran' : 'Passer en plein écran'}
+		>
+			{#if isFullscreenActive}
+				<Minimize class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+			{:else}
+				<Maximize class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+			{/if}
+		</button>
+
 		<!-- Bouton Menu Paramètres / Sélecteur de thème -->
 		<div class="relative">
 			<button
 				type="button"
 				onclick={() => (isSettingsOpen = !isSettingsOpen)}
 				class="p-1 rounded-md text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30 transition-colors cursor-pointer"
-				title="Changer le thème d'affichage"
-				aria-label="Sélecteur de thème"
+				title="Changer le thème et les paramètres"
+				aria-label="Sélecteur de paramètres et thème"
 				aria-expanded={isSettingsOpen}
 			>
 				<Settings class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -323,9 +383,33 @@
 
 				<!-- Dropdown sélecteur de thème et paramètres -->
 				<div
-					class="absolute right-0 top-full mt-2 w-56 rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
+					class="absolute right-0 top-full mt-2 w-60 max-h-[80vh] overflow-y-auto rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
 				>
-					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)]">
+					<!-- Section Affichage / Plein écran -->
+					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)] flex items-center justify-between">
+						<span>Affichage</span>
+					</div>
+					<button
+						type="button"
+						onclick={() => void toggleFullscreen()}
+						class="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {isFullscreenActive ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
+						aria-label={isFullscreenActive ? 'Quitter le plein écran' : 'Passer en plein écran'}
+					>
+						<div class="flex items-center gap-2">
+							{#if isFullscreenActive}
+								<Minimize class="w-3.5 h-3.5 text-emerald-400" />
+								<span>Plein écran (Actif - F)</span>
+							{:else}
+								<Maximize class="w-3.5 h-3.5" />
+								<span>Plein écran (F)</span>
+							{/if}
+						</div>
+						{#if isFullscreenActive}
+							<Check class="w-3.5 h-3.5 text-emerald-400" />
+						{/if}
+					</button>
+
+					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)]">
 						Thème
 					</div>
 					{#each themeOptions as opt (opt.id)}
@@ -394,6 +478,71 @@
 							<span>Rapide (15s)</span>
 							<span>Lent (120s)</span>
 						</div>
+					</div>
+
+					<!-- Section Horloge & Fuseau horaire -->
+					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
+						<span>Horloge</span>
+						<span class="font-mono text-emerald-400">{clockConfig.format}</span>
+					</div>
+
+					<!-- Format 24h / 12h -->
+					<div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
+						<span class="text-[var(--kato-text-secondary)]">Format :</span>
+						<div class="flex items-center gap-1 bg-slate-900/60 p-0.5 rounded border border-[var(--kato-border)]">
+							<button
+								type="button"
+								onclick={() => setTimeFormat('24h')}
+								class="px-2 py-0.5 rounded font-mono text-[11px] transition-colors cursor-pointer {clockConfig.format === '24h' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'text-slate-400 hover:text-white'}"
+								aria-label="Format 24 heures"
+							>
+								24h
+							</button>
+							<button
+								type="button"
+								onclick={() => setTimeFormat('12h')}
+								class="px-2 py-0.5 rounded font-mono text-[11px] transition-colors cursor-pointer {clockConfig.format === '12h' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'text-slate-400 hover:text-white'}"
+								aria-label="Format 12 heures AM/PM"
+							>
+								12h
+							</button>
+						</div>
+					</div>
+
+					<!-- Afficher / masquer les secondes -->
+					<div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
+						<span class="text-[var(--kato-text-secondary)]">Secondes :</span>
+						<button
+							type="button"
+							onclick={() => setShowSeconds(!clockConfig.showSeconds)}
+							class="px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1 border border-[var(--kato-border)] {clockConfig.showSeconds ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60' : 'bg-slate-800/40 text-slate-400'}"
+							aria-label={clockConfig.showSeconds ? 'Masquer les secondes' : 'Afficher les secondes'}
+						>
+							{#if clockConfig.showSeconds}
+								<Check class="w-3 h-3 text-emerald-400" />
+								<span>Affichées</span>
+							{:else}
+								<span>Masquées</span>
+							{/if}
+						</button>
+					</div>
+
+					<!-- Fuseau horaire -->
+					<div class="px-3 py-1.5 pb-2 flex flex-col gap-1 text-xs">
+						<label for="timezone-select" class="text-[var(--kato-text-secondary)] text-[11px]">
+							Fuseau horaire :
+						</label>
+						<select
+							id="timezone-select"
+							value={clockConfig.timeZone}
+							onchange={(e) => setTimeZone((e.target as HTMLSelectElement).value)}
+							class="w-full rounded bg-slate-900 border border-[var(--kato-border)] px-2 py-1 text-xs text-[var(--kato-text-primary)] font-sans focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+							aria-label="Sélectionner le fuseau horaire"
+						>
+							{#each TIME_ZONE_PRESETS as tz (tz.id)}
+								<option value={tz.id}>{tz.label}</option>
+							{/each}
+						</select>
 					</div>
 				</div>
 			{/if}

@@ -25,6 +25,7 @@
 	import DetailModal from '$lib/components/DetailModal.svelte';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import ArrowDown from 'lucide-svelte/icons/arrow-down';
+	import { toggleFullscreen } from '$lib/utils/fullscreen';
 	import {
 		playAlertDown,
 		playAlertRecovery,
@@ -376,11 +377,28 @@
 		}
 	});
 
-	// Écouteur touche 'Escape' pour quitter le mode TV
-	function handleEscapeKey(event: KeyboardEvent): void {
-		if (event.key === 'Escape' && isTvMode) {
-			void exitTvMode();
-			cleanTvParamFromUrl();
+	// Gestionnaire global du clavier : 'F' (plein écran), 'Escape' (mode TV / modale)
+	function handleGlobalKeydown(event: KeyboardEvent): void {
+		const target = event.target as HTMLElement | null;
+		const isInput =
+			target &&
+			(target.tagName === 'INPUT' ||
+				target.tagName === 'TEXTAREA' ||
+				target.tagName === 'SELECT' ||
+				target.isContentEditable);
+
+		if (isInput) return;
+
+		if (event.key === 'f' || event.key === 'F') {
+			event.preventDefault();
+			void toggleFullscreen(dashboardContainer ?? undefined);
+		} else if (event.key === 'Escape') {
+			if (selectedProbe) {
+				selectedProbe = null;
+			} else if (isTvMode) {
+				void exitTvMode();
+				cleanTvParamFromUrl();
+			}
 		}
 	}
 
@@ -400,8 +418,7 @@
 
 <svelte:window
 	bind:innerWidth
-	onkeydown={handleEscapeKey}
-	onkeypress={handleEscapeKey}
+	onkeydown={handleGlobalKeydown}
 />
 
 <svelte:head>
