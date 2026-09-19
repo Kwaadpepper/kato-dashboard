@@ -100,6 +100,9 @@ class DashboardStore {
 
 			if (!existing) {
 				// Nouvelle sonde — toujours considérée comme un changement
+				if (incoming.status === 'down') {
+					incoming.downSince = incoming.downSince || nowIso;
+				}
 				this.probes.set(incoming.id, { ...incoming });
 				changed.push(incoming);
 
@@ -110,6 +113,15 @@ class DashboardStore {
 					newIncidents.push(incident);
 				}
 				continue;
+			}
+
+			// Conserver downSince existant si on est toujours down
+			if (existing.status === 'down' && incoming.status === 'down') {
+				incoming.downSince = existing.downSince;
+			} else if (incoming.status === 'down' && existing.status !== 'down') {
+				incoming.downSince = nowIso;
+			} else if (incoming.status !== 'down') {
+				delete incoming.downSince;
 			}
 
 			// Vérifier si un changement significatif s'est produit
