@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { NormalizedProbe } from '$lib/types';
 	import { applyTheme, onThemeChange, type Theme } from '$lib/utils/theme';
 	import { toggleSound, onSoundChange } from '$lib/utils/sounds';
@@ -75,7 +76,7 @@
 	}
 
 	// Abonnements aux bascules de thème, de son, de défilement, d'horloge et plein écran
-	$effect(() => {
+	onMount(() => {
 		const unsubscribe = onThemeChange((theme) => {
 			activeTheme = theme;
 		});
@@ -93,12 +94,18 @@
 			clockConfig = cfg;
 			updateCurrentTime();
 		});
+
+		// Horloge et indicateur de fraîcheur mis à jour chaque seconde (isolé hors scheduler $effect)
+		updateCurrentTime();
+		const interval = setInterval(updateCurrentTime, 1000);
+
 		return () => {
 			unsubscribe();
 			unsubSound();
 			unsubFullscreen();
 			unsubMarquee();
 			unsubClock();
+			clearInterval(interval);
 		};
 	});
 
@@ -112,13 +119,6 @@
 		{ id: 'amoled', label: 'AMOLED', icon: '⬛' },
 		{ id: 'auto', label: 'Auto (OS)', icon: '💻' }
 	];
-
-	// Horloge et indicateur de fraîcheur mis à jour chaque seconde
-	$effect(() => {
-		updateCurrentTime();
-		const interval = setInterval(updateCurrentTime, 1000);
-		return () => clearInterval(interval);
-	});
 
 	const total = $derived(probes.length);
 	const countUp = $derived(probes.filter((p) => p.status === 'up').length);

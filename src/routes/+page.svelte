@@ -8,7 +8,7 @@
 		ProbeStatus
 	} from '$lib/types';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { connectSSE, type ConnectionStatus } from '$lib/utils/sse-client';
 	import { calculateGrid } from '$lib/utils/grid-calculator';
@@ -377,9 +377,9 @@
 		};
 	});
 
-	// Surveillance dynamique des changements de paramètre d'URL (?tv=1)
-	$effect(() => {
-		const shouldEnterTv = $page.url.searchParams.get('tv') === '1';
+	// Surveillance des changements de navigation (?tv=1) via afterNavigate (sans $effect réactif)
+	afterNavigate(({ to }) => {
+		const shouldEnterTv = to?.url.searchParams.get('tv') === '1';
 		if (shouldEnterTv && !isTvActiveState) {
 			void enterTvMode(gridContainer);
 		}

@@ -28,27 +28,21 @@
 	let queueState = $state<IncidentQueueState>(queueManager.getState());
 
 	onMount(() => {
-		// Abonnement aux changements d'état de la file
-		const unsubQueue = queueManager.subscribe((state) => {
-			queueState = state;
-		});
-
 		// Abonnement à la vitesse limite de défilement
 		const unsubMarquee = onMarqueeChange((config) => {
 			marqueeDuration = config.duration;
 		});
 
 		return () => {
-			unsubQueue();
 			unsubMarquee();
 			queueManager.reset();
 		};
 	});
 
-	// Synchronise les incidents entrants dans la file d'attente
-	// Si un défilement est en cours, les nouveaux événements attendent la fin du cycle
-	$effect(() => {
+	// Synchronise les incidents entrants dans la file avant le rendu DOM (même batch, pas de microtask cascade)
+	$effect.pre(() => {
 		queueManager.setIncidents(incidents, tvMode);
+		queueState = queueManager.getState();
 	});
 
 	// Rafraîchit l'horodatage uniquement dans le tiroir mobile déplié
@@ -75,6 +69,7 @@
 		// Déclenché à la fin de chaque cycle (translation 0% -> -50%)
 		// Le lot a défilé jusqu'au bout : on applique les nouveaux événements de la file
 		queueManager.onCycleComplete();
+		queueState = queueManager.getState();
 	}
 
 	function toggleExpand() {
