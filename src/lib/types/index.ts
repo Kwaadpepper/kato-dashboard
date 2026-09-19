@@ -219,6 +219,24 @@ export interface UserPreferences {
 }
 
 /**
+ * Paramètres d'entrée pour le calcul de géométrie de la grille adaptative.
+ */
+export interface GridInput {
+  /** Largeur disponible du viewport ou conteneur en pixels */
+  viewportWidth: number;
+  /** Hauteur disponible ou totale de la fenêtre en pixels */
+  viewportHeight: number;
+  /** Nombre total de sondes actives à disposer */
+  probeCount: number;
+  /** Hauteur optionnelle de l'en-tête (standard 48px) */
+  headerHeight?: number;
+  /** Hauteur optionnelle de la barre d'incidents (standard 40px) */
+  incidentBarHeight?: number;
+  /** Active la contrainte d'accessibilité tactile mobile (cellules min 44px) */
+  isMobile?: boolean;
+}
+
+/**
  * Paramètres de disposition calculés dynamiquement pour la grille adaptative.
  */
 export interface GridLayout {
@@ -232,4 +250,7 @@ export interface GridLayout {
   cellSize: number;
   /** Espacement entre cellules en pixels */
   gap: number;
+  /** Indique si un défilement vertical est nécessaire (ex. contrainte mobile 44px) */
+  overflows?: boolean;
 }
+
