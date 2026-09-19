@@ -2,8 +2,9 @@ import { MockAdapter } from '$lib/server/adapters/mock.adapter';
 import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
 import { store } from '$lib/server/store';
 import { startPolling } from '$lib/server/poller';
+import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/auth';
+import { redirect, type Handle } from '@sveltejs/kit';
 import type { MonitoringAdapter } from '$lib/types';
-import type { Handle } from '@sveltejs/kit';
 
 // ============================================================================
 // INITIALISATION AU DÉMARRAGE DU SERVEUR
@@ -59,9 +60,38 @@ bootstrap().catch((err) => {
 
 /**
  * Hook serveur SvelteKit.
- * Passe-through par défaut : l'initialisation est gérée par le bootstrap ci-dessus.
- * On peut ici ajouter une authentification ou des middlewares globaux ultérieurement.
+ * Gère le contrôle d'accès si KATO_AUTH_ENABLED est actif.
  */
 export const handle: Handle = async ({ event, resolve }) => {
+	if (isAuthEnabled()) {
+		const { pathname } = event.url;
+
+		// Autoriser l'accès aux assets internes du bundle et favicon
+		const isStaticAsset = pathname.startsWith('/_app/') || pathname === '/favicon.svg';
+
+		if (!isStaticAsset) {
+			const sessionToken = event.cookies.get(SESSION_COOKIE_NAME);
+			const authenticated = isValidSession(sessionToken);
+
+			if (pathname === '/login') {
+				// Utilisateur déjà authentifié : redirection vers la vue principale
+				if (authenticated) {
+					throw redirect(303, '/');
+				}
+			} else {
+				// Route protégée : rejeter ou rediriger si non authentifié
+				if (!authenticated) {
+					if (pathname.startsWith('/api/')) {
+						return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+							status: 401,
+							headers: { 'Content-Type': 'application/json' }
+						});
+					}
+					throw redirect(303, '/login');
+				}
+			}
+		}
+	}
+
 	return resolve(event);
 };

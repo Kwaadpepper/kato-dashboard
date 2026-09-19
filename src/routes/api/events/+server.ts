@@ -1,7 +1,18 @@
+import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/auth';
 import { store } from '$lib/server/store';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = () => {
+export const GET: RequestHandler = ({ cookies }) => {
+	// Vérification de la session si l'authentification est activée
+	if (isAuthEnabled()) {
+		const token = cookies.get(SESSION_COOKIE_NAME);
+		if (!isValidSession(token)) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' }
+			});
+		}
+	}
 	let unsubscribe: (() => void) | null = null;
 	let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
