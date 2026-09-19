@@ -7,9 +7,18 @@
 		GridLayout,
 		ProbeStatus
 	} from '$lib/types';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { connectSSE } from '$lib/utils/sse-client';
 	import { calculateGrid, HEADER_HEIGHT, INCIDENT_BAR_HEIGHT } from '$lib/utils/grid-calculator';
 	import { sortProbesSmart } from '$lib/utils/sort';
+	import {
+		enterTvMode,
+		exitTvMode,
+		onTvModeChange,
+		startInactivityDetection
+	} from '$lib/utils/tv-mode';
 	import Header from '$lib/components/Header.svelte';
 	import ProbeGrid from '$lib/components/ProbeGrid.svelte';
 	import IncidentBar from '$lib/components/IncidentBar.svelte';
@@ -60,13 +69,27 @@
 		return window.innerWidth < 768 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 	});
 
-	// Détection du mode TV via le paramètre d'URL (?tv=1)
-	const isTvMode = $derived.by(() => {
-		if (typeof window === 'undefined') return false;
-		return new URLSearchParams(window.location.search).get('tv') === '1';
-	});
+	// Conteneur DOM principal du dashboard pour l'anti burn-in et le plein écran
+	let dashboardContainer: HTMLElement | null = $state(null);
+	// Lit le paramètre URL ?tv=1 via $page.url.searchParams pour l'état initial (SSR + hydratation)
+	let isTvActiveState = $state($page.url.searchParams.get('tv') === '1');
+	const isTvMode = $derived(isTvActiveState);
 
-	// Mode compact activé en mode TV ou si le parc comporte plus de 100 sondes
+	// Nettoie proprement le paramètre ?tv=1 de l'URL du navigateur et du store SvelteKit
+	function cleanTvParamFromUrl(): void {
+		if (typeof window === 'undefined') return;
+		const currentUrl = new URL(window.location.href);
+		if (currentUrl.searchParams.has('tv')) {
+			currentUrl.searchParams.delete('tv');
+			void goto(currentUrl.pathname + (currentUrl.search ? currentUrl.search : ''), {
+				replaceState: true,
+				keepFocus: true,
+				noScroll: true
+			});
+		}
+	}
+
+	// Mode compact activé en mode TV (h-8) ou si le parc comporte plus de 100 sondes
 	const isCompactHeader = $derived(isTvMode || probes.length > 100);
 
 	// 1. Tri intelligent : DOWN en tête (haut-gauche), puis DEGRADED, UP par criticité, etc.
@@ -190,17 +213,87 @@
 			if (flashTimer) clearTimeout(flashTimer);
 		};
 	});
+
+	// 5. Gestion du mode TV : initialisation ?tv=1, synchronisation et détection d'inactivité (30s)
+	onMount(() => {
+		// Si tv=1 : appelle enterTvMode() au mount
+		if ($page.url.searchParams.get('tv') === '1') {
+			void enterTvMode(dashboardContainer);
+		}
+
+		// Synchronisation continue avec l'état effectif du mode TV
+		const unsubTv = onTvModeChange((active) => {
+			isTvActiveState = active;
+			if (!active) {
+				cleanTvParamFromUrl();
+			}
+		});
+
+		// Détection d'inactivité : si pas de mousemove/keypress pendant 30s → auto-enter
+		const cleanupInactivity = startInactivityDetection(30_000, () => {
+			void enterTvMode(dashboardContainer);
+		});
+
+		return () => {
+			unsubTv();
+			cleanupInactivity();
+			void exitTvMode();
+		};
+	});
+
+	// Surveillance dynamique des changements de paramètre d'URL (?tv=1)
+	$effect(() => {
+		const shouldEnterTv = $page.url.searchParams.get('tv') === '1';
+		if (shouldEnterTv && !isTvActiveState) {
+			void enterTvMode(dashboardContainer);
+		}
+	});
+
+	// Écouteur touche 'Escape' pour quitter le mode TV
+	function handleEscapeKey(event: KeyboardEvent): void {
+		if (event.key === 'Escape' && isTvMode) {
+			void exitTvMode();
+			cleanTvParamFromUrl();
+		}
+	}
+
+	// Neutralisation des clics en mode TV (tooltips au hover uniquement, pas de clic)
+	function handleClickCapture(event: MouseEvent): void {
+		if (isTvMode) {
+			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
+		}
+	}
 </script>
+
+<svelte:window
+	onkeydown={handleEscapeKey}
+	onkeypress={handleEscapeKey}
+/>
 
 <svelte:head>
 	<title>Kato Dashboard ({sortedProbes.length} sondes)</title>
 </svelte:head>
 
 <!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+	id="tv-container"
+	bind:this={dashboardContainer}
+	onclickcapture={handleClickCapture}
+	onauxclickcapture={handleClickCapture}
+	oncontextmenucapture={(e) => {
+		if (isTvMode) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+	}}
 	class="h-screen w-screen overflow-hidden flex flex-col transition-colors duration-500 text-white select-none {isCriticalDownRatio
 		? 'bg-red-950/20'
-		: 'bg-slate-950'} {containerFlashing ? 'animate-kato-border-flash' : ''} {isCompactHeader
+		: 'bg-slate-950'} {containerFlashing ? 'animate-kato-border-flash' : ''} {isTvMode
+		? 'animate-kato-drift tv-mode'
+		: ''} {isCompactHeader
 		? 'pt-8'
 		: 'pt-12'} pb-10"
 >

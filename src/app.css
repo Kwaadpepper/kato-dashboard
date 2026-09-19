@@ -94,6 +94,30 @@
 }
 
 /* ============================================================================
+ * MODE TV : NEUTRALISATION DU CURSEUR ET MASQUAGE D'INACTIVITÉ
+ * ============================================================================ */
+
+/* En mode TV (curseur actif), neutralise l'apparence pointeur des éléments cliquables */
+.tv-mode a,
+.tv-mode button,
+.tv-mode [role="button"],
+.tv-mode .cursor-pointer {
+	cursor: default;
+}
+
+/* Masquage absolu du curseur après 5s d'inactivité - priorité absolue sur tout élément */
+html.tv-cursor-hidden,
+html.tv-cursor-hidden *,
+body.tv-cursor-hidden,
+body.tv-cursor-hidden *,
+.tv-cursor-hidden,
+.tv-cursor-hidden *,
+body.cursor-hidden,
+body.cursor-hidden * {
+	cursor: none !important;
+}
+
+/* ============================================================================
  * ACCESSIBILITÉ : PREFERS-REDUCED-MOTION (Désactivation globale)
  * ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
