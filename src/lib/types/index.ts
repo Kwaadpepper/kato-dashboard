@@ -53,6 +53,8 @@ export interface NormalizedProbe {
   group: string | null;
   /** Niveau de criticité opérationnelle */
   criticality: Criticality;
+  /** Horodatage ISO 8601 du début de panne si statut == 'down' */
+  downSince?: string;
 }
 
 /**
