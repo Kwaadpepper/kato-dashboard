@@ -7,11 +7,13 @@
 	let {
 		probes = [],
 		layout,
-		previousStatuses
+		previousStatuses,
+		onselect
 	}: {
 		probes: NormalizedProbe[];
 		layout: GridLayout;
 		previousStatuses?: Record<string, ProbeStatus>;
+		onselect?: (probe: NormalizedProbe) => void;
 	} = $props();
 
 	// Style dynamique de la grille CSS Grid calculé par l'algorithme adaptatif
@@ -23,7 +25,7 @@
 </script>
 
 <div
-	class="w-full h-full flex items-center justify-center overflow-hidden p-2 sm:p-4 select-none"
+	class="w-full {layout.overflows ? 'min-h-full py-4' : 'h-full flex items-center'} flex justify-center p-2 sm:p-4 select-none"
 >
 	<div
 		class="grid justify-center items-center content-center transition-all duration-200"
@@ -40,6 +42,7 @@
 						prevStatus={previousStatuses?.[probe.id]}
 						density={layout.density}
 						cellSize={layout.cellSize}
+						{onselect}
 					/>
 				{:else}
 					<ProbeDot
@@ -47,6 +50,7 @@
 						prevStatus={previousStatuses?.[probe.id]}
 						density={layout.density}
 						cellSize={layout.cellSize}
+						{onselect}
 					/>
 				{/if}
 			</div>

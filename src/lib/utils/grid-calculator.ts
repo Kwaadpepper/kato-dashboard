@@ -76,15 +76,29 @@ export function calculateGrid(input: GridInput): GridLayout {
 	let columns = Math.max(1, Math.floor(availableWidth / (cellSize + gap)));
 	let rows = Math.ceil(probeCount / columns);
 
-	// Seuil minimal absolu (44px tactile sur mobile, 12px absolu desktop)
+	// Seuil minimal absolu (44px tactile sur mobile selon guidelines Apple/Google, 12px absolu desktop)
 	const minCellSize = isMobile ? 44 : 12;
+
+	// En mode mobile, on garantit que la taille de cellule ne débute jamais en-dessous de 44px
+	if (isMobile && cellSize < minCellSize) {
+		cellSize = minCellSize;
+		gap = getGapForCellSize(cellSize);
+		columns = Math.max(1, Math.floor(availableWidth / (cellSize + gap)));
+		rows = Math.ceil(probeCount / columns);
+	}
 
 	// 6. Boucle de réduction : réduit cellSize si la hauteur requise dépasse l'espace disponible
 	while (rows * (cellSize + gap) > availableHeight && cellSize > minCellSize) {
 		cellSize -= 2;
+		if (isMobile && cellSize < minCellSize) {
+			cellSize = minCellSize;
+		}
 		gap = getGapForCellSize(cellSize);
 		columns = Math.max(1, Math.floor(availableWidth / (cellSize + gap)));
 		rows = Math.ceil(probeCount / columns);
+		if (isMobile && cellSize === minCellSize) {
+			break;
+		}
 	}
 
 	// Détection d'un dépassement exceptionnel (mode mobile contraint par la cible 44px)

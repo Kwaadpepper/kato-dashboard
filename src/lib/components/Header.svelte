@@ -84,12 +84,12 @@
 			{countUp}/{total} UP
 		</span>
 
-		<!-- Badges Compteurs : un badge par statut -->
-		<div class="flex items-center gap-1.5 flex-wrap">
+		<!-- Badges Compteurs : masqués en-dessous de 480px, réduits entre 480px et 768px -->
+		<div class="hidden min-[480px]:flex items-center gap-1 sm:gap-1.5 flex-wrap">
 			<!-- UP (vert) -->
 			{#if !compact || countUp > 0}
 				<span
-					class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 shrink-0"
+					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 shrink-0"
 					title="Sondes UP"
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -100,7 +100,7 @@
 			<!-- DEGRADED (ambre) -->
 			{#if !compact || countDegraded > 0}
 				<span
-					class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-amber-950/60 text-amber-300 border border-amber-800/50 shrink-0"
+					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-amber-950/60 text-amber-300 border border-amber-800/50 shrink-0"
 					title="Sondes dégradées"
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
@@ -111,7 +111,7 @@
 			<!-- DOWN (rouge) -->
 			{#if !compact || countDown > 0}
 				<span
-					class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-red-950/60 text-red-300 border border-red-800/60 shrink-0 {countDown >
+					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-red-950/60 text-red-300 border border-red-800/60 shrink-0 {countDown >
 					0
 						? 'animate-pulse'
 						: ''}"
@@ -125,7 +125,7 @@
 			<!-- PAUSED (gris) -->
 			{#if !compact || countPaused > 0}
 				<span
-					class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-slate-800/50 text-slate-300 border border-slate-700/50 shrink-0"
+					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-slate-800/50 text-slate-300 border border-slate-700/50 shrink-0"
 					title="Sondes en pause"
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
@@ -136,7 +136,7 @@
 			<!-- PENDING (bleu) -->
 			{#if countPending > 0}
 				<span
-					class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-950/60 text-blue-300 border border-blue-800/50 shrink-0"
+					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-blue-950/60 text-blue-300 border border-blue-800/50 shrink-0"
 					title="Sondes en attente"
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
@@ -147,7 +147,7 @@
 			<!-- MAINTENANCE (violet) -->
 			{#if countMaintenance > 0}
 				<span
-					class="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-violet-950/60 text-violet-300 border border-violet-800/50 shrink-0"
+					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-violet-950/60 text-violet-300 border border-violet-800/50 shrink-0"
 					title="Sondes en maintenance"
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
@@ -161,13 +161,14 @@
 	<div class="flex-1"></div>
 
 	<!-- Section droite : Horloge et Fraîcheur -->
-	<div class="flex items-center gap-3 shrink-0">
-		<!-- Horloge HH:MM:SS -->
+	<div class="flex items-center gap-2 sm:gap-3 shrink-0">
+		<!-- Horloge : format HH:MM sur mobile (<768px), HH:MM:SS sur desktop -->
 		<span class="text-slate-400 font-mono text-xs sm:text-sm">
-			{currentTime}
+			<span class="inline md:hidden">{currentTime.slice(0, 5)}</span>
+			<span class="hidden md:inline">{currentTime}</span>
 		</span>
 
-		<!-- Indicateur de fraîcheur (masqué en mode compact pour concision) -->
+		<!-- Indicateur de fraîcheur (masqué en mode compact ou mobile pour concision) -->
 		{#if !compact}
 			<span
 				class="hidden sm:flex font-mono text-xs px-2 py-0.5 rounded-md border items-center gap-1 {freshnessColor}"

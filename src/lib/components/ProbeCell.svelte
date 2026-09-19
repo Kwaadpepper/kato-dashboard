@@ -12,12 +12,14 @@
 		probe,
 		prevStatus,
 		density = 'medium',
-		cellSize = 120
+		cellSize = 120,
+		onselect
 	}: {
 		probe: NormalizedProbe;
 		prevStatus?: ProbeStatus;
 		density: GridDensity;
 		cellSize?: number;
+		onselect?: (probe: NormalizedProbe) => void;
 	} = $props();
 
 	const color = $derived(STATUS_COLORS[probe.status] ?? STATUS_COLORS.up);
@@ -42,6 +44,23 @@
 			return () => clearTimeout(timer);
 		}
 	});
+
+	function handleClick(e: MouseEvent) {
+		const customEvent = new CustomEvent('probe-detail', {
+			detail: probe,
+			bubbles: true,
+			composed: true
+		});
+		(e.currentTarget as HTMLElement).dispatchEvent(customEvent);
+		onselect?.(probe);
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleClick(e as any);
+		}
+	}
 
 	const responseTimeDisplay = $derived(
 		probe.responseTime !== null ? `${probe.responseTime} ms` : '—'
@@ -81,11 +100,15 @@
 	<!-- ===================================================================== -->
 	<!-- MODE LARGE (1-12 sondes) : Carte détaillée maximale                   -->
 	<!-- ===================================================================== -->
-	<article
-		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none {cardStyleClasses} {isDown
+	<div
+		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
+		tabindex="0"
+		role="button"
+		onclick={handleClick}
+		onkeydown={handleKeydown}
 	>
 		<!-- En-tête de la carte : Nom + URL + Icône statut -->
 		<div class="flex justify-between items-start gap-2 min-w-0">
@@ -138,17 +161,21 @@
 				</span>
 			</div>
 		</div>
-	</article>
+	</div>
 
 {:else if density === 'medium'}
 	<!-- ===================================================================== -->
 	<!-- MODE MEDIUM (13-48 sondes) : Carte intermédiaire compacte             -->
 	<!-- ===================================================================== -->
-	<article
-		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none {cardStyleClasses} {isDown
+	<div
+		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
+		tabindex="0"
+		role="button"
+		onclick={handleClick}
+		onkeydown={handleKeydown}
 	>
 		<!-- Ligne supérieure : Nom + Pastille -->
 		<div class="flex items-center justify-between gap-2 min-w-0">
@@ -167,17 +194,21 @@
 				{responseTimeDisplay}
 			</span>
 		</div>
-	</article>
+	</div>
 
 {:else}
 	<!-- ===================================================================== -->
 	<!-- MODE COMPACT (49-120 sondes) : Cellule ultra-synthétique en ligne     -->
 	<!-- ===================================================================== -->
-	<article
-		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none {compactStyleClasses} {isDown
+	<div
+		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {compactStyleClasses} {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
+		tabindex="0"
+		role="button"
+		onclick={handleClick}
+		onkeydown={handleKeydown}
 	>
 		<!-- Bande couleur verticale plaquée à gauche -->
 		<div class="w-1 h-full rounded-full absolute left-0 top-0 bottom-0 {color.bgClass}"></div>
@@ -191,5 +222,5 @@
 		<span class="text-[11px] font-mono text-slate-300 shrink-0 ml-1.5">
 			{responseTimeDisplay}
 		</span>
-	</article>
+	</div>
 {/if}

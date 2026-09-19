@@ -6,12 +6,14 @@
 		probe,
 		prevStatus,
 		density = 'micro',
-		cellSize = 32
+		cellSize = 32,
+		onselect
 	}: {
 		probe: NormalizedProbe;
 		prevStatus?: ProbeStatus;
 		density: 'micro' | 'pixel';
 		cellSize?: number;
+		onselect?: (probe: NormalizedProbe) => void;
 	} = $props();
 
 	const color = $derived(STATUS_COLORS[probe.status] ?? STATUS_COLORS.up);
@@ -55,6 +57,23 @@
 			probe.responseTime !== null ? ` (${probe.responseTime}ms)` : ''
 		}${probe.uptime24h !== null ? ` • 24h: ${probe.uptime24h}%` : ''}`
 	);
+
+	function handleClick(e: MouseEvent) {
+		const customEvent = new CustomEvent('probe-detail', {
+			detail: probe,
+			bubbles: true,
+			composed: true
+		});
+		(e.currentTarget as HTMLElement).dispatchEvent(customEvent);
+		onselect?.(probe);
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleClick(e as any);
+		}
+	}
 </script>
 
 <div
@@ -65,10 +84,13 @@
 		style={dotStyle}
 		class="{density === 'pixel'
 			? 'rounded-xs hover:ring-2 hover:ring-white/40'
-			: 'rounded-full'} {color.bgClass} hover:scale-125 transition-transform duration-150 cursor-pointer shadow-sm {isDown
+			: 'rounded-full'} {color.bgClass} hover:scale-125 transition-transform duration-150 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
-		role="status"
+		role="button"
+		tabindex="0"
+		onclick={handleClick}
+		onkeydown={handleKeydown}
 		aria-label="{probe.name}: {probe.status}"
 	></div>
 

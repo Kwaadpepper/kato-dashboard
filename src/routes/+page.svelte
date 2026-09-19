@@ -22,6 +22,9 @@
 	import Header from '$lib/components/Header.svelte';
 	import ProbeGrid from '$lib/components/ProbeGrid.svelte';
 	import IncidentBar from '$lib/components/IncidentBar.svelte';
+	import DetailModal from '$lib/components/DetailModal.svelte';
+	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
+	import ArrowDown from 'lucide-svelte/icons/arrow-down';
 
 	let { data }: { data: PageData } = $props();
 
@@ -62,12 +65,64 @@
 	let gridContainer: HTMLElement | null = $state(null);
 	let containerWidth = $state<number>(1920);
 	let containerHeight = $state<number>(992);
+	let innerWidth = $state<number>(1920);
 
-	// Détection rudimentaire du mode mobile pour garantir l'accessibilité tactile (cellules ≥ 44px)
-	const isMobile = $derived.by(() => {
-		if (typeof window === 'undefined') return false;
-		return window.innerWidth < 768 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-	});
+	// Détection précise du mode mobile (< 768px) pour adaptation du layout et du tactile
+	const isMobile = $derived(innerWidth < 768);
+
+	// État de sélection d'une sonde pour la vue détaillée (Modal fullscreen mobile / Side-panel desktop)
+	let selectedProbe = $state<NormalizedProbe | null>(null);
+
+	function handleSelectProbe(probe: NormalizedProbe) {
+		if (!isTvMode) {
+			selectedProbe = probe;
+		}
+	}
+
+	function handleProbeDetailCustomEvent(e: Event) {
+		if (!isTvMode && 'detail' in e) {
+			selectedProbe = (e as CustomEvent<NormalizedProbe>).detail;
+		}
+	}
+
+	// Gestion du geste tactile "Pull-to-refresh" natif sur mobile
+	let touchStartY = 0;
+	let isPulling = $state(false);
+	let pullDistance = $state(0);
+	let isRefreshing = $state(false);
+
+	function handleTouchStart(e: TouchEvent) {
+		if (!isMobile || isRefreshing) return;
+		if (gridContainer && gridContainer.scrollTop <= 0) {
+			touchStartY = e.touches[0].clientY;
+			isPulling = true;
+		}
+	}
+
+	function handleTouchMove(e: TouchEvent) {
+		if (!isPulling || isRefreshing) return;
+		if (gridContainer && gridContainer.scrollTop > 0) {
+			isPulling = false;
+			pullDistance = 0;
+			return;
+		}
+		const currentY = e.touches[0].clientY;
+		const diffY = currentY - touchStartY;
+		if (diffY > 0) {
+			pullDistance = Math.min(80, Math.floor(diffY * 0.45));
+		} else {
+			pullDistance = 0;
+		}
+	}
+
+	async function handleTouchEnd() {
+		if (!isPulling || isRefreshing) return;
+		isPulling = false;
+		if (pullDistance >= 50) {
+			await performRefresh();
+		}
+		pullDistance = 0;
+	}
 
 	// Conteneur DOM principal du dashboard pour l'anti burn-in et le plein écran
 	let dashboardContainer: HTMLElement | null = $state(null);
@@ -145,9 +200,16 @@
 		};
 	});
 
-	// 4. Souscription SSE (Server-Sent Events) pour les flux temps réel
-	$effect(() => {
-		const disconnect = connectSSE(
+	// 4. Souscription SSE (Server-Sent Events) pour les flux temps réel et reconnexion au pull-to-refresh
+	let disconnectSSE: (() => void) | null = null;
+
+	function setupSSE() {
+		if (disconnectSSE) {
+			disconnectSSE();
+			disconnectSSE = null;
+		}
+
+		disconnectSSE = connectSSE(
 			(initialState) => {
 				probes = [...initialState.probes];
 				incidents = [...initialState.incidents];
@@ -207,9 +269,25 @@
 				lastUpdate = heartbeat.timestamp;
 			}
 		);
+	}
+
+	async function performRefresh() {
+		isRefreshing = true;
+		try {
+			// Reconnexion forcée SSE (déclenche immédiatement l'envoi du snapshot complet 'init')
+			setupSSE();
+			// Délai visuel de confort pour l'animation pull-to-refresh
+			await new Promise((resolve) => setTimeout(resolve, 600));
+		} finally {
+			isRefreshing = false;
+		}
+	}
+
+	$effect(() => {
+		setupSSE();
 
 		return () => {
-			disconnect();
+			if (disconnectSSE) disconnectSSE();
 			if (flashTimer) clearTimeout(flashTimer);
 		};
 	});
@@ -234,9 +312,16 @@
 			void enterTvMode(dashboardContainer);
 		});
 
+		// Écoute de l'événement personnalisé 'probe-detail' propagé par bullage
+		const handleCustomProbeDetail = (e: Event) => {
+			handleProbeDetailCustomEvent(e);
+		};
+		window.addEventListener('probe-detail', handleCustomProbeDetail);
+
 		return () => {
 			unsubTv();
 			cleanupInactivity();
+			window.removeEventListener('probe-detail', handleCustomProbeDetail);
 			void exitTvMode();
 		};
 	});
@@ -268,6 +353,7 @@
 </script>
 
 <svelte:window
+	bind:innerWidth
 	onkeydown={handleEscapeKey}
 	onkeypress={handleEscapeKey}
 />
@@ -276,7 +362,7 @@
 	<title>Kato Dashboard ({sortedProbes.length} sondes)</title>
 </svelte:head>
 
-<!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) -->
+<!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) sur desktop -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	id="tv-container"
@@ -295,7 +381,7 @@
 		? 'animate-kato-drift tv-mode'
 		: ''} {isCompactHeader
 		? 'pt-8'
-		: 'pt-12'} pb-10"
+		: 'pt-12'} pb-8 sm:pb-10"
 >
 	<!-- En-tête supérieur (Header fixe) -->
 	<Header {probes} {lastUpdate} compact={isCompactHeader} />
@@ -303,10 +389,37 @@
 	<!-- Zone principale de la grille supervisée par ResizeObserver -->
 	<main
 		bind:this={gridContainer}
-		class="flex-1 w-full h-full relative {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+		class="flex-1 w-full h-full relative {isMobile || layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
 	>
+		<!-- Indicateur visuel Pull-to-refresh natif sur mobile -->
+		{#if isMobile && (pullDistance > 0 || isRefreshing)}
+			<div
+				class="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono bg-slate-900/95 border-b border-slate-800 transition-all duration-150 select-none shrink-0"
+				style="height: {isRefreshing ? 42 : Math.max(30, pullDistance)}px;"
+			>
+				{#if isRefreshing}
+					<LoaderCircle class="w-4 h-4 text-emerald-400 animate-spin" />
+					<span class="text-slate-300">Actualisation des sondes...</span>
+				{:else if pullDistance >= 50}
+					<ArrowDown class="w-4 h-4 text-emerald-400 rotate-180 transition-transform duration-200" />
+					<span class="text-emerald-400 font-semibold">Relâchez pour actualiser</span>
+				{:else}
+					<ArrowDown class="w-4 h-4 text-slate-400 transition-transform duration-200" />
+					<span class="text-slate-400">Tirez pour actualiser ({pullDistance}px)</span>
+				{/if}
+			</div>
+		{/if}
+
 		{#if sortedProbes.length > 0}
-			<ProbeGrid probes={sortedProbes} {layout} {previousStatuses} />
+			<ProbeGrid
+				probes={sortedProbes}
+				{layout}
+				{previousStatuses}
+				onselect={handleSelectProbe}
+			/>
 		{:else}
 			<div class="w-full h-full flex flex-col items-center justify-center text-slate-500 font-mono text-sm">
 				<span class="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></span>
@@ -318,3 +431,9 @@
 	<!-- Bandeau d'alertes inférieur (IncidentBar fixe) -->
 	<IncidentBar {incidents} tvMode={isTvMode} />
 </div>
+
+<!-- Modal plein écran sur mobile / Panneau latéral sur desktop -->
+<DetailModal
+	probe={selectedProbe}
+	onclose={() => (selectedProbe = null)}
+/>
