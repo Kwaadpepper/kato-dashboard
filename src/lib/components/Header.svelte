@@ -60,6 +60,17 @@
 	let timeZoneBadge = $state('');
 	let now = $state(Date.now());
 	let isSettingsOpen = $state(false);
+	let settingsContainer = $state<HTMLElement | null>(null);
+
+	function handleWindowClick(event: MouseEvent) {
+		if (!isSettingsOpen) return;
+		const target = event.target as Node | null;
+		if (settingsContainer && !settingsContainer.contains(target)) {
+			isSettingsOpen = false;
+			event.preventDefault();
+			event.stopPropagation();
+		}
+	}
 	let activeTheme = $state<Theme>('dark');
 	let isSoundOn = $state(false);
 	let isFullscreenActive = $state(false);
@@ -156,7 +167,12 @@
 	});
 </script>
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape' && isSettingsOpen) isSettingsOpen = false; }} />
+<svelte:window
+	onclickcapture={handleWindowClick}
+	onkeydown={(e) => {
+		if (e.key === 'Escape' && isSettingsOpen) isSettingsOpen = false;
+	}}
+/>
 
 <header
 	class="fixed top-0 left-0 right-0 z-50 w-full bg-[var(--kato-bg-secondary)]/90 backdrop-blur-sm border-b border-[var(--kato-border)] flex items-center px-4 justify-between transition-colors duration-150 select-none {compact
@@ -362,7 +378,7 @@
 		</button>
 
 		<!-- Bouton Menu Paramètres / Sélecteur de thème -->
-		<div class="relative">
+		<div class="relative" bind:this={settingsContainer}>
 			<button
 				type="button"
 				onclick={() => (isSettingsOpen = !isSettingsOpen)}
@@ -375,11 +391,6 @@
 			</button>
 
 			{#if isSettingsOpen}
-				<!-- Overlay transparent pour fermer au clic en dehors -->
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div class="fixed inset-0 z-40" onclick={() => (isSettingsOpen = false)}></div>
-
 				<!-- Dropdown sélecteur de thème et paramètres -->
 				<div
 					class="absolute right-0 top-full mt-2 w-60 max-h-[80vh] overflow-y-auto rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
