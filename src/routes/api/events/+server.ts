@@ -2,7 +2,7 @@ import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/
 import { store } from '$lib/server/store';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = ({ cookies }) => {
+export const GET: RequestHandler = ({ cookies, request }) => {
 	// Vérification de la session si l'authentification est activée
 	if (isAuthEnabled()) {
 		const token = cookies.get(SESSION_COOKIE_NAME);
@@ -15,17 +15,71 @@ export const GET: RequestHandler = ({ cookies }) => {
 	}
 	let unsubscribe: (() => void) | null = null;
 	let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+	let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
+	let isCleanedUp = false;
 
-	const stream = new ReadableStream({
+	const cleanup = () => {
+		if (isCleanedUp) return;
+		isCleanedUp = true;
+
+		try {
+			request.signal.removeEventListener('abort', cleanup);
+		} catch {
+			// Ignorer si déjà retiré
+		}
+
+		if (unsubscribe) {
+			try {
+				unsubscribe();
+			} catch (err) {
+				console.error('[SSE] Erreur lors du désabonnement:', err);
+			}
+			unsubscribe = null;
+		}
+
+		if (heartbeatInterval) {
+			clearInterval(heartbeatInterval);
+			heartbeatInterval = null;
+		}
+
+		if (streamController) {
+			try {
+				streamController.close();
+			} catch {
+				// Controller déjà fermé ou annulé
+			}
+			streamController = null;
+		}
+
+		console.log('[SSE] Client déconnecté, nettoyage effectué.');
+	};
+
+	// Écoute de l'interruption réseau du client (ex: fermeture d'onglet ou coupure TCP)
+	if (request.signal.aborted) {
+		cleanup();
+	} else {
+		request.signal.addEventListener('abort', cleanup, { once: true });
+	}
+
+	const stream = new ReadableStream<Uint8Array>({
 		start(controller) {
+			streamController = controller;
+
+			if (isCleanedUp || request.signal.aborted) {
+				cleanup();
+				return;
+			}
+
 			const encoder = new TextEncoder();
 
 			const sendEvent = (event: string, data: unknown) => {
+				if (isCleanedUp) return;
 				try {
 					const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 					controller.enqueue(encoder.encode(payload));
 				} catch (err) {
-					console.error('[SSE] Erreur lors de la sérialisation des données:', err);
+					console.error('[SSE] Erreur lors de l\'envoi des données, fermeture de la connexion:', err);
+					cleanup();
 				}
 			};
 
@@ -44,13 +98,7 @@ export const GET: RequestHandler = ({ cookies }) => {
 		},
 		cancel() {
 			// Nettoyage impératif lors de la déconnexion du client pour éviter les memory leaks
-			if (unsubscribe) {
-				unsubscribe();
-			}
-			if (heartbeatInterval) {
-				clearInterval(heartbeatInterval);
-			}
-			console.log('[SSE] Client déconnecté, nettoyage effectué.');
+			cleanup();
 		}
 	});
 

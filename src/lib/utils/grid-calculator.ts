@@ -24,6 +24,95 @@ export function getGapForCellSize(cellSize: number): number {
 	return 4;
 }
 
+function hasGridOverflow(
+	columns: number,
+	rows: number,
+	cellSize: number,
+	gap: number,
+	availableWidth: number,
+	availableHeight: number
+): boolean {
+	return (
+		rows * cellSize + (rows - 1) * gap > availableHeight ||
+		columns * cellSize + (columns - 1) * gap > availableWidth
+	);
+}
+
+function getMaxCellSize(
+	columns: number,
+	rows: number,
+	gap: number,
+	availableWidth: number,
+	availableHeight: number
+): number {
+	const maxCellByWidth = Math.max(
+		1,
+		Math.floor((availableWidth - (columns - 1) * gap) / columns)
+	);
+	const maxCellByHeight = Math.max(
+		1,
+		Math.floor((availableHeight - (rows - 1) * gap) / rows)
+	);
+
+	return Math.max(1, Math.min(maxCellByWidth, maxCellByHeight));
+}
+
+function findBestGridGeometry(probeCount: number, availableWidth: number, availableHeight: number) {
+	let columns = 1;
+	let rows = probeCount;
+	let cellSize = 1;
+	let gap = 4;
+
+	for (let candidateColumns = 1; candidateColumns <= probeCount; candidateColumns++) {
+		const candidateRows = Math.ceil(probeCount / candidateColumns);
+		let candidateGap = 4;
+		let candidateCellSize = 1;
+		for (let iter = 0; iter < 3; iter++) {
+			candidateCellSize = getMaxCellSize(
+				candidateColumns,
+				candidateRows,
+				candidateGap,
+				availableWidth,
+				availableHeight
+			);
+			const nextGap = getGapForCellSize(candidateCellSize);
+			if (nextGap === candidateGap) break;
+			candidateGap = nextGap;
+		}
+
+		if (candidateCellSize > cellSize) {
+			columns = candidateColumns;
+			rows = candidateRows;
+			cellSize = candidateCellSize;
+			gap = candidateGap;
+		}
+	}
+
+	return { columns, rows, cellSize, gap };
+}
+
+function rebalanceColumnsToFit(
+	probeCount: number,
+	availableWidth: number,
+	availableHeight: number,
+	absoluteMinCellSize: number,
+	current: { columns: number; rows: number; cellSize: number; gap: number }
+) {
+	let { columns, rows, cellSize, gap } = current;
+
+	while (columns > 1 && columns * cellSize + (columns - 1) * gap > availableWidth) {
+		columns--;
+		rows = Math.ceil(probeCount / columns);
+		cellSize = Math.max(
+			absoluteMinCellSize,
+			getMaxCellSize(columns, rows, gap, availableWidth, availableHeight)
+		);
+		gap = getGapForCellSize(cellSize);
+	}
+
+	return { columns, rows, cellSize, gap };
+}
+
 /**
  * Calcule la géométrie optimale de la grille (colonnes, lignes, taille de cellule, gap, densité)
  * pour afficher l'ensemble des sondes sans aucun scroll vertical ni horizontal (zéro scroll).
@@ -61,64 +150,68 @@ export function calculateGrid(input: GridInput): GridLayout {
 	}
 
 	// 1. Calcul de l'espace utile disponible
-	const availableWidth = Math.max(1, viewportWidth);
-	const availableHeight = Math.max(1, viewportHeight - headerHeight - incidentBarHeight);
-	const totalArea = availableWidth * availableHeight;
+	// On soustrait 16px (padding ProbeGrid p-2 = 8px × 2 côtés) pour éviter le dépassement.
+	const PROBEGRID_PADDING = 16;
+	const availableWidth = Math.max(1, viewportWidth - PROBEGRID_PADDING);
+	const availableHeight = Math.max(
+		1,
+		viewportHeight - headerHeight - incidentBarHeight - PROBEGRID_PADDING
+	);
 
-	// 2. Calcul de la taille idéale théorique de cellule
-	const idealCellArea = totalArea / probeCount;
-	let cellSize = Math.floor(Math.sqrt(idealCellArea));
+	// 2. Recherche de la meilleure géométrie de grille pour remplir le viewport sans scroll.
+	// On maximise la taille de cellule en testant plusieurs nombres de colonnes, puis on garde
+	// celle qui donne la plus grande cellule tout en restant dans la largeur et la hauteur disponibles.
+	const absoluteMinCellSize = 2; // Allow small cells for pixel density on all devices
+	let { columns, rows, cellSize, gap } = findBestGridGeometry(
+		probeCount,
+		availableWidth,
+		availableHeight
+	);
 
-	// 3. Détermination du gap initial selon la taille
-	let gap = getGapForCellSize(cellSize);
+	let overflows = false;
 
-	// 4 & 5. Calcul initial des colonnes et des lignes
-	let columns = Math.max(1, Math.floor(availableWidth / (cellSize + gap)));
-	let rows = Math.ceil(probeCount / columns);
-
-	// Seuil minimal absolu (44px tactile sur mobile selon guidelines Apple/Google, 12px absolu desktop)
-	const minCellSize = isMobile ? 44 : 12;
-
-	// En mode mobile, on garantit que la taille de cellule ne débute jamais en-dessous de 44px
-	if (isMobile && cellSize < minCellSize) {
-		cellSize = minCellSize;
-		gap = getGapForCellSize(cellSize);
-		columns = Math.max(1, Math.floor(availableWidth / (cellSize + gap)));
-		rows = Math.ceil(probeCount / columns);
-	}
-
-	// 6. Boucle de réduction : réduit cellSize si la hauteur requise dépasse l'espace disponible
-	while (rows * (cellSize + gap) > availableHeight && cellSize > minCellSize) {
-		cellSize -= 2;
-		if (isMobile && cellSize < minCellSize) {
-			cellSize = minCellSize;
+	if (isMobile && !input.forceZeroScroll) {
+		const minTouchCellSize = 44;
+		if (cellSize < minTouchCellSize) {
+			cellSize = minTouchCellSize;
+			gap = getGapForCellSize(cellSize);
+			columns = Math.max(1, Math.floor((availableWidth + gap) / (cellSize + gap)));
+			rows = Math.ceil(probeCount / columns);
+			overflows = rows * (cellSize + gap) > availableHeight;
 		}
-		gap = getGapForCellSize(cellSize);
-		columns = Math.max(1, Math.floor(availableWidth / (cellSize + gap)));
-		rows = Math.ceil(probeCount / columns);
-		if (isMobile && cellSize === minCellSize) {
-			break;
-		}
+	} else {
+		({ columns, rows, cellSize, gap } = rebalanceColumnsToFit(
+			probeCount,
+			availableWidth,
+			availableHeight,
+			absoluteMinCellSize,
+			{ columns, rows, cellSize, gap }
+		));
 	}
-
-	// Détection d'un dépassement exceptionnel (mode mobile contraint par la cible 44px)
-	const overflows = rows * (cellSize + gap) > availableHeight;
 
 	// 7. Détermination de la densité d'affichage
 	let density: GridDensity;
-	if (cellSize >= 200) density = 'large';
-	else if (cellSize >= 100) density = 'medium';
+	if (cellSize >= 180) density = 'large';
+	else if (cellSize >= 90) density = 'medium';
 	else if (cellSize >= 60) density = 'compact';
-	else if (cellSize >= 30) density = 'micro';
+	else if (input.forceZeroScroll || cellSize <= 24) density = 'pixel';
+	else if (cellSize >= 25) density = 'micro';
 	else density = 'pixel';
 
-	// Ajustement pour haute densité (> 120 sondes selon DATA_MODEL.md) :
-	// Au-delà de 120 sondes, le dashboard bascule sur les micro-pastilles (mode micro ou pixel)
-	// pour éviter la surcharge cognitive des cartes textuelles ProbeCell.
-	if (probeCount > 300) {
-		density = 'pixel';
-	} else if (probeCount > 120 && (density === 'compact' || density === 'medium' || density === 'large')) {
-		density = 'micro';
+	// Si la grille déborde hors mobile, on bascule en pixel.
+	if (!isMobile && !overflows) {
+		overflows = hasGridOverflow(columns, rows, cellSize, gap, availableWidth, availableHeight);
+		if (overflows || cellSize <= 24) {
+			density = 'pixel';
+		}
+	}
+
+	// Gap minimal en mode pixel pour des pixels collés continus.
+	if (density === 'pixel') {
+		gap = cellSize <= 8 ? 0 : 1;
+		if (!isMobile || input.forceZeroScroll) {
+			overflows = hasGridOverflow(columns, rows, cellSize, gap, availableWidth, availableHeight);
+		}
 	}
 
 	return {
@@ -132,7 +225,7 @@ export function calculateGrid(input: GridInput): GridLayout {
 }
 
 // Re-exporte les types associés pour commodité d'importation
-export type { GridInput, GridLayout, GridDensity };
+export type { GridDensity, GridInput, GridLayout };
 
 // ============================================================================
 // TESTS DE VALIDATION & SCÉNARIOS TYPES (Conformité docs/GRID_ALGORITHM.md)

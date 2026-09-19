@@ -12,7 +12,7 @@
 		probe,
 		prevStatus,
 		density = 'medium',
-		cellSize = 120,
+		cellSize: _cellSize = 120,
 		onselect
 	}: {
 		probe: NormalizedProbe;
@@ -45,20 +45,26 @@
 		}
 	});
 
-	function handleClick(e: MouseEvent) {
+	function triggerSelect(target: EventTarget | null) {
 		const customEvent = new CustomEvent('probe-detail', {
 			detail: probe,
 			bubbles: true,
 			composed: true
 		});
-		(e.currentTarget as HTMLElement).dispatchEvent(customEvent);
+		if (target && 'dispatchEvent' in target) {
+			(target as HTMLElement).dispatchEvent(customEvent);
+		}
 		onselect?.(probe);
+	}
+
+	function handleClick(e: MouseEvent) {
+		triggerSelect(e.currentTarget);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
-			handleClick(e as any);
+			triggerSelect(e.currentTarget);
 		}
 	}
 
@@ -92,6 +98,7 @@
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex="0"
 		role="button"
+		aria-label="{probe.name} : {color.label}, uptime {uptimeDisplay}, latence {responseTimeDisplay}"
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
@@ -159,6 +166,7 @@
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex="0"
 		role="button"
+		aria-label="{probe.name} : {color.label}, uptime {uptimeDisplay}, latence {responseTimeDisplay}"
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
@@ -192,6 +200,7 @@
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
 		tabindex="0"
 		role="button"
+		aria-label="{probe.name} : {color.label}, latence {responseTimeDisplay}"
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>

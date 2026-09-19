@@ -6,7 +6,6 @@
 	import Activity from 'lucide-svelte/icons/activity';
 	import Clock from 'lucide-svelte/icons/clock';
 	import Shield from 'lucide-svelte/icons/shield';
-	import Server from 'lucide-svelte/icons/server';
 
 	let {
 		probe,

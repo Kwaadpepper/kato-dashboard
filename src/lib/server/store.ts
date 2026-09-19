@@ -204,6 +204,13 @@ class DashboardStore {
 		};
 	}
 
+	/**
+	 * Retourne le nombre d'abonnés actifs au store (utilisé pour les tests de non-fuite mémoire).
+	 */
+	getSubscriberCount(): number {
+		return this.subscribers.size;
+	}
+
 	// ============================================================================
 	// MÉTHODES PRIVÉES
 	// ============================================================================

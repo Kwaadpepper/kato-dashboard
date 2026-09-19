@@ -1,5 +1,5 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { calculateGrid, getGapForCellSize } from './grid-calculator.ts';
 
 describe('grid-calculator mobile adaptations', () => {
@@ -22,9 +22,22 @@ describe('grid-calculator mobile adaptations', () => {
 			isMobile: true
 		});
 
-		// Must never be smaller than 44px
 		assert.ok(layout.cellSize >= 44, `Expected cellSize >= 44, got ${layout.cellSize}`);
 		assert.equal(layout.overflows, true, 'Expected overflows to be true when probes exceed mobile viewport');
+	});
+
+	it('should keep 44px touch targets on mobile when the viewport can fit them', () => {
+		const layout = calculateGrid({
+			viewportWidth: 390,
+			viewportHeight: 844,
+			probeCount: 12,
+			headerHeight: 48,
+			incidentBarHeight: 40,
+			isMobile: true
+		});
+
+		assert.ok(layout.cellSize >= 44, `Expected cellSize >= 44, got ${layout.cellSize}`);
+		assert.equal(layout.overflows, false);
 	});
 
 	it('should allow cell size < 44px on desktop to maintain zero-scroll', () => {
@@ -42,6 +55,51 @@ describe('grid-calculator mobile adaptations', () => {
 		assert.equal(layout.overflows, false, 'Expected zero scroll on desktop');
 	});
 
+	it('should maintain micro density and correct gap with >=44px cells when overflowing on mobile', () => {
+		const layout = calculateGrid({
+			viewportWidth: 375,
+			viewportHeight: 667,
+			probeCount: 100,
+			headerHeight: 48,
+			incidentBarHeight: 40,
+			isMobile: true
+		});
+
+		assert.ok(layout.cellSize >= 44, `Expected cellSize >= 44, got ${layout.cellSize}`);
+		assert.equal(layout.density, 'micro', `Expected density micro, got ${layout.density}`);
+		assert.equal(layout.gap, getGapForCellSize(layout.cellSize));
+		assert.equal(layout.overflows, true, 'Expected overflows true on mobile with 100 probes');
+	});
+
+	it('should adapt density to large for few probes on mobile', () => {
+		const layout = calculateGrid({
+			viewportWidth: 390,
+			viewportHeight: 844,
+			probeCount: 4,
+			headerHeight: 48,
+			incidentBarHeight: 40,
+			isMobile: true
+		});
+
+		assert.ok(layout.cellSize >= 44, `Expected cellSize >= 44, got ${layout.cellSize}`);
+		assert.equal(layout.density, 'large', `Expected density large, got ${layout.density}`);
+		assert.equal(layout.overflows, false);
+	});
+
+	it('should maintain zero-scroll on 1920x1080 desktop with 200 probes', () => {
+		const layout = calculateGrid({
+			viewportWidth: 1920,
+			viewportHeight: 1080,
+			probeCount: 200,
+			headerHeight: 48,
+			incidentBarHeight: 40,
+			isMobile: false
+		});
+
+		assert.equal(layout.overflows, false, 'Expected zero scroll on 1080p desktop with 200 probes');
+		assert.ok(layout.cellSize > 0, 'Cell size must be positive');
+	});
+
 	it('should handle zero or negative probe count', () => {
 		const layout = calculateGrid({
 			viewportWidth: 375,
@@ -53,5 +111,22 @@ describe('grid-calculator mobile adaptations', () => {
 		assert.equal(layout.columns, 1);
 		assert.equal(layout.rows, 1);
 		assert.equal(layout.overflows, false);
+	});
+
+	it('should support zero-scroll glued pixels mode on mobile with forceZeroScroll', () => {
+		const layout = calculateGrid({
+			viewportWidth: 375,
+			viewportHeight: 667,
+			probeCount: 100,
+			headerHeight: 48,
+			incidentBarHeight: 40,
+			isMobile: true,
+			forceZeroScroll: true
+		});
+
+		assert.equal(layout.overflows, false, 'Expected zero scroll on mobile with forceZeroScroll');
+		assert.equal(layout.density, 'pixel', 'Expected pixel density for glued pixels on mobile');
+		assert.ok(layout.gap <= 1, `Expected gap <= 1 for glued pixels, got ${layout.gap}`);
+		assert.ok(layout.cellSize > 0, 'Cell size must be positive');
 	});
 });

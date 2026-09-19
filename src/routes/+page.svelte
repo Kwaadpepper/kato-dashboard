@@ -10,8 +10,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { connectSSE } from '$lib/utils/sse-client';
-	import { calculateGrid, HEADER_HEIGHT, INCIDENT_BAR_HEIGHT } from '$lib/utils/grid-calculator';
+	import { connectSSE, type ConnectionStatus } from '$lib/utils/sse-client';
+	import { calculateGrid } from '$lib/utils/grid-calculator';
 	import { sortProbesSmart } from '$lib/utils/sort';
 	import {
 		enterTvMode,
@@ -41,7 +41,8 @@
 	// svelte-ignore state_referenced_locally
 	let lastUpdate = $state<string>(data.initialState?.lastUpdate ?? '');
 	// svelte-ignore state_referenced_locally
-	let source = $state<string>(data.initialState?.source ?? 'unknown');
+	let _source = $state<string>(data.initialState?.source ?? 'unknown');
+	let connectionStatus = $state<ConnectionStatus>('connected');
 
 	// Registre des statuts précédents pour la détection fine des transitions UP → DOWN
 	// svelte-ignore state_referenced_locally
@@ -153,6 +154,13 @@
 	// Mode compact activé en mode TV (h-8) ou si le parc comporte plus de 100 sondes
 	const isCompactHeader = $derived(isTvMode || probes.length > 100);
 
+	// Mode Zéro-scroll avec pixels collés sur mobile (activé par défaut pour vue 100% compacte)
+	let forceZeroScroll = $state(true);
+
+	function toggleZeroScroll() {
+		forceZeroScroll = !forceZeroScroll;
+	}
+
 	// 1. Tri intelligent : DOWN en tête (haut-gauche), puis DEGRADED, UP par criticité, etc.
 	const sortedProbes = $derived(sortProbesSmart(probes));
 
@@ -164,7 +172,8 @@
 			probeCount: sortedProbes.length,
 			headerHeight: 0, // La hauteur est déjà réservée par le padding du conteneur
 			incidentBarHeight: 0,
-			isMobile
+			isMobile,
+			forceZeroScroll: isMobile && forceZeroScroll
 		})
 	);
 
@@ -220,7 +229,7 @@
 				probes = [...initialState.probes];
 				incidents = [...initialState.incidents];
 				lastUpdate = initialState.lastUpdate;
-				source = initialState.source;
+				_source = initialState.source;
 
 				const initStatusMap: Record<string, ProbeStatus> = {};
 				for (const p of initialState.probes) {
@@ -288,6 +297,9 @@
 			},
 			(heartbeat) => {
 				lastUpdate = heartbeat.timestamp;
+			},
+			(status) => {
+				connectionStatus = status;
 			}
 		);
 	}
@@ -372,9 +384,13 @@
 		}
 	}
 
-	// Neutralisation des clics en mode TV (tooltips au hover uniquement, pas de clic)
+	// Neutralisation des clics de navigation / modale en mode TV (les contrôles de l'en-tête restent accessibles)
 	function handleClickCapture(event: MouseEvent): void {
 		if (isTvMode) {
+			const target = event.target as HTMLElement | null;
+			if (target?.closest('header')) {
+				return;
+			}
 			event.preventDefault();
 			event.stopPropagation();
 			event.stopImmediatePropagation();
@@ -393,7 +409,6 @@
 </svelte:head>
 
 <!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) sur desktop -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	id="tv-container"
 	bind:this={dashboardContainer}
@@ -414,7 +429,28 @@
 		: 'pt-12'} pb-8 sm:pb-10"
 >
 	<!-- En-tête supérieur (Header fixe) -->
-	<Header {probes} {lastUpdate} compact={isCompactHeader} />
+	<Header
+		{probes}
+		{lastUpdate}
+		compact={isCompactHeader}
+		{connectionStatus}
+		{isMobile}
+		{forceZeroScroll}
+		ontoggleZeroScroll={toggleZeroScroll}
+	/>
+
+	<!-- Bannière "Connexion perdue" en cas d'interruption serveur ou réseau -->
+	{#if connectionStatus !== 'connected'}
+		<div
+			class="fixed {isCompactHeader ? 'top-8' : 'top-12'} left-0 right-0 z-40 bg-red-600 text-white font-medium text-xs sm:text-sm py-1 px-4 flex items-center justify-center gap-2 shadow-lg backdrop-blur-xs transition-all animate-pulse"
+			role="alert"
+			aria-live="assertive"
+		>
+			<span class="w-2 h-2 rounded-full bg-white animate-ping" aria-hidden="true"></span>
+			<span class="font-bold">Connexion perdue</span>
+			<span class="text-red-100 text-xs hidden sm:inline">— tentative de rétablissement en cours...</span>
+		</div>
+	{/if}
 
 	<!-- Zone principale de la grille supervisée par ResizeObserver -->
 	<main
@@ -422,7 +458,7 @@
 		ontouchstart={handleTouchStart}
 		ontouchmove={handleTouchMove}
 		ontouchend={handleTouchEnd}
-		class="flex-1 w-full h-full relative {isMobile || layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
+		class="flex-1 w-full h-full relative {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
 	>
 		<!-- Indicateur visuel Pull-to-refresh natif sur mobile -->
 		{#if isMobile && (pullDistance > 0 || isRefreshing)}

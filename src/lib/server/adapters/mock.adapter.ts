@@ -1,10 +1,10 @@
 import type {
-	AdapterConfig,
-	Criticality,
-	MonitoringAdapter,
-	NormalizedIncident,
-	NormalizedProbe,
-	ProbeStatus
+    AdapterConfig,
+    Criticality,
+    MonitoringAdapter,
+    NormalizedIncident,
+    NormalizedProbe,
+    ProbeStatus
 } from '$lib/types';
 
 /**

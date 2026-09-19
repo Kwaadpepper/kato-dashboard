@@ -236,6 +236,8 @@ export interface GridInput {
   incidentBarHeight?: number;
   /** Active la contrainte d'accessibilité tactile mobile (cellules min 44px) */
   isMobile?: boolean;
+  /** Force le mode zéro-scroll avec pixels collés même sur mobile */
+  forceZeroScroll?: boolean;
 }
 
 /**

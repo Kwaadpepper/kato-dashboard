@@ -90,6 +90,52 @@
 	--probe-dot-bg-paused: #6B7280;
 	--probe-dot-bg-pending: #3B82F6;
 	--probe-dot-bg-maintenance: #8B5CF6;
+
+	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 6:1 sur #0F172A) */
+	--status-up-text: #34D399;
+	--status-down-text: #F87171;
+	--status-degraded-text: #FBBF24;
+	--status-paused-text: #94A3B8;
+	--status-pending-text: #60A5FA;
+	--status-maintenance-text: #A78BFA;
+
+	/* Badges d'en-tête (Dark) */
+	--badge-up-bg: rgba(6, 78, 59, 0.6);
+	--badge-up-border: rgba(4, 120, 87, 0.6);
+	--badge-up-text: #6EE7B7;
+
+	--badge-down-bg: rgba(127, 29, 29, 0.6);
+	--badge-down-border: rgba(239, 68, 68, 0.6);
+	--badge-down-text: #FCA5A5;
+
+	--badge-degraded-bg: rgba(120, 53, 15, 0.6);
+	--badge-degraded-border: rgba(217, 119, 6, 0.6);
+	--badge-degraded-text: #FCD34D;
+
+	--badge-paused-bg: rgba(30, 41, 59, 0.5);
+	--badge-paused-border: rgba(71, 85, 105, 0.5);
+	--badge-paused-text: #CBD5E1;
+
+	--badge-pending-bg: rgba(30, 58, 138, 0.6);
+	--badge-pending-border: rgba(37, 99, 235, 0.6);
+	--badge-pending-text: #93C5FD;
+
+	--badge-maintenance-bg: rgba(76, 29, 149, 0.6);
+	--badge-maintenance-border: rgba(124, 58, 237, 0.6);
+	--badge-maintenance-text: #C4B5FD;
+
+	/* Indicateur de fraîcheur (Dark) */
+	--freshness-green-bg: rgba(6, 78, 59, 0.3);
+	--freshness-green-border: rgba(4, 120, 87, 0.5);
+	--freshness-green-text: #34D399;
+
+	--freshness-amber-bg: rgba(120, 53, 15, 0.3);
+	--freshness-amber-border: rgba(217, 119, 6, 0.5);
+	--freshness-amber-text: #FBBF24;
+
+	--freshness-red-bg: rgba(127, 29, 29, 0.4);
+	--freshness-red-border: rgba(239, 68, 68, 0.6);
+	--freshness-red-text: #F87171;
 }
 
 /* 2. Thème Clair : Fond #F8FAFC */
@@ -132,6 +178,52 @@
 	--probe-dot-bg-paused: #6B7280;
 	--probe-dot-bg-pending: #3B82F6;
 	--probe-dot-bg-maintenance: #8B5CF6;
+
+	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 4.5:1 sur fond blanc/clair) */
+	--status-up-text: #047857;
+	--status-down-text: #B91C1C;
+	--status-degraded-text: #B45309;
+	--status-paused-text: #475569;
+	--status-pending-text: #1D4ED8;
+	--status-maintenance-text: #6D28D9;
+
+	/* Badges d'en-tête (Light) */
+	--badge-up-bg: #ECFDF5;
+	--badge-up-border: #A7F3D0;
+	--badge-up-text: #065F46;
+
+	--badge-down-bg: #FEF2F2;
+	--badge-down-border: #FECACA;
+	--badge-down-text: #991B1B;
+
+	--badge-degraded-bg: #FFFBEB;
+	--badge-degraded-border: #FDE68A;
+	--badge-degraded-text: #92400E;
+
+	--badge-paused-bg: #F1F5F9;
+	--badge-paused-border: #CBD5E1;
+	--badge-paused-text: #334155;
+
+	--badge-pending-bg: #EFF6FF;
+	--badge-pending-border: #BFDBFE;
+	--badge-pending-text: #1E40AF;
+
+	--badge-maintenance-bg: #F5F3FF;
+	--badge-maintenance-border: #DDD6FE;
+	--badge-maintenance-text: #5B21B6;
+
+	/* Indicateur de fraîcheur (Light) */
+	--freshness-green-bg: #ECFDF5;
+	--freshness-green-border: #A7F3D0;
+	--freshness-green-text: #065F46;
+
+	--freshness-amber-bg: #FFFBEB;
+	--freshness-amber-border: #FDE68A;
+	--freshness-amber-text: #92400E;
+
+	--freshness-red-bg: #FEF2F2;
+	--freshness-red-border: #FECACA;
+	--freshness-red-text: #991B1B;
 }
 
 /* 3. Thème AMOLED : Fond #000000 (Noir pur pour OLED / TV) */
@@ -139,7 +231,7 @@
 	--kato-bg-primary: #000000;
 	--kato-bg-secondary: #0A0A0A;
 	--kato-text-primary: #F8FAFC;
-	--kato-text-secondary: #71717A;
+	--kato-text-secondary: #A1A1AA;
 	--kato-border: #27272A;
 	color-scheme: dark;
 
@@ -158,7 +250,7 @@
 
 	--probe-paused-bg: #000000;
 	--probe-paused-border: #3F3F46;
-	--probe-paused-text: #71717A;
+	--probe-paused-text: #A1A1AA;
 
 	--probe-pending-bg: #000000;
 	--probe-pending-border: #2563EB;
@@ -174,6 +266,52 @@
 	--probe-dot-bg-paused: #000000;
 	--probe-dot-bg-pending: #000000;
 	--probe-dot-bg-maintenance: #000000;
+
+	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 6:1 sur noir) */
+	--status-up-text: #34D399;
+	--status-down-text: #F87171;
+	--status-degraded-text: #FBBF24;
+	--status-paused-text: #A1A1AA;
+	--status-pending-text: #60A5FA;
+	--status-maintenance-text: #A78BFA;
+
+	/* Badges d'en-tête (AMOLED) */
+	--badge-up-bg: #000000;
+	--badge-up-border: #047857;
+	--badge-up-text: #34D399;
+
+	--badge-down-bg: #000000;
+	--badge-down-border: #DC2626;
+	--badge-down-text: #F87171;
+
+	--badge-degraded-bg: #000000;
+	--badge-degraded-border: #D97706;
+	--badge-degraded-text: #FBBF24;
+
+	--badge-paused-bg: #000000;
+	--badge-paused-border: #3F3F46;
+	--badge-paused-text: #A1A1AA;
+
+	--badge-pending-bg: #000000;
+	--badge-pending-border: #2563EB;
+	--badge-pending-text: #60A5FA;
+
+	--badge-maintenance-bg: #000000;
+	--badge-maintenance-border: #7C3AED;
+	--badge-maintenance-text: #A78BFA;
+
+	/* Indicateur de fraîcheur (AMOLED) */
+	--freshness-green-bg: #000000;
+	--freshness-green-border: #047857;
+	--freshness-green-text: #34D399;
+
+	--freshness-amber-bg: #000000;
+	--freshness-amber-border: #D97706;
+	--freshness-amber-text: #FBBF24;
+
+	--freshness-red-bg: #000000;
+	--freshness-red-border: #DC2626;
+	--freshness-red-text: #F87171;
 }
 
 /* Application globale sur body */
@@ -253,6 +391,57 @@ body {
 }
 
 /* ============================================================================
+ * BADGES DE COMPTEURS D'EN-TÊTE & FRAÎCHEUR (WCAG AA SUR TOUS LES THÈMES)
+ * ============================================================================ */
+
+.status-badge-up {
+	background-color: var(--badge-up-bg);
+	border: 1px solid var(--badge-up-border);
+	color: var(--badge-up-text);
+}
+.status-badge-down {
+	background-color: var(--badge-down-bg);
+	border: 1px solid var(--badge-down-border);
+	color: var(--badge-down-text);
+}
+.status-badge-degraded {
+	background-color: var(--badge-degraded-bg);
+	border: 1px solid var(--badge-degraded-border);
+	color: var(--badge-degraded-text);
+}
+.status-badge-paused {
+	background-color: var(--badge-paused-bg);
+	border: 1px solid var(--badge-paused-border);
+	color: var(--badge-paused-text);
+}
+.status-badge-pending {
+	background-color: var(--badge-pending-bg);
+	border: 1px solid var(--badge-pending-border);
+	color: var(--badge-pending-text);
+}
+.status-badge-maintenance {
+	background-color: var(--badge-maintenance-bg);
+	border: 1px solid var(--badge-maintenance-border);
+	color: var(--badge-maintenance-text);
+}
+
+.freshness-indicator-green {
+	background-color: var(--freshness-green-bg);
+	border: 1px solid var(--freshness-green-border);
+	color: var(--freshness-green-text);
+}
+.freshness-indicator-amber {
+	background-color: var(--freshness-amber-bg);
+	border: 1px solid var(--freshness-amber-border);
+	color: var(--freshness-amber-text);
+}
+.freshness-indicator-red {
+	background-color: var(--freshness-red-bg);
+	border: 1px solid var(--freshness-red-border);
+	color: var(--freshness-red-text);
+}
+
+/* ============================================================================
  * CLASSES UTILITAIRES D'ANIMATION ET EFFETS VISUELS
  * ============================================================================ */
 
@@ -281,6 +470,7 @@ body {
 	animation: kato-marquee 30s linear infinite;
 }
 
+.animate-kato-marquee:hover,
 .animate-marquee:hover {
 	animation-play-state: paused;
 }

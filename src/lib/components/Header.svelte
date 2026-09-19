@@ -1,34 +1,42 @@
 <script lang="ts">
 	import type { NormalizedProbe } from '$lib/types';
-	import { applyTheme, onThemeChange, type Theme, type ResolvedTheme } from '$lib/utils/theme';
-	import { isSoundEnabled, toggleSound, onSoundChange } from '$lib/utils/sounds';
+	import { applyTheme, onThemeChange, type Theme } from '$lib/utils/theme';
+	import { toggleSound, onSoundChange } from '$lib/utils/sounds';
 	import Settings from 'lucide-svelte/icons/settings';
 	import Check from 'lucide-svelte/icons/check';
 	import Volume2 from 'lucide-svelte/icons/volume-2';
 	import VolumeX from 'lucide-svelte/icons/volume-x';
+	import Grid2x2 from 'lucide-svelte/icons/grid-2x2';
+	import Smartphone from 'lucide-svelte/icons/smartphone';
 
 	let {
 		probes = [],
 		lastUpdate = '',
-		compact = false
+		compact = false,
+		connectionStatus = 'connected',
+		isMobile = false,
+		forceZeroScroll = true,
+		ontoggleZeroScroll
 	}: {
 		probes: NormalizedProbe[];
 		lastUpdate?: string;
 		compact?: boolean;
+		connectionStatus?: 'connected' | 'disconnected' | 'reconnecting';
+		isMobile?: boolean;
+		forceZeroScroll?: boolean;
+		ontoggleZeroScroll?: () => void;
 	} = $props();
 
 	let currentTime = $state('00:00:00');
 	let now = $state(Date.now());
 	let isSettingsOpen = $state(false);
 	let activeTheme = $state<Theme>('dark');
-	let activeResolved = $state<ResolvedTheme>('dark');
 	let isSoundOn = $state(false);
 
 	// Abonnements aux bascules de thème et de son
 	$effect(() => {
-		const unsubscribe = onThemeChange((theme, resolved) => {
+		const unsubscribe = onThemeChange((theme) => {
 			activeTheme = theme;
-			activeResolved = resolved;
 		});
 		const unsubSound = onSoundChange((enabled) => {
 			isSoundOn = enabled;
@@ -73,9 +81,9 @@
 	const upRatio = $derived(total > 0 ? (countUp / total) * 100 : 100);
 
 	const scoreColor = $derived.by(() => {
-		if (upRatio > 95) return 'text-emerald-400';
-		if (upRatio > 80) return 'text-amber-400';
-		return 'text-red-400 animate-pulse';
+		if (upRatio > 95) return 'var(--status-up-text)';
+		if (upRatio > 80) return 'var(--status-degraded-text)';
+		return 'var(--status-down-text)';
 	});
 
 	// Temps écoulé en secondes depuis lastUpdate
@@ -85,14 +93,17 @@
 		return Math.max(0, Math.floor((now - updateMs) / 1000));
 	});
 
-	const freshnessColor = $derived.by(() => {
+	// Indicateur de fraîcheur : passe immédiatement en rouge si déconnecté ou > 60s
+	const isFreshnessRed = $derived(connectionStatus !== 'connected' || freshnessSeconds >= 60);
+
+	const freshnessClass = $derived.by(() => {
+		if (isFreshnessRed) {
+			return 'freshness-indicator-red font-bold animate-pulse';
+		}
 		if (freshnessSeconds < 30) {
-			return 'text-emerald-400 border-emerald-900/40 bg-emerald-950/20';
+			return 'freshness-indicator-green';
 		}
-		if (freshnessSeconds < 60) {
-			return 'text-amber-400 border-amber-900/40 bg-amber-950/20';
-		}
-		return 'text-red-400 border-red-900/50 bg-red-950/30 animate-pulse';
+		return 'freshness-indicator-amber';
 	});
 </script>
 
@@ -117,79 +128,91 @@
 		<span
 			class="font-mono font-bold shrink-0 {compact
 				? 'text-xs'
-				: 'text-sm sm:text-base'} {scoreColor}"
+				: 'text-sm sm:text-base'} {upRatio <= 80 ? 'animate-pulse' : ''}"
+			style="color: {scoreColor};"
+			aria-label="{countUp} sur {total} sondes opérationnelles"
 		>
 			{countUp}/{total} UP
 		</span>
 
 		<!-- Badges Compteurs : masqués en-dessous de 480px, réduits entre 480px et 768px -->
-		<div class="hidden min-[480px]:flex items-center gap-1 sm:gap-1.5 flex-wrap">
+		<div
+			class="hidden min-[480px]:flex items-center gap-1 sm:gap-1.5 flex-wrap"
+			role="group"
+			aria-label="Compteurs de sondes par statut"
+		>
 			<!-- UP (vert) -->
 			{#if !compact || countUp > 0}
 				<span
-					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 shrink-0"
-					title="Sondes UP"
+					class="status-badge-up flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
+					title="Sondes opérationnelles ({countUp})"
+					aria-label="{countUp} sondes opérationnelles"
 				>
-					<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-					{countUp}
+					<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
+					<span>{countUp}</span>
 				</span>
 			{/if}
 
 			<!-- DEGRADED (ambre) -->
 			{#if !compact || countDegraded > 0}
 				<span
-					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-amber-950/60 text-amber-300 border border-amber-800/50 shrink-0"
-					title="Sondes dégradées"
+					class="status-badge-degraded flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
+					title="Sondes dégradées ({countDegraded})"
+					aria-label="{countDegraded} sondes dégradées"
 				>
-					<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-					{countDegraded}
+					<span class="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+					<span>{countDegraded}</span>
 				</span>
 			{/if}
 
 			<!-- DOWN (rouge) -->
 			{#if !compact || countDown > 0}
 				<span
-					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-red-950/60 text-red-300 border border-red-800/60 shrink-0 {countDown >
+					class="status-badge-down flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0 {countDown >
 					0
 						? 'animate-pulse'
 						: ''}"
-					title="Sondes DOWN"
+					title="Sondes en panne ({countDown})"
+					aria-label="{countDown} sondes en panne"
 				>
-					<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-					{countDown}
+					<span class="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true"></span>
+					<span>{countDown}</span>
 				</span>
 			{/if}
 
 			<!-- PAUSED (gris) -->
 			{#if !compact || countPaused > 0}
 				<span
-					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-slate-800/50 text-slate-300 border border-slate-700/50 shrink-0"
-					title="Sondes en pause"
+					class="status-badge-paused flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
+					title="Sondes en pause ({countPaused})"
+					aria-label="{countPaused} sondes en pause"
 				>
-					<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-					{countPaused}
+					<span class="w-1.5 h-1.5 rounded-full bg-slate-400" aria-hidden="true"></span>
+					<span>{countPaused}</span>
 				</span>
 			{/if}
 
 			<!-- PENDING (bleu) -->
 			{#if countPending > 0}
 				<span
-					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-blue-950/60 text-blue-300 border border-blue-800/50 shrink-0"
-					title="Sondes en attente"
+					class="status-badge-pending flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
+					title="Sondes en attente ({countPending})"
+					aria-label="{countPending} sondes en attente"
 				>
-					<span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-					{countPending}
+					<span class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
+					<span>{countPending}</span>
 				</span>
 			{/if}
 
 			<!-- MAINTENANCE (violet) -->
 			{#if countMaintenance > 0}
 				<span
-					class="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono bg-violet-950/60 text-violet-300 border border-violet-800/50 shrink-0"
-					title="Sondes en maintenance"
+					class="status-badge-maintenance flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
+					title="Sondes en maintenance ({countMaintenance})"
+					aria-label="{countMaintenance} sondes en maintenance"
 				>
-					<span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
-					{countMaintenance}
+					<span class="w-1.5 h-1.5 rounded-full bg-violet-500" aria-hidden="true"></span>
+					<span>{countMaintenance}</span>
 				</span>
 			{/if}
 		</div>
@@ -201,19 +224,50 @@
 	<!-- Section droite : Horloge, Fraîcheur et Paramètres de Thème -->
 	<div class="flex items-center gap-2 sm:gap-3 shrink-0">
 		<!-- Horloge : format HH:MM sur mobile (<768px), HH:MM:SS sur desktop -->
-		<span class="text-[var(--kato-text-secondary)] font-mono text-xs sm:text-sm">
+		<span class="text-[var(--kato-text-secondary)] font-mono text-xs sm:text-sm" aria-label="Horloge locale : {currentTime}">
 			<span class="inline md:hidden">{currentTime.slice(0, 5)}</span>
 			<span class="hidden md:inline">{currentTime}</span>
 		</span>
 
-		<!-- Indicateur de fraîcheur (masqué en mode compact ou mobile pour concision) -->
-		{#if !compact}
+		<!-- Indicateur de fraîcheur : visible en mode standard, en mode TV et systématiquement si déconnecté ou alerte -->
+		{#if !compact || isFreshnessRed}
 			<span
-				class="hidden sm:flex font-mono text-xs px-2 py-0.5 rounded-md border items-center gap-1 {freshnessColor}"
-				title="Délai depuis la dernière réception de données"
+				class="{connectionStatus !== 'connected' ? 'flex' : 'hidden min-[480px]:flex'} font-mono text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-md border items-center gap-1 shrink-0 {freshnessClass}"
+				title={connectionStatus !== 'connected'
+					? 'Connexion perdue avec le serveur SSE'
+					: 'Délai depuis la dernière réception de données'}
+				aria-label={connectionStatus !== 'connected'
+					? `Connexion perdue. Données reçues il y a ${freshnessSeconds} secondes`
+					: `Dernière mise à jour reçue il y a ${freshnessSeconds} secondes`}
 			>
+				{#if connectionStatus !== 'connected'}
+					<span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" aria-hidden="true"></span>
+				{/if}
 				↻ {freshnessSeconds}s
 			</span>
+		{/if}
+
+		<!-- Bascule mode mobile : Grille Zéro-Scroll (pixels collés) / Défilement tactile (44px) -->
+		{#if isMobile}
+			<button
+				type="button"
+				onclick={ontoggleZeroScroll}
+				class="p-1 rounded-md transition-colors cursor-pointer {forceZeroScroll
+					? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40'
+					: 'text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30'}"
+				title={forceZeroScroll
+					? 'Mode Zéro-scroll actif (Pixels collés). Cliquer pour passer en mode tactile (44px, défilement)'
+					: 'Mode tactile actif (44px, défilement). Cliquer pour passer en mode zéro-scroll (pixels collés)'}
+				aria-label={forceZeroScroll
+					? 'Passer en mode tactile avec défilement'
+					: 'Passer en mode zéro-scroll avec pixels collés'}
+			>
+				{#if forceZeroScroll}
+					<Grid2x2 class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+				{:else}
+					<Smartphone class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+				{/if}
+			</button>
 		{/if}
 
 		<!-- Mini toggle son (🔊/🔇) -->
@@ -259,7 +313,7 @@
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)]">
 						Thème
 					</div>
-					{#each themeOptions as opt}
+					{#each themeOptions as opt (opt.id)}
 						<button
 							type="button"
 							onclick={() => {

@@ -44,6 +44,12 @@ interface ActiveIncidentInfo {
 	probeName: string;
 }
 
+interface RequestError extends Error {
+	status?: number;
+	isAuthError?: boolean;
+	isTimeout?: boolean;
+}
+
 /**
  * Adaptateur Uptime Robot v3 pour Kato Dashboard.
  *
@@ -100,14 +106,15 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 				res.pagination?.total_monitors ??
 				(res.pagination?.has_more ? '≥ 1' : res.data?.length ?? 0);
 			console.log(`[UptimeRobot] Clé API validée. Nombre total de monitors trouvés : ${total}`);
-		} catch (err: any) {
-			if (err?.isAuthError || err?.status === 401) {
+		} catch (err: unknown) {
+			const reqErr = err as RequestError;
+			if (reqErr?.isAuthError || reqErr?.status === 401) {
 				// Ne pas crasher le processus
 				return;
 			}
 			console.warn(
 				'[UptimeRobot] Avertissement lors de la validation initiale :',
-				err?.message || err
+				reqErr?.message || String(err)
 			);
 		}
 	}
@@ -206,17 +213,18 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 
 			this.cachedProbes = newProbesMap;
 			return Array.from(this.cachedProbes.values());
-		} catch (err: any) {
-			if (err?.isAuthError || err?.status === 401) {
+		} catch (err: unknown) {
+			const reqErr = err as RequestError;
+			if (reqErr?.isAuthError || reqErr?.status === 401) {
 				// Le message d'erreur 401 a déjà été loggé par request()
-			} else if (err?.isTimeout) {
+			} else if (reqErr?.isTimeout) {
 				console.warn(
 					'[UptimeRobot] Timeout (>10s) atteint lors du polling, conservation du dernier état.'
 				);
 			} else {
 				console.warn(
 					'[UptimeRobot] Réseau down ou erreur API, conservation du dernier état :',
-					err?.message || err
+					reqErr?.message || String(err)
 				);
 			}
 			return Array.from(this.cachedProbes.values());
@@ -366,7 +374,7 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 
 			if (response.status === 401) {
 				console.error('[UptimeRobot] API key invalide');
-				const err: any = new Error('API key invalide');
+				const err = new Error('API key invalide') as RequestError;
 				err.status = 401;
 				err.isAuthError = true;
 				throw err;
@@ -383,7 +391,7 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 					await new Promise((resolve) => setTimeout(resolve, delay));
 					return this.request<T>(path, attempt + 1);
 				}
-				const err: any = new Error('429 Too Many Requests: Limite atteinte après 3 retries');
+				const err = new Error('429 Too Many Requests: Limite atteinte après 3 retries') as RequestError;
 				err.status = 429;
 				throw err;
 			}
@@ -393,10 +401,11 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 			}
 
 			return (await response.json()) as URResponse<T>;
-		} catch (err: any) {
+		} catch (err: unknown) {
 			clearTimeout(timeoutId);
 
-			if (err?.name === 'AbortError' || controller.signal.aborted) {
+			const reqErr = err as RequestError;
+			if (reqErr?.name === 'AbortError' || controller.signal.aborted) {
 				if (attempt === 1) {
 					console.warn(
 						`[UptimeRobot] Timeout (>10s) atteint sur ${path}. Nouvelle tentative (1/1)...`
@@ -404,7 +413,7 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 					return this.request<T>(path, 2);
 				}
 				console.warn(`[UptimeRobot] Second timeout (>10s) consécutif sur ${path}. Requête ignorée.`);
-				const timeoutErr: any = new Error('Timeout >10s');
+				const timeoutErr = new Error('Timeout >10s') as RequestError;
 				timeoutErr.isTimeout = true;
 				throw timeoutErr;
 			}

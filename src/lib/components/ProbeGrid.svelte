@@ -1,59 +1,64 @@
 <script lang="ts">
-	import type { GridLayout, NormalizedProbe, ProbeStatus } from '$lib/types';
-	import ProbeCell from '$lib/components/ProbeCell.svelte';
-	import ProbeDot from '$lib/components/ProbeDot.svelte';
-	import { flip } from 'svelte/animate';
+  import ProbeCell from "$lib/components/ProbeCell.svelte";
+  import ProbeDot from "$lib/components/ProbeDot.svelte";
+  import type { GridLayout, NormalizedProbe, ProbeStatus } from "$lib/types";
+  import { flip } from "svelte/animate";
 
-	let {
-		probes = [],
-		layout,
-		previousStatuses,
-		onselect
-	}: {
-		probes: NormalizedProbe[];
-		layout: GridLayout;
-		previousStatuses?: Record<string, ProbeStatus>;
-		onselect?: (probe: NormalizedProbe) => void;
-	} = $props();
+  let {
+    probes = [],
+    layout,
+    previousStatuses,
+    onselect,
+  }: {
+    probes: NormalizedProbe[];
+    layout: GridLayout;
+    previousStatuses?: Record<string, ProbeStatus>;
+    onselect?: (probe: NormalizedProbe) => void;
+  } = $props();
 
-	// Style dynamique de la grille CSS Grid calculé par l'algorithme adaptatif
-	const gridStyle = $derived(
-		`grid-template-columns: repeat(${layout.columns}, minmax(0, ${layout.cellSize}px)); ` +
-		`grid-auto-rows: ${layout.cellSize}px; ` +
-		`gap: ${layout.gap}px;`
-	);
+  // Style dynamique de la grille CSS Grid calculé par l'algorithme adaptatif
+  const gridStyle = $derived(
+    `grid-template-columns: repeat(${layout.columns}, minmax(0, ${layout.cellSize}px)); ` +
+      `grid-auto-rows: ${layout.cellSize}px; ` +
+      `gap: ${layout.gap}px;`,
+  );
 </script>
 
 <div
-	class="w-full {layout.overflows ? 'min-h-full py-4' : 'h-full flex items-center'} flex justify-center p-2 sm:p-4 select-none"
+  class="w-full {layout.overflows
+    ? 'min-h-full pb-4'
+    : 'h-full flex items-center'} flex justify-center {layout.density ===
+    'pixel' || layout.density === 'micro'
+    ? 'p-1'
+    : 'p-2 sm:p-4'} select-none"
 >
-	<div
-		class="grid justify-center items-center content-center transition-all duration-200"
-		style={gridStyle}
-	>
-		{#each probes as probe (probe.id)}
-			<div
-				animate:flip={{ duration: 300 }}
-				class="w-full h-full flex items-center justify-center"
-			>
-				{#if layout.density === 'large' || layout.density === 'medium' || layout.density === 'compact'}
-					<ProbeCell
-						{probe}
-						prevStatus={previousStatuses?.[probe.id]}
-						density={layout.density}
-						cellSize={layout.cellSize}
-						{onselect}
-					/>
-				{:else}
-					<ProbeDot
-						{probe}
-						prevStatus={previousStatuses?.[probe.id]}
-						density={layout.density}
-						cellSize={layout.cellSize}
-						{onselect}
-					/>
-				{/if}
-			</div>
-		{/each}
-	</div>
+  <div
+    class="grid justify-center items-center content-center transition-all duration-200"
+    style={gridStyle}
+  >
+    {#each probes as probe (probe.id)}
+      <div
+        animate:flip={{ duration: 300 }}
+        class="w-full h-full flex items-center justify-center"
+      >
+        {#if layout.density === "large" || layout.density === "medium" || layout.density === "compact"}
+          <ProbeCell
+            {probe}
+            prevStatus={previousStatuses?.[probe.id]}
+            density={layout.density}
+            cellSize={layout.cellSize}
+            {onselect}
+          />
+        {:else}
+          <ProbeDot
+            {probe}
+            prevStatus={previousStatuses?.[probe.id]}
+            density={layout.density}
+            cellSize={layout.cellSize}
+            {onselect}
+          />
+        {/if}
+      </div>
+    {/each}
+  </div>
 </div>
