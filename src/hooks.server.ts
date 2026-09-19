@@ -1,6 +1,8 @@
 import { MockAdapter } from '$lib/server/adapters/mock.adapter';
+import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
 import { store } from '$lib/server/store';
 import { startPolling } from '$lib/server/poller';
+import type { MonitoringAdapter } from '$lib/types';
 import type { Handle } from '@sveltejs/kit';
 
 // ============================================================================
@@ -8,10 +10,10 @@ import type { Handle } from '@sveltejs/kit';
 // ============================================================================
 
 /**
- * Lit la variable d'environnement KATO_ADAPTER pour sélectionner l'adaptateur.
- * Défaut : "mock".
+ * Lit la variable d'environnement KATO_ADAPTER (ou ADAPTER_TYPE) pour sélectionner l'adaptateur.
+ * Valeurs supportées : "uptimerobot", "mock" (défaut).
  */
-const adapterType = process.env.KATO_ADAPTER ?? 'mock';
+const adapterType = (process.env.KATO_ADAPTER || process.env.ADAPTER_TYPE || 'mock').toLowerCase();
 
 /**
  * Instancie et initialise l'adaptateur de monitoring au démarrage du module.
@@ -19,23 +21,28 @@ const adapterType = process.env.KATO_ADAPTER ?? 'mock';
  * utilise un IIFE async qui s'exécute une seule fois au chargement du module.
  */
 async function bootstrap(): Promise<void> {
-	let adapter;
+	let adapter: MonitoringAdapter;
 
-	// Sélection de l'adaptateur selon la configuration
-	switch (adapterType) {
-		case 'mock':
-		default:
-			adapter = new MockAdapter();
-			console.log(`[Kato] Adaptateur sélectionné : mock`);
-			break;
+	// Sélection et instanciation de l'adaptateur selon la configuration
+	if (adapterType === 'uptimerobot') {
+		adapter = new UptimeRobotAdapter();
+		console.log(`[Kato] Adaptateur sélectionné : uptimerobot`);
+
+		const apiKey = process.env.UPTIMEROBOT_API_KEY ?? '';
+		const pollInterval = process.env.UPTIMEROBOT_POLL_INTERVAL
+			? parseInt(process.env.UPTIMEROBOT_POLL_INTERVAL, 10)
+			: 30000;
+
+		await adapter.initialize({ apiKey, pollInterval });
+	} else {
+		adapter = new MockAdapter();
+		console.log(`[Kato] Adaptateur sélectionné : mock`);
+
+		const count = parseInt(process.env.KATO_MOCK_COUNT ?? '50', 10);
+		await adapter.initialize({ count });
 	}
 
-	// Lecture des paramètres de configuration depuis l'environnement
-	const count = parseInt(process.env.KATO_MOCK_COUNT ?? '50', 10);
-
-	// Initialisation de l'adaptateur
-	await adapter.initialize({ count });
-	console.log(`[Kato] Adaptateur initialisé — type: ${adapterType}`);
+	console.log(`[Kato] Adaptateur initialisé — type: ${adapter.name}`);
 
 	// Démarrage du polling (produit les mises à jour dans le store)
 	startPolling(adapter, store);

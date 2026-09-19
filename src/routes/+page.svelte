@@ -24,6 +24,12 @@
 	let containerWidth = $state<number>(1920);
 	let containerHeight = $state<number>(992);
 
+	// Détection rudimentaire du mode mobile pour garantir l'accessibilité tactile (cellules ≥ 44px)
+	const isMobile = $derived.by(() => {
+		if (typeof window === 'undefined') return false;
+		return window.innerWidth < 768 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+	});
+
 	// Détection du mode TV via le paramètre d'URL (?tv=1)
 	const isTvMode = $derived.by(() => {
 		if (typeof window === 'undefined') return false;
@@ -43,7 +49,8 @@
 			viewportHeight: containerHeight,
 			probeCount: sortedProbes.length,
 			headerHeight: 0, // La hauteur est déjà réservée par le padding du conteneur
-			incidentBarHeight: 0
+			incidentBarHeight: 0,
+			isMobile
 		})
 	);
 
@@ -147,7 +154,10 @@
 	<Header {probes} {lastUpdate} compact={isCompactHeader} />
 
 	<!-- Zone principale de la grille supervisée par ResizeObserver -->
-	<main bind:this={gridContainer} class="flex-1 w-full h-full overflow-hidden relative">
+	<main
+		bind:this={gridContainer}
+		class="flex-1 w-full h-full relative {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
+	>
 		{#if sortedProbes.length > 0}
 			<ProbeGrid probes={sortedProbes} {layout} />
 		{:else}
