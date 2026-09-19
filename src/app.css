@@ -16,10 +16,14 @@
 	25%, 75% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.6); }
 }
 
-/* 3. Incident Marquee (Mode TV) */
+/* 3. Incident Marquee (Mode TV - Défilement continu infini fluide 60fps) */
 @keyframes kato-marquee {
-	0% { transform: translateX(100%); }
-	100% { transform: translateX(-100%); }
+	0% {
+		transform: translate3d(0, 0, 0);
+	}
+	100% {
+		transform: translate3d(-50%, 0, 0);
+	}
 }
 
 /* 4. Anti Burn-In Drift (Mode TV - Déplacement lent sur 10 min) */
@@ -457,6 +461,9 @@ body {
 	display: flex;
 	width: max-content;
 	animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
+	will-change: transform;
+	transform: translate3d(0, 0, 0);
+	backface-visibility: hidden;
 }
 
 .animate-kato-marquee:hover {
@@ -468,6 +475,9 @@ body {
 	display: flex;
 	width: max-content;
 	animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
+	will-change: transform;
+	transform: translate3d(0, 0, 0);
+	backface-visibility: hidden;
 }
 
 .animate-kato-marquee:hover,

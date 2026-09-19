@@ -6,12 +6,14 @@
   let {
     probe,
     prevStatus,
+    isFlashing = false,
     density = "micro",
     cellSize = 32,
     onselect,
   }: {
     probe: NormalizedProbe;
     prevStatus?: ProbeStatus;
+    isFlashing?: boolean;
     density: "micro" | "pixel";
     cellSize?: number;
     onselect?: (probe: NormalizedProbe) => void;
@@ -27,18 +29,8 @@
     return false;
   });
 
-  // Détection des transitions d'état UP → DOWN pour déclencher le border flash de 2 secondes
-  let isFlashing = $state(false);
-
-  $effect(() => {
-    if (prevStatus === "up" && probe.status === "down") {
-      isFlashing = true;
-      const timer = setTimeout(() => {
-        isFlashing = false;
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  });
+  // Détection des transitions d'état UP → DOWN (flashing sans $effect)
+  const shouldFlash = $derived(isFlashing || (prevStatus === "up" && probe.status === "down"));
 
   // Dimensions adaptées à cellSize :
   // - pixel : pseudo-pixel carré avec marge minimale, pour éviter les ronds trop larges
@@ -96,7 +88,7 @@
 			? 'w-full h-full rounded-none sm:rounded-[0.5px] group-hover:scale-110 group-hover:z-10 group-hover:ring-1 group-hover:ring-white/60'
 			: 'rounded-full'} {color.bgClass} probe-dot probe-dot-{probe.status} group-hover:scale-125 transition-transform duration-150 shadow-xs {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		aria-hidden="true"
 	></div>
 

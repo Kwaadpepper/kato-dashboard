@@ -53,6 +53,9 @@
 			: {}
 	);
 
+	// Ensemble des identifiants de sondes en train de clignoter (UP → DOWN)
+	let flashingProbeIds = $state<Set<string>>(new Set());
+
 	// Flash sur la bordure du container principal lors d'une bascule UP → DOWN
 	let containerFlashing = $state(false);
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
@@ -178,45 +181,7 @@
 		})
 	);
 
-	// 3. ResizeObserver avec debounce 150ms pour recalculer optimalement le layout
-	$effect(() => {
-		if (!gridContainer) return;
-
-		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-		let isFirstMeasurement = true;
-
-		const observer = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (!entry) return;
-
-			const { width, height } = entry.contentRect;
-			if (width <= 0 || height <= 0) return;
-
-			// Premier calcul immédiat sans délai pour affichage instantané
-			if (isFirstMeasurement) {
-				isFirstMeasurement = false;
-				containerWidth = width;
-				containerHeight = height;
-				return;
-			}
-
-			// Debounce 150ms lors des redimensionnements utilisateur
-			if (debounceTimer) clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => {
-				containerWidth = width;
-				containerHeight = height;
-			}, 150);
-		});
-
-		observer.observe(gridContainer);
-
-		return () => {
-			if (debounceTimer) clearTimeout(debounceTimer);
-			observer.disconnect();
-		};
-	});
-
-	// 4. Souscription SSE (Server-Sent Events) pour les flux temps réel et reconnexion au pull-to-refresh
+	// 3. Souscription SSE (Server-Sent Events) pour les flux temps réel et reconnexion au pull-to-refresh
 	let disconnectSSE: (() => void) | null = null;
 
 	function setupSSE() {
@@ -244,12 +209,14 @@
 					let upToDownCount = 0;
 					let downToUpCount = 0;
 					const updatedPrev = { ...previousStatuses };
+					const newFlashing = new Set<string>();
 
 					const probeMap = new Map(probes.map((p) => [p.id, p]));
 					for (const updated of delta.changed) {
 						const oldStatus = previousStatuses[updated.id];
 						if (oldStatus === 'up' && updated.status === 'down') {
 							upToDownCount++;
+							newFlashing.add(updated.id);
 						} else if (oldStatus === 'down' && updated.status === 'up') {
 							downToUpCount++;
 						}
@@ -259,6 +226,14 @@
 
 					previousStatuses = updatedPrev;
 					probes = Array.from(probeMap.values());
+
+					// Active le flash sur les cartes de sondes qui viennent de tomber (sans aucun $effect enfant)
+					if (newFlashing.size > 0) {
+						flashingProbeIds = newFlashing;
+						setTimeout(() => {
+							flashingProbeIds = new Set();
+						}, 2000);
+					}
 
 					// Flash visuel sur le container principal si au moins une sonde est tombée
 					if (upToDownCount > 0) {
@@ -317,20 +292,49 @@
 		}
 	}
 
-	$effect(() => {
+	// 4. Cycle de vie initialisé sur le client (onMount) pour éviter les re-renders récursifs
+	onMount(() => {
+		// Démarrage de la connexion SSE une seule fois
 		setupSSE();
 
-		return () => {
-			if (disconnectSSE) disconnectSSE();
-			if (flashTimer) clearTimeout(flashTimer);
-		};
-	});
+		// ResizeObserver supervisant le conteneur de grille
+		let observer: ResizeObserver | null = null;
+		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// 5. Gestion du mode TV : initialisation ?tv=1, synchronisation et détection d'inactivité (30s)
-	onMount(() => {
-		// Si tv=1 : appelle enterTvMode() au mount
+		if (gridContainer) {
+			let isFirstMeasurement = true;
+
+			observer = new ResizeObserver((entries) => {
+				const entry = entries[0];
+				if (!entry) return;
+
+				const { width, height } = entry.contentRect;
+				if (width <= 0 || height <= 0) return;
+
+				if (isFirstMeasurement) {
+					isFirstMeasurement = false;
+					if (width !== containerWidth || height !== containerHeight) {
+						containerWidth = width;
+						containerHeight = height;
+					}
+					return;
+				}
+
+				if (debounceTimer) clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(() => {
+					if (width !== containerWidth || height !== containerHeight) {
+						containerWidth = width;
+						containerHeight = height;
+					}
+				}, 150);
+			});
+
+			observer.observe(gridContainer);
+		}
+
+		// Si tv=1 : appelle enterTvMode() au mount avec le conteneur de grille
 		if ($page.url.searchParams.get('tv') === '1') {
-			void enterTvMode(dashboardContainer);
+			void enterTvMode(gridContainer);
 		}
 
 		// Synchronisation continue avec l'état effectif du mode TV
@@ -343,7 +347,7 @@
 
 		// Détection d'inactivité : si pas de mousemove/keypress pendant 30s → auto-enter
 		const cleanupInactivity = startInactivityDetection(30_000, () => {
-			void enterTvMode(dashboardContainer);
+			void enterTvMode(gridContainer);
 		});
 
 		// Écoute de l'événement personnalisé 'probe-detail' propagé par bullage
@@ -360,6 +364,10 @@
 		window.addEventListener('keydown', unlockHandler, { once: true });
 
 		return () => {
+			if (disconnectSSE) disconnectSSE();
+			if (flashTimer) clearTimeout(flashTimer);
+			if (debounceTimer) clearTimeout(debounceTimer);
+			if (observer) observer.disconnect();
 			unsubTv();
 			cleanupInactivity();
 			window.removeEventListener('probe-detail', handleCustomProbeDetail);
@@ -373,7 +381,7 @@
 	$effect(() => {
 		const shouldEnterTv = $page.url.searchParams.get('tv') === '1';
 		if (shouldEnterTv && !isTvActiveState) {
-			void enterTvMode(dashboardContainer);
+			void enterTvMode(gridContainer);
 		}
 	});
 
@@ -440,7 +448,7 @@
 	class="h-screen w-screen overflow-hidden flex flex-col transition-colors duration-500 text-[var(--kato-text-primary)] select-none {isCriticalDownRatio
 		? 'bg-red-950/20'
 		: 'bg-[var(--kato-bg-primary)]'} {containerFlashing ? 'animate-kato-border-flash' : ''} {isTvMode
-		? 'animate-kato-drift tv-mode'
+		? 'tv-mode'
 		: ''} {isCompactHeader
 		? 'pt-8'
 		: 'pt-12'} pb-8 sm:pb-10"
@@ -469,13 +477,13 @@
 		</div>
 	{/if}
 
-	<!-- Zone principale de la grille supervisée par ResizeObserver -->
+	<!-- Zone principale de la grille supervisée par ResizeObserver (drift anti burn-in isolé) -->
 	<main
 		bind:this={gridContainer}
 		ontouchstart={handleTouchStart}
 		ontouchmove={handleTouchMove}
 		ontouchend={handleTouchEnd}
-		class="flex-1 w-full h-full relative {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
+		class="flex-1 w-full h-full relative {isTvMode ? 'animate-kato-drift' : ''} {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
 	>
 		<!-- Indicateur visuel Pull-to-refresh natif sur mobile -->
 		{#if isMobile && (pullDistance > 0 || isRefreshing)}
@@ -501,6 +509,7 @@
 				probes={sortedProbes}
 				{layout}
 				{previousStatuses}
+				{flashingProbeIds}
 				onselect={handleSelectProbe}
 			/>
 		{:else}

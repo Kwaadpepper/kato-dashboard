@@ -1,6 +1,14 @@
 <script lang="ts">
 	import type { NormalizedIncident } from '$lib/types';
 	import { onMarqueeChange, getInitialMarqueeDuration } from '$lib/utils/marquee';
+	import {
+		createIncidentQueue,
+		formatIncidentDuration,
+		type IncidentQueueState
+	} from '$lib/utils/incident-queue';
+	import ChevronUp from 'lucide-svelte/icons/chevron-up';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
+	import { onMount } from 'svelte';
 
 	let {
 		incidents = [],
@@ -10,51 +18,64 @@
 		tvMode?: boolean;
 	} = $props();
 
-	let now = $state(Date.now());
 	let marqueeDuration = $state(getInitialMarqueeDuration());
+	let isExpanded = $state(false);
+	let drawerNow = $state(Date.now());
 
-	// Abonnement à la vitesse limite de défilement
-	$effect(() => {
-		const unsubscribe = onMarqueeChange((config) => {
+	// File d'attente FIFO et gestionnaire d'isolation de performance
+	// svelte-ignore state_referenced_locally
+	const queueManager = createIncidentQueue(incidents, tvMode);
+	let queueState = $state<IncidentQueueState>(queueManager.getState());
+
+	onMount(() => {
+		// Abonnement aux changements d'état de la file
+		const unsubQueue = queueManager.subscribe((state) => {
+			queueState = state;
+		});
+
+		// Abonnement à la vitesse limite de défilement
+		const unsubMarquee = onMarqueeChange((config) => {
 			marqueeDuration = config.duration;
 		});
-		return unsubscribe;
+
+		return () => {
+			unsubQueue();
+			unsubMarquee();
+			queueManager.reset();
+		};
 	});
 
-	// Compteur temps réel rafraîchi chaque seconde pour actualiser la durée de panne
+	// Synchronise les incidents entrants dans la file d'attente
+	// Si un défilement est en cours, les nouveaux événements attendent la fin du cycle
 	$effect(() => {
+		queueManager.setIncidents(incidents, tvMode);
+	});
+
+	// Rafraîchit l'horodatage uniquement dans le tiroir mobile déplié
+	$effect(() => {
+		if (!isExpanded || tvMode) return;
 		const timer = setInterval(() => {
-			now = Date.now();
-		}, 1000);
+			drawerNow = Date.now();
+		}, 2000);
 		return () => clearInterval(timer);
 	});
 
-	// Filtrage strict sur les incidents actifs (non encore résolus)
-	const activeIncidents = $derived(
-		incidents.filter((inc) => inc.resolvedAt === null)
-	);
+	// Répète les éléments pour garantir une continuité parfaite sans trou visuel sur tout écran
+	const marqueeItems = $derived.by(() => {
+		const items = queueState.displayed;
+		if (items.length === 0) return [];
+		let result = [...items];
+		while (result.length < 8) {
+			result = [...result, ...items];
+		}
+		return result;
+	});
 
-	/**
-	 * Formate la durée écoulée depuis le déclenchement de l'incident.
-	 * Ex: "2m 14s", "1h 05m 12s", "1j 3h 10m"
-	 */
-	function formatDuration(startedAt: string, currentMs: number): string {
-		if (!startedAt) return '0s';
-		const startMs = new Date(startedAt).getTime();
-		const diffSec = Math.max(0, Math.floor((currentMs - startMs) / 1000));
-		const days = Math.floor(diffSec / 86400);
-		const hours = Math.floor((diffSec % 86400) / 3600);
-		const mins = Math.floor((diffSec % 3600) / 60);
-		const secs = diffSec % 60;
-
-		if (days > 0) return `${days}j ${hours}h ${mins}m`;
-		if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
-		return `${mins}m ${secs}s`;
+	function handleAnimationIteration() {
+		// Déclenché à la fin de chaque cycle (translation 0% -> -50%)
+		// Le lot a défilé jusqu'au bout : on applique les nouveaux événements de la file
+		queueManager.onCycleComplete();
 	}
-	import ChevronUp from 'lucide-svelte/icons/chevron-up';
-	import ChevronDown from 'lucide-svelte/icons/chevron-down';
-
-	let isExpanded = $state(false);
 
 	function toggleExpand() {
 		if (!tvMode) {
@@ -63,14 +84,16 @@
 	}
 </script>
 
-{#if activeIncidents.length === 0}
+{#if queueState.displayed.length === 0 && queueState.activeCount === 0}
 	<!-- ===================================================================== -->
 	<!-- CAS NOMINAL : Aucun incident actif                                    -->
+	<!-- Isolation stricte : aucun recalcul layout sur le reste du dashboard   -->
 	<!-- ===================================================================== -->
 	<footer
-		class="fixed bottom-0 left-0 right-0 z-40 h-8 sm:h-10 bg-[var(--kato-bg-secondary)]/90 border-t border-[var(--kato-border)] flex items-center justify-center select-none transition-colors duration-150"
+		class="fixed bottom-0 left-0 right-0 z-40 h-8 sm:h-10 bg-[var(--kato-bg-secondary)] border-t border-[var(--kato-border)] flex items-center justify-center select-none transition-colors duration-150"
 		role="status"
 		aria-live="polite"
+		style="contain: layout paint; transform: translate3d(0, 0, 0);"
 	>
 		<span class="text-[var(--kato-text-secondary)] text-xs sm:text-sm font-medium flex items-center gap-2">
 			<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -80,47 +103,73 @@
 {:else}
 	<!-- ===================================================================== -->
 	<!-- CAS CRITIQUE : Incidents en cours                                     -->
+	<!-- File d'attente FIFO + GPU Compositor thread pour 60fps stable         -->
 	<!-- ===================================================================== -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<footer
-		class="fixed bottom-0 left-0 right-0 z-40 bg-red-950/90 border-t border-red-800/60 backdrop-blur-sm flex flex-col text-red-200 select-none transition-all duration-200 shadow-2xl {isExpanded ? 'max-h-80' : 'h-8 sm:h-10'}"
+		class="fixed bottom-0 left-0 right-0 z-40 bg-red-950 border-t border-red-800/60 flex flex-col text-red-200 select-none transition-[max-height] duration-200 shadow-2xl {isExpanded ? 'max-h-80' : 'h-8 sm:h-10'}"
 		role="alert"
 		aria-live="assertive"
+		style="contain: layout paint; transform: translate3d(0, 0, 0);"
 	>
-		<!-- Barre principale : tapez pour étendre sur mobile -->
+		<!-- Barre principale : clic pour étendre sur mobile -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="h-8 sm:h-10 w-full flex items-center px-3 sm:px-4 cursor-pointer sm:cursor-default shrink-0 overflow-hidden"
 			onclick={toggleExpand}
 		>
-			<!-- Compteur d'alertes ancré à gauche -->
+			<!-- Compteur d'alertes ancré à gauche avec nombre d'incidents actifs réels -->
 			<div
 				class="flex items-center gap-1.5 sm:gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-wider text-red-300 shrink-0 pr-2.5 sm:pr-4 border-r border-red-800/60 mr-2 sm:mr-4"
 			>
-				<span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500 animate-ping"></span>
-				Incidents ({activeIncidents.length})
+				<span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500"></span>
+				Incidents ({queueState.activeCount})
+				{#if queueState.pendingCount > 0}
+					<span
+						class="text-[9px] px-1 py-0.2 rounded bg-amber-900/60 text-amber-300 font-mono font-semibold"
+						title="Événements en attente dans la file (défileront au prochain cycle)"
+					>
+						+{queueState.pendingCount} en file
+					</span>
+				{/if}
 			</div>
 
-			<!-- Zone d'affichage : défilement continu en TV, scroll horizontal en desktop -->
-			<div class="flex-1 overflow-hidden">
+			<!-- Zone d'affichage : défilement continu infini sans accroc (0% -> -50% GPU) -->
+			<div class="flex-1 overflow-hidden relative" style="contain: layout paint; transform: translate3d(0, 0, 0);">
 				<div
 					class={tvMode
-						? 'animate-kato-marquee flex items-center gap-8'
+						? 'animate-kato-marquee flex items-center will-change-transform'
 						: 'flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar'}
 					style="--kato-marquee-duration: {marqueeDuration}s;"
+					onanimationiteration={handleAnimationIteration}
 				>
-					{#each activeIncidents as incident (incident.id)}
-						<div class="flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm text-red-200 font-mono">
-							<span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-400 shrink-0 animate-pulse"></span>
-							<span class="font-bold text-white truncate max-w-[120px] sm:max-w-none">{incident.probeName}</span>
-							<span class="text-[11px] sm:text-xs text-red-300">
-								{incident.type === 'down' ? 'DOWN' : 'DEGRADED'} ({formatDuration(
-									incident.startedAt,
-									now
-								)})
-							</span>
+					<!-- Bloc 1 : premier lot continu -->
+					<div class="flex items-center gap-8 pr-8 shrink-0">
+						{#each marqueeItems as incident, idx (`b1-${incident.id}-${idx}`)}
+							<div class="flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm text-red-200 font-mono">
+								<span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-400 shrink-0"></span>
+								<span class="font-bold text-white truncate max-w-[140px] sm:max-w-none">{incident.probeName}</span>
+								<span class="text-[11px] sm:text-xs text-red-300">
+									{incident.type === 'down' ? 'DOWN' : 'DEGRADED'} ({incident.formattedDuration})
+								</span>
+							</div>
+						{/each}
+					</div>
+
+					<!-- Bloc 2 : duplication exacte pour boucle infinie transparente à 60fps (en TV) -->
+					{#if tvMode}
+						<div class="flex items-center gap-8 pr-8 shrink-0" aria-hidden="true">
+							{#each marqueeItems as incident, idx (`b2-${incident.id}-${idx}`)}
+								<div class="flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm text-red-200 font-mono">
+									<span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-400 shrink-0"></span>
+									<span class="font-bold text-white truncate max-w-[140px] sm:max-w-none">{incident.probeName}</span>
+									<span class="text-[11px] sm:text-xs text-red-300">
+										{incident.type === 'down' ? 'DOWN' : 'DEGRADED'} ({incident.formattedDuration})
+									</span>
+								</div>
+							{/each}
 						</div>
-					{/each}
+					{/if}
 				</div>
 			</div>
 
@@ -147,10 +196,10 @@
 		<!-- Liste déroulante des incidents quand déplié sur mobile -->
 		{#if isExpanded && !tvMode}
 			<div class="border-t border-red-900/60 bg-red-950/95 overflow-y-auto max-h-64 p-3 space-y-2 divide-y divide-red-900/40">
-				{#each activeIncidents as incident (incident.id)}
+				{#each incidents.filter((i) => i.resolvedAt === null) as incident (incident.id)}
 					<div class="pt-2 first:pt-0 flex items-center justify-between gap-2 text-xs font-mono">
 						<div class="flex items-center gap-2 min-w-0">
-							<span class="w-2 h-2 rounded-full bg-red-400 shrink-0 animate-pulse"></span>
+							<span class="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>
 							<span class="font-semibold text-white truncate">{incident.probeName}</span>
 						</div>
 						<div class="shrink-0 flex items-center gap-2">
@@ -158,7 +207,7 @@
 								{incident.type}
 							</span>
 							<span class="text-red-300 text-[11px]">
-								{formatDuration(incident.startedAt, now)}
+								{formatIncidentDuration(incident.startedAt, drawerNow)}
 							</span>
 						</div>
 					</div>

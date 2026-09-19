@@ -11,12 +11,14 @@
 	let {
 		probe,
 		prevStatus,
+		isFlashing = false,
 		density = 'medium',
 		cellSize: _cellSize = 120,
 		onselect
 	}: {
 		probe: NormalizedProbe;
 		prevStatus?: ProbeStatus;
+		isFlashing?: boolean;
 		density: GridDensity;
 		cellSize?: number;
 		onselect?: (probe: NormalizedProbe) => void;
@@ -32,18 +34,8 @@
 		return false;
 	});
 
-	// Détection des transitions d'état UP → DOWN pour déclencher le border flash de 2 secondes
-	let isFlashing = $state(false);
-
-	$effect(() => {
-		if (prevStatus === 'up' && probe.status === 'down') {
-			isFlashing = true;
-			const timer = setTimeout(() => {
-				isFlashing = false;
-			}, 2000);
-			return () => clearTimeout(timer);
-		}
-	});
+	// Détection des transitions d'état UP → DOWN (flashing sans aucun $effect récursif)
+	const shouldFlash = $derived(isFlashing || (prevStatus === 'up' && probe.status === 'down'));
 
 	function triggerSelect(target: EventTarget | null) {
 		const customEvent = new CustomEvent('probe-detail', {
@@ -94,7 +86,7 @@
 	<div
 		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex="0"
 		role="button"
@@ -162,7 +154,7 @@
 	<div
 		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex="0"
 		role="button"
@@ -196,7 +188,7 @@
 	<div
 		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {compactStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
 		tabindex="0"
 		role="button"
