@@ -375,9 +375,9 @@
 			e.stopPropagation();
 		}
 	}}
-	class="h-screen w-screen overflow-hidden flex flex-col transition-colors duration-500 text-white select-none {isCriticalDownRatio
+	class="h-screen w-screen overflow-hidden flex flex-col transition-colors duration-500 text-[var(--kato-text-primary)] select-none {isCriticalDownRatio
 		? 'bg-red-950/20'
-		: 'bg-slate-950'} {containerFlashing ? 'animate-kato-border-flash' : ''} {isTvMode
+		: 'bg-[var(--kato-bg-primary)]'} {containerFlashing ? 'animate-kato-border-flash' : ''} {isTvMode
 		? 'animate-kato-drift tv-mode'
 		: ''} {isCompactHeader
 		? 'pt-8'

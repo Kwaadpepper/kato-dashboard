@@ -84,7 +84,7 @@
 		style={dotStyle}
 		class="{density === 'pixel'
 			? 'rounded-xs hover:ring-2 hover:ring-white/40'
-			: 'rounded-full'} {color.bgClass} hover:scale-125 transition-transform duration-150 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 {isDown
+			: 'rounded-full'} {color.bgClass} probe-dot probe-dot-{probe.status} hover:scale-125 transition-transform duration-150 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		role="button"

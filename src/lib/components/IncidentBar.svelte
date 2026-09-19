@@ -58,11 +58,11 @@
 	<!-- CAS NOMINAL : Aucun incident actif                                    -->
 	<!-- ===================================================================== -->
 	<footer
-		class="fixed bottom-0 left-0 right-0 z-40 h-8 sm:h-10 bg-slate-900/90 border-t border-slate-700/50 flex items-center justify-center select-none"
+		class="fixed bottom-0 left-0 right-0 z-40 h-8 sm:h-10 bg-[var(--kato-bg-secondary)]/90 border-t border-[var(--kato-border)] flex items-center justify-center select-none transition-colors duration-150"
 		role="status"
 		aria-live="polite"
 	>
-		<span class="text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-2">
+		<span class="text-[var(--kato-text-secondary)] text-xs sm:text-sm font-medium flex items-center gap-2">
 			<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
 			✓ Aucun incident actif
 		</span>

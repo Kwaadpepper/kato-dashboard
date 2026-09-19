@@ -70,30 +70,15 @@
 		probe.uptime24h !== null ? `${probe.uptime24h.toFixed(2)}%` : '—'
 	);
 
-	// Classes d'arrière-plan et de bordure pour les modes large et medium
+	// Classes d'arrière-plan et de bordure basées sur les CSS Custom Properties pour les 3 thèmes
 	const cardStyleClasses = $derived(
-		`${color.cardBgClass} border ${color.borderClass}`
+		`probe-card probe-card-${probe.status} border`
 	);
 
-	// Classes d'arrière-plan et bordure spécifiques au mode compact (fond teinté plus sombre)
-	const compactStyleClasses = $derived.by(() => {
-		switch (probe.status) {
-			case 'up':
-				return 'bg-emerald-950/40 border-emerald-800/40';
-			case 'down':
-				return 'bg-red-950/50 border-red-800/60';
-			case 'degraded':
-				return 'bg-amber-950/40 border-amber-800/40';
-			case 'paused':
-				return 'bg-slate-800/40 border-slate-700/40';
-			case 'pending':
-				return 'bg-blue-950/40 border-blue-800/40';
-			case 'maintenance':
-				return 'bg-violet-950/40 border-violet-800/40';
-			default:
-				return 'bg-slate-900/40 border-slate-800/40';
-		}
-	});
+	// Classes d'arrière-plan et bordure pour le mode compact
+	const compactStyleClasses = $derived(
+		`probe-card probe-card-${probe.status} border`
+	);
 </script>
 
 {#if density === 'large'}
@@ -113,11 +98,11 @@
 		<!-- En-tête de la carte : Nom + URL + Icône statut -->
 		<div class="flex justify-between items-start gap-2 min-w-0">
 			<div class="min-w-0 flex-1">
-				<h3 class="text-base font-semibold text-white truncate" title={probe.name}>
+				<h3 class="text-base font-semibold text-[var(--kato-text-primary)] truncate" title={probe.name}>
 					{probe.name}
 				</h3>
 				{#if probe.url}
-					<p class="text-xs text-slate-400 font-mono truncate mt-0.5" title={probe.url}>
+					<p class="text-xs text-[var(--kato-text-secondary)] font-mono truncate mt-0.5" title={probe.url}>
 						{probe.url}
 					</p>
 				{/if}
@@ -145,18 +130,18 @@
 		<!-- Corps / Bas de carte : Métriques Uptime & Latence -->
 		<div class="mt-4 flex items-end justify-between gap-2">
 			<div>
-				<span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">
+				<span class="text-[10px] text-[var(--kato-text-secondary)] uppercase tracking-wider block font-sans">
 					Uptime 24h
 				</span>
-				<span class="text-2xl font-bold font-mono tracking-tight text-white">
+				<span class="text-2xl font-bold font-mono tracking-tight text-[var(--kato-text-primary)]">
 					{uptimeDisplay}
 				</span>
 			</div>
 			<div class="text-right">
-				<span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">
+				<span class="text-[10px] text-[var(--kato-text-secondary)] uppercase tracking-wider block font-sans">
 					Latence
 				</span>
-				<span class="text-sm font-mono text-slate-200">
+				<span class="text-sm font-mono text-[var(--kato-text-secondary)]">
 					{responseTimeDisplay}
 				</span>
 			</div>
@@ -179,7 +164,7 @@
 	>
 		<!-- Ligne supérieure : Nom + Pastille -->
 		<div class="flex items-center justify-between gap-2 min-w-0">
-			<h3 class="text-sm font-medium text-white truncate" title={probe.name}>
+			<h3 class="text-sm font-medium text-[var(--kato-text-primary)] truncate" title={probe.name}>
 				{probe.name}
 			</h3>
 			<span class="w-2.5 h-2.5 rounded-full shrink-0 {color.bgClass} shadow-xs"></span>
@@ -187,10 +172,10 @@
 
 		<!-- Ligne inférieure : Uptime + Latence -->
 		<div class="mt-2 flex items-baseline justify-between gap-2">
-			<span class="text-lg font-bold font-mono text-slate-100">
+			<span class="text-lg font-bold font-mono text-[var(--kato-text-primary)]">
 				{uptimeDisplay}
 			</span>
-			<span class="text-xs font-mono text-slate-300">
+			<span class="text-xs font-mono text-[var(--kato-text-secondary)]">
 				{responseTimeDisplay}
 			</span>
 		</div>
@@ -214,12 +199,12 @@
 		<div class="w-1 h-full rounded-full absolute left-0 top-0 bottom-0 {color.bgClass}"></div>
 
 		<!-- Nom tronqué avec padding gauche pour la bande -->
-		<span class="text-xs font-medium text-white truncate pl-2" title={probe.name}>
+		<span class="text-xs font-medium text-[var(--kato-text-primary)] truncate pl-2" title={probe.name}>
 			{probe.name}
 		</span>
 
 		<!-- Temps de réponse ou badge statut -->
-		<span class="text-[11px] font-mono text-slate-300 shrink-0 ml-1.5">
+		<span class="text-[11px] font-mono text-[var(--kato-text-secondary)] shrink-0 ml-1.5">
 			{responseTimeDisplay}
 		</span>
 	</div>

@@ -38,6 +38,218 @@
 	--animate-kato-border-flash: kato-border-flash 0.5s ease-in-out 3;
 	--animate-kato-marquee: kato-marquee 30s linear infinite;
 	--animate-kato-drift: kato-drift 600s ease-in-out infinite;
+
+	--color-kato-bg-primary: var(--kato-bg-primary);
+	--color-kato-bg-secondary: var(--kato-bg-secondary);
+	--color-kato-text-primary: var(--kato-text-primary);
+	--color-kato-text-secondary: var(--kato-text-secondary);
+	--color-kato-border: var(--kato-border);
+}
+
+/* ============================================================================
+ * SYSTÈME DE THÈMES (docs/COLORS_AND_THEME.md)
+ * ============================================================================ */
+
+/* 1. Thème Sombre (Par défaut) : Fond #0F172A */
+:root, [data-theme='dark'] {
+	--kato-bg-primary: #0F172A;
+	--kato-bg-secondary: #1E293B;
+	--kato-text-primary: #F8FAFC;
+	--kato-text-secondary: #94A3B8;
+	--kato-border: #334155;
+	color-scheme: dark;
+
+	/* Tokens de cartes de sondes (Dark) */
+	--probe-up-bg: rgba(6, 78, 59, 0.3);
+	--probe-up-border: rgba(4, 120, 87, 0.5);
+	--probe-up-text: #6EE7B7;
+
+	--probe-down-bg: rgba(127, 29, 29, 0.4);
+	--probe-down-border: rgba(239, 68, 68, 0.6);
+	--probe-down-text: #FCA5A5;
+
+	--probe-degraded-bg: rgba(120, 53, 15, 0.3);
+	--probe-degraded-border: rgba(217, 119, 6, 0.5);
+	--probe-degraded-text: #FCD34D;
+
+	--probe-paused-bg: rgba(30, 41, 59, 0.4);
+	--probe-paused-border: rgba(71, 85, 105, 0.3);
+	--probe-paused-text: #94A3B8;
+
+	--probe-pending-bg: rgba(30, 58, 138, 0.3);
+	--probe-pending-border: rgba(37, 99, 235, 0.4);
+	--probe-pending-text: #93C5FD;
+
+	--probe-maintenance-bg: rgba(76, 29, 149, 0.3);
+	--probe-maintenance-border: rgba(124, 58, 237, 0.4);
+	--probe-maintenance-text: #C4B5FD;
+
+	--probe-dot-bg-up: #10B981;
+	--probe-dot-bg-down: #EF4444;
+	--probe-dot-bg-degraded: #F59E0B;
+	--probe-dot-bg-paused: #6B7280;
+	--probe-dot-bg-pending: #3B82F6;
+	--probe-dot-bg-maintenance: #8B5CF6;
+}
+
+/* 2. Thème Clair : Fond #F8FAFC */
+[data-theme='light'] {
+	--kato-bg-primary: #F8FAFC;
+	--kato-bg-secondary: #FFFFFF;
+	--kato-text-primary: #0F172A;
+	--kato-text-secondary: #64748B;
+	--kato-border: #E2E8F0;
+	color-scheme: light;
+
+	/* Tokens de cartes de sondes (Light) */
+	--probe-up-bg: #ECFDF5;
+	--probe-up-border: #A7F3D0;
+	--probe-up-text: #065F46;
+
+	--probe-down-bg: #FEF2F2;
+	--probe-down-border: #FECACA;
+	--probe-down-text: #991B1B;
+
+	--probe-degraded-bg: #FFFBEB;
+	--probe-degraded-border: #FDE68A;
+	--probe-degraded-text: #92400E;
+
+	--probe-paused-bg: #F1F5F9;
+	--probe-paused-border: #CBD5E1;
+	--probe-paused-text: #334155;
+
+	--probe-pending-bg: #EFF6FF;
+	--probe-pending-border: #BFDBFE;
+	--probe-pending-text: #1E40AF;
+
+	--probe-maintenance-bg: #F5F3FF;
+	--probe-maintenance-border: #DDD6FE;
+	--probe-maintenance-text: #5B21B6;
+
+	--probe-dot-bg-up: #10B981;
+	--probe-dot-bg-down: #EF4444;
+	--probe-dot-bg-degraded: #F59E0B;
+	--probe-dot-bg-paused: #6B7280;
+	--probe-dot-bg-pending: #3B82F6;
+	--probe-dot-bg-maintenance: #8B5CF6;
+}
+
+/* 3. Thème AMOLED : Fond #000000 (Noir pur pour OLED / TV) */
+[data-theme='amoled'] {
+	--kato-bg-primary: #000000;
+	--kato-bg-secondary: #0A0A0A;
+	--kato-text-primary: #F8FAFC;
+	--kato-text-secondary: #71717A;
+	--kato-border: #27272A;
+	color-scheme: dark;
+
+	/* Tokens de cartes de sondes (AMOLED: fond noir pur avec bordure contrastée) */
+	--probe-up-bg: #000000;
+	--probe-up-border: #047857;
+	--probe-up-text: #34D399;
+
+	--probe-down-bg: #000000;
+	--probe-down-border: #DC2626;
+	--probe-down-text: #F87171;
+
+	--probe-degraded-bg: #000000;
+	--probe-degraded-border: #D97706;
+	--probe-degraded-text: #FBBF24;
+
+	--probe-paused-bg: #000000;
+	--probe-paused-border: #3F3F46;
+	--probe-paused-text: #71717A;
+
+	--probe-pending-bg: #000000;
+	--probe-pending-border: #2563EB;
+	--probe-pending-text: #60A5FA;
+
+	--probe-maintenance-bg: #000000;
+	--probe-maintenance-border: #7C3AED;
+	--probe-maintenance-text: #A78BFA;
+
+	--probe-dot-bg-up: #000000;
+	--probe-dot-bg-down: #000000;
+	--probe-dot-bg-degraded: #000000;
+	--probe-dot-bg-paused: #000000;
+	--probe-dot-bg-pending: #000000;
+	--probe-dot-bg-maintenance: #000000;
+}
+
+/* Application globale sur body */
+body {
+	background-color: var(--kato-bg-primary);
+	color: var(--kato-text-primary);
+	border-color: var(--kato-border);
+}
+
+/* Classes utilitaires pour les cellules de sondes adaptées au thème actif */
+.probe-card {
+	background-color: var(--probe-card-bg);
+	border-color: var(--probe-card-border);
+	color: var(--probe-card-text);
+}
+
+.probe-card-up {
+	--probe-card-bg: var(--probe-up-bg);
+	--probe-card-border: var(--probe-up-border);
+	--probe-card-text: var(--probe-up-text);
+}
+
+.probe-card-down {
+	--probe-card-bg: var(--probe-down-bg);
+	--probe-card-border: var(--probe-down-border);
+	--probe-card-text: var(--probe-down-text);
+}
+
+.probe-card-degraded {
+	--probe-card-bg: var(--probe-degraded-bg);
+	--probe-card-border: var(--probe-degraded-border);
+	--probe-card-text: var(--probe-degraded-text);
+}
+
+.probe-card-paused {
+	--probe-card-bg: var(--probe-paused-bg);
+	--probe-card-border: var(--probe-paused-border);
+	--probe-card-text: var(--probe-paused-text);
+}
+
+.probe-card-pending {
+	--probe-card-bg: var(--probe-pending-bg);
+	--probe-card-border: var(--probe-pending-border);
+	--probe-card-text: var(--probe-pending-text);
+}
+
+.probe-card-maintenance {
+	--probe-card-bg: var(--probe-maintenance-bg);
+	--probe-card-border: var(--probe-maintenance-border);
+	--probe-card-text: var(--probe-maintenance-text);
+}
+
+/* En mode AMOLED : pastilles ProbeDot en fond noir pur avec bordure colorée */
+[data-theme='amoled'] .probe-dot-up {
+	background-color: #000000 !important;
+	border: 2px solid #10B981 !important;
+}
+[data-theme='amoled'] .probe-dot-down {
+	background-color: #000000 !important;
+	border: 2px solid #EF4444 !important;
+}
+[data-theme='amoled'] .probe-dot-degraded {
+	background-color: #000000 !important;
+	border: 2px solid #F59E0B !important;
+}
+[data-theme='amoled'] .probe-dot-paused {
+	background-color: #000000 !important;
+	border: 2px solid #6B7280 !important;
+}
+[data-theme='amoled'] .probe-dot-pending {
+	background-color: #000000 !important;
+	border: 2px solid #3B82F6 !important;
+}
+[data-theme='amoled'] .probe-dot-maintenance {
+	background-color: #000000 !important;
+	border: 2px solid #8B5CF6 !important;
 }
 
 /* ============================================================================
