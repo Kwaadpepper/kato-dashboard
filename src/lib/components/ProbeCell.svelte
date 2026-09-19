@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GridDensity, NormalizedProbe } from '$lib/types';
+	import type { GridDensity, NormalizedProbe, ProbeStatus } from '$lib/types';
 	import { STATUS_COLORS } from '$lib/utils/colors';
 	import CircleCheck from 'lucide-svelte/icons/circle-check';
 	import CircleX from 'lucide-svelte/icons/circle-x';
@@ -10,10 +10,12 @@
 
 	let {
 		probe,
+		prevStatus,
 		density = 'medium',
 		cellSize = 120
 	}: {
 		probe: NormalizedProbe;
+		prevStatus?: ProbeStatus;
 		density: GridDensity;
 		cellSize?: number;
 	} = $props();
@@ -26,6 +28,19 @@
 			return Date.now() - new Date(probe.downSince).getTime() > 60_000;
 		}
 		return false;
+	});
+
+	// Détection des transitions d'état UP → DOWN pour déclencher le border flash de 2 secondes
+	let isFlashing = $state(false);
+
+	$effect(() => {
+		if (prevStatus === 'up' && probe.status === 'down') {
+			isFlashing = true;
+			const timer = setTimeout(() => {
+				isFlashing = false;
+			}, 2000);
+			return () => clearTimeout(timer);
+		}
 	});
 
 	const responseTimeDisplay = $derived(
@@ -69,7 +84,7 @@
 	<article
 		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
 	>
 		<!-- En-tête de la carte : Nom + URL + Icône statut -->
@@ -132,7 +147,7 @@
 	<article
 		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
 	>
 		<!-- Ligne supérieure : Nom + Pastille -->
@@ -161,7 +176,7 @@
 	<article
 		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none {compactStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
 	>
 		<!-- Bande couleur verticale plaquée à gauche -->

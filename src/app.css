@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+ * KEYFRAMES OFFICIELS KATO (docs/COLORS_AND_THEME.md)
+ * ============================================================================ */
+
+/* 1. Pulse Alert (Sondes DOWN) */
+@keyframes kato-pulse {
+	0%, 100% { transform: scale(1); opacity: 1; }
+	50% { transform: scale(1.04); opacity: 0.8; }
+}
+
+/* 2. Border Flash (Transition UP → DOWN) */
+@keyframes kato-border-flash {
+	0%, 100% { box-shadow: inset 0 0 0 2px transparent; }
+	25%, 75% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.6); }
+}
+
+/* 3. Incident Marquee (Mode TV) */
+@keyframes kato-marquee {
+	0% { transform: translateX(100%); }
+	100% { transform: translateX(-100%); }
+}
+
+/* 4. Anti Burn-In Drift (Mode TV - Déplacement lent sur 10 min) */
+@keyframes kato-drift {
+	0%, 100% { transform: translate(0, 0); }
+	25% { transform: translate(3px, 1px); }
+	50% { transform: translate(-2px, 3px); }
+	75% { transform: translate(1px, -2px); }
+}
+
+/* ============================================================================
+ * EXTENSION DU THÈME TAILWIND CSS v4
+ * ============================================================================ */
+@theme {
+	--animate-kato-pulse: kato-pulse 2s ease-in-out infinite;
+	--animate-kato-border-flash: kato-border-flash 0.5s ease-in-out 3;
+	--animate-kato-marquee: kato-marquee 30s linear infinite;
+	--animate-kato-drift: kato-drift 600s ease-in-out infinite;
+}
+
+/* ============================================================================
+ * CLASSES UTILITAIRES D'ANIMATION ET EFFETS VISUELS
+ * ============================================================================ */
+
+.animate-kato-pulse {
+	animation: kato-pulse 2s ease-in-out infinite;
+}
+
+.animate-kato-border-flash {
+	animation: kato-border-flash 0.5s ease-in-out 3;
+}
+
+.animate-kato-marquee {
+	display: flex;
+	width: max-content;
+	animation: kato-marquee 30s linear infinite;
+}
+
+.animate-kato-marquee:hover {
+	animation-play-state: paused;
+}
+
+/* Rétrocompatibilité avec animate-marquee */
+.animate-marquee {
+	display: flex;
+	width: max-content;
+	animation: kato-marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+	animation-play-state: paused;
+}
+
+.animate-kato-drift {
+	animation: kato-drift 600s ease-in-out infinite;
+}
+
+/* Glow d'alerte pour les pannes prolongées (DOWN > 1 min) */
+.kato-glow-red {
+	box-shadow: 0 0 15px 2px rgba(239, 68, 68, 0.3),
+	            0 0 30px 4px rgba(239, 68, 68, 0.1);
+}
+
+/* Masquage de barre de défilement */
+.no-scrollbar::-webkit-scrollbar {
+	display: none;
+}
+
+.no-scrollbar {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+/* ============================================================================
+ * ACCESSIBILITÉ : PREFERS-REDUCED-MOTION (Désactivation globale)
+ * ============================================================================ */
+@media (prefers-reduced-motion: reduce) {
+	.animate-kato-pulse,
+	.animate-kato-border-flash,
+	.animate-kato-marquee,
+	.animate-kato-drift,
+	.animate-marquee {
+		animation: none !important;
+	}
+}

@@ -1,15 +1,17 @@
 <script lang="ts">
-	import type { GridLayout, NormalizedProbe } from '$lib/types';
+	import type { GridLayout, NormalizedProbe, ProbeStatus } from '$lib/types';
 	import ProbeCell from '$lib/components/ProbeCell.svelte';
 	import ProbeDot from '$lib/components/ProbeDot.svelte';
 	import { flip } from 'svelte/animate';
 
 	let {
 		probes = [],
-		layout
+		layout,
+		previousStatuses
 	}: {
 		probes: NormalizedProbe[];
 		layout: GridLayout;
+		previousStatuses?: Record<string, ProbeStatus>;
 	} = $props();
 
 	// Style dynamique de la grille CSS Grid calculé par l'algorithme adaptatif
@@ -33,9 +35,19 @@
 				class="w-full h-full flex items-center justify-center"
 			>
 				{#if layout.density === 'large' || layout.density === 'medium' || layout.density === 'compact'}
-					<ProbeCell {probe} density={layout.density} cellSize={layout.cellSize} />
+					<ProbeCell
+						{probe}
+						prevStatus={previousStatuses?.[probe.id]}
+						density={layout.density}
+						cellSize={layout.cellSize}
+					/>
 				{:else}
-					<ProbeDot {probe} density={layout.density} cellSize={layout.cellSize} />
+					<ProbeDot
+						{probe}
+						prevStatus={previousStatuses?.[probe.id]}
+						density={layout.density}
+						cellSize={layout.cellSize}
+					/>
 				{/if}
 			</div>
 		{/each}

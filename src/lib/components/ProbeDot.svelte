@@ -1,13 +1,15 @@
 <script lang="ts">
-	import type { NormalizedProbe } from '$lib/types';
+	import type { NormalizedProbe, ProbeStatus } from '$lib/types';
 	import { STATUS_COLORS } from '$lib/utils/colors';
 
 	let {
 		probe,
+		prevStatus,
 		density = 'micro',
 		cellSize = 32
 	}: {
 		probe: NormalizedProbe;
+		prevStatus?: ProbeStatus;
 		density: 'micro' | 'pixel';
 		cellSize?: number;
 	} = $props();
@@ -20,6 +22,19 @@
 			return Date.now() - new Date(probe.downSince).getTime() > 60_000;
 		}
 		return false;
+	});
+
+	// Détection des transitions d'état UP → DOWN pour déclencher le border flash de 2 secondes
+	let isFlashing = $state(false);
+
+	$effect(() => {
+		if (prevStatus === 'up' && probe.status === 'down') {
+			isFlashing = true;
+			const timer = setTimeout(() => {
+				isFlashing = false;
+			}, 2000);
+			return () => clearTimeout(timer);
+		}
 	});
 
 	// Dimensions adaptées à cellSize :
@@ -52,7 +67,7 @@
 			? 'rounded-xs hover:ring-2 hover:ring-white/40'
 			: 'rounded-full'} {color.bgClass} hover:scale-125 transition-transform duration-150 cursor-pointer shadow-sm {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {isFlashing ? 'animate-kato-border-flash' : ''}"
 		role="status"
 		aria-label="{probe.name}: {probe.status}"
 	></div>

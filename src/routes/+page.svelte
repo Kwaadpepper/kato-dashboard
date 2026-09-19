@@ -1,6 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import type { NormalizedProbe, NormalizedIncident, DashboardDelta, GridLayout } from '$lib/types';
+	import type {
+		NormalizedProbe,
+		NormalizedIncident,
+		DashboardDelta,
+		GridLayout,
+		ProbeStatus
+	} from '$lib/types';
 	import { connectSSE } from '$lib/utils/sse-client';
 	import { calculateGrid, HEADER_HEIGHT, INCIDENT_BAR_HEIGHT } from '$lib/utils/grid-calculator';
 	import { sortProbesSmart } from '$lib/utils/sort';
@@ -18,6 +24,30 @@
 	let lastUpdate = $state<string>(data.initialState?.lastUpdate ?? '');
 	// svelte-ignore state_referenced_locally
 	let source = $state<string>(data.initialState?.source ?? 'unknown');
+
+	// Registre des statuts précédents pour la détection fine des transitions UP → DOWN
+	// svelte-ignore state_referenced_locally
+	let previousStatuses = $state<Record<string, ProbeStatus>>(
+		data.initialState?.probes
+			? Object.fromEntries(data.initialState.probes.map((p) => [p.id, p.status]))
+			: {}
+	);
+
+	// Flash sur la bordure du container principal lors d'une bascule UP → DOWN
+	let containerFlashing = $state(false);
+	let flashTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function triggerContainerFlash() {
+		containerFlashing = true;
+		if (flashTimer) clearTimeout(flashTimer);
+		flashTimer = setTimeout(() => {
+			containerFlashing = false;
+		}, 2000);
+	}
+
+	// Alerte critique de masse : ≥ 30% des sondes sont DOWN → fond bg-red-950/20
+	const downCount = $derived(probes.filter((p) => p.status === 'down').length);
+	const isCriticalDownRatio = $derived(probes.length > 0 && downCount / probes.length >= 0.3);
 
 	// Conteneur DOM de la grille pour le ResizeObserver
 	let gridContainer: HTMLElement | null = $state(null);
@@ -100,15 +130,36 @@
 				incidents = [...initialState.incidents];
 				lastUpdate = initialState.lastUpdate;
 				source = initialState.source;
+
+				const initStatusMap: Record<string, ProbeStatus> = {};
+				for (const p of initialState.probes) {
+					initStatusMap[p.id] = p.status;
+				}
+				previousStatuses = initStatusMap;
 			},
 			(delta: DashboardDelta) => {
-				// A. Fusion des sondes mises à jour
+				// A. Détection des transitions UP → DOWN et fusion des sondes mises à jour
 				if (delta.changed.length > 0) {
+					let hasUpToDownTransition = false;
+					const updatedPrev = { ...previousStatuses };
+
 					const probeMap = new Map(probes.map((p) => [p.id, p]));
 					for (const updated of delta.changed) {
+						const oldStatus = previousStatuses[updated.id];
+						if (oldStatus === 'up' && updated.status === 'down') {
+							hasUpToDownTransition = true;
+						}
+						updatedPrev[updated.id] = updated.status;
 						probeMap.set(updated.id, updated);
 					}
+
+					previousStatuses = updatedPrev;
 					probes = Array.from(probeMap.values());
+
+					// Flash visuel sur le container principal si au moins une sonde est tombée
+					if (hasUpToDownTransition) {
+						triggerContainerFlash();
+					}
 				}
 
 				// B. Fusion des incidents nouveaux et résolus
@@ -136,6 +187,7 @@
 
 		return () => {
 			disconnect();
+			if (flashTimer) clearTimeout(flashTimer);
 		};
 	});
 </script>
@@ -146,7 +198,9 @@
 
 <!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) -->
 <div
-	class="h-screen w-screen overflow-hidden flex flex-col bg-slate-950 text-white select-none {isCompactHeader
+	class="h-screen w-screen overflow-hidden flex flex-col transition-colors duration-500 text-white select-none {isCriticalDownRatio
+		? 'bg-red-950/20'
+		: 'bg-slate-950'} {containerFlashing ? 'animate-kato-border-flash' : ''} {isCompactHeader
 		? 'pt-8'
 		: 'pt-12'} pb-10"
 >
@@ -159,7 +213,7 @@
 		class="flex-1 w-full h-full relative {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
 	>
 		{#if sortedProbes.length > 0}
-			<ProbeGrid probes={sortedProbes} {layout} />
+			<ProbeGrid probes={sortedProbes} {layout} {previousStatuses} />
 		{:else}
 			<div class="w-full h-full flex flex-col items-center justify-center text-slate-500 font-mono text-sm">
 				<span class="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></span>

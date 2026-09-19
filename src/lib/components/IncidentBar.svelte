@@ -78,7 +78,7 @@
 		<div class="flex-1 overflow-hidden">
 			<div
 				class={tvMode
-					? 'animate-marquee flex items-center gap-8'
+					? 'animate-kato-marquee flex items-center gap-8'
 					: 'flex items-center gap-6 overflow-x-auto no-scrollbar'}
 			>
 				{#each activeIncidents as incident (incident.id)}
