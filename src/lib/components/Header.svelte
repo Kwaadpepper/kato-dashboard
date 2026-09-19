@@ -27,13 +27,23 @@
 		ontoggleZeroScroll?: () => void;
 	} = $props();
 
+	import {
+		onMarqueeChange,
+		setMarqueeSpeed,
+		setMarqueeDuration,
+		MARQUEE_SPEED_PRESETS,
+		type MarqueeSpeed
+	} from '$lib/utils/marquee';
+
 	let currentTime = $state('00:00:00');
 	let now = $state(Date.now());
 	let isSettingsOpen = $state(false);
 	let activeTheme = $state<Theme>('dark');
 	let isSoundOn = $state(false);
+	let currentMarqueeSpeed = $state<MarqueeSpeed>('slow');
+	let currentMarqueeDuration = $state(60);
 
-	// Abonnements aux bascules de thème et de son
+	// Abonnements aux bascules de thème, de son et de vitesse de défilement
 	$effect(() => {
 		const unsubscribe = onThemeChange((theme) => {
 			activeTheme = theme;
@@ -41,9 +51,14 @@
 		const unsubSound = onSoundChange((enabled) => {
 			isSoundOn = enabled;
 		});
+		const unsubMarquee = onMarqueeChange((cfg) => {
+			currentMarqueeSpeed = cfg.speed;
+			currentMarqueeDuration = cfg.duration;
+		});
 		return () => {
 			unsubscribe();
 			unsubSound();
+			unsubMarquee();
 		};
 	});
 
@@ -306,9 +321,9 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div class="fixed inset-0 z-40" onclick={() => (isSettingsOpen = false)}></div>
 
-				<!-- Dropdown sélecteur de thème -->
+				<!-- Dropdown sélecteur de thème et paramètres -->
 				<div
-					class="absolute right-0 top-full mt-2 w-44 rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
+					class="absolute right-0 top-full mt-2 w-56 rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
 				>
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)]">
 						Thème
@@ -318,9 +333,8 @@
 							type="button"
 							onclick={() => {
 								applyTheme(opt.id);
-								isSettingsOpen = false;
 							}}
-							class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {activeTheme === opt.id ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
+							class="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {activeTheme === opt.id ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
 						>
 							<div class="flex items-center gap-2">
 								<span>{opt.icon}</span>
@@ -331,6 +345,56 @@
 							{/if}
 						</button>
 					{/each}
+
+					<!-- Section Réglage Vitesse Limite Défilement Incidents -->
+					<div class="px-3 py-1.5 mt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
+						<span>Défilement incidents</span>
+						<span class="font-mono text-emerald-400">{currentMarqueeDuration}s</span>
+					</div>
+
+					{#each Object.entries(MARQUEE_SPEED_PRESETS) as [key, preset] (key)}
+						<button
+							type="button"
+							onclick={() => {
+								setMarqueeSpeed(key as MarqueeSpeed);
+							}}
+							class="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {currentMarqueeSpeed === key ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
+							title={preset.description}
+						>
+							<div class="flex items-center gap-2">
+								<span>{preset.icon}</span>
+								<span>{preset.label} ({preset.duration}s)</span>
+							</div>
+							{#if currentMarqueeSpeed === key}
+								<Check class="w-3.5 h-3.5 text-emerald-400" />
+							{/if}
+						</button>
+					{/each}
+
+					<!-- Curseur de réglage fin de la vitesse limite -->
+					<div class="px-3 py-2 border-t border-[var(--kato-border)] flex flex-col gap-1.5 bg-slate-950/20">
+						<div class="flex items-center justify-between text-[11px] text-[var(--kato-text-secondary)]">
+							<span>Vitesse limite :</span>
+							<span class="font-mono font-bold text-[var(--kato-text-primary)]">{currentMarqueeDuration}s</span>
+						</div>
+						<input
+							type="range"
+							min="15"
+							max="120"
+							step="5"
+							value={currentMarqueeDuration}
+							oninput={(e) => {
+								const val = parseInt((e.target as HTMLInputElement).value, 10);
+								if (!isNaN(val)) setMarqueeDuration(val);
+							}}
+							class="w-full accent-emerald-500 cursor-pointer h-1.5 rounded-lg bg-slate-700"
+							aria-label="Réglage de la durée du défilement des incidents"
+						/>
+						<div class="flex justify-between text-[9px] text-[var(--kato-text-secondary)]">
+							<span>Rapide (15s)</span>
+							<span>Lent (120s)</span>
+						</div>
+					</div>
 				</div>
 			{/if}
 		</div>

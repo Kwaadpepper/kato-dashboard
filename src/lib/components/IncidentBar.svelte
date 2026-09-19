@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { NormalizedIncident } from '$lib/types';
+	import { onMarqueeChange, getInitialMarqueeDuration } from '$lib/utils/marquee';
 
 	let {
 		incidents = [],
@@ -10,6 +11,15 @@
 	} = $props();
 
 	let now = $state(Date.now());
+	let marqueeDuration = $state(getInitialMarqueeDuration());
+
+	// Abonnement à la vitesse limite de défilement
+	$effect(() => {
+		const unsubscribe = onMarqueeChange((config) => {
+			marqueeDuration = config.duration;
+		});
+		return unsubscribe;
+	});
 
 	// Compteur temps réel rafraîchi chaque seconde pour actualiser la durée de panne
 	$effect(() => {
@@ -97,6 +107,7 @@
 					class={tvMode
 						? 'animate-kato-marquee flex items-center gap-8'
 						: 'flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar'}
+					style="--kato-marquee-duration: {marqueeDuration}s;"
 				>
 					{#each activeIncidents as incident (incident.id)}
 						<div class="flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm text-red-200 font-mono">

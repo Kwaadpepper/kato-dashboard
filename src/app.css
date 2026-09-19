@@ -36,7 +36,7 @@
 @theme {
 	--animate-kato-pulse: kato-pulse 2s ease-in-out infinite;
 	--animate-kato-border-flash: kato-border-flash 0.5s ease-in-out 3;
-	--animate-kato-marquee: kato-marquee 30s linear infinite;
+	--animate-kato-marquee: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
 	--animate-kato-drift: kato-drift 600s ease-in-out infinite;
 
 	--color-kato-bg-primary: var(--kato-bg-primary);
@@ -456,7 +456,7 @@ body {
 .animate-kato-marquee {
 	display: flex;
 	width: max-content;
-	animation: kato-marquee 30s linear infinite;
+	animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
 }
 
 .animate-kato-marquee:hover {
@@ -467,7 +467,7 @@ body {
 .animate-marquee {
 	display: flex;
 	width: max-content;
-	animation: kato-marquee 30s linear infinite;
+	animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
 }
 
 .animate-kato-marquee:hover,
