@@ -95,7 +95,16 @@ export const fr: TranslationSchema = {
 		secondsHideAria: 'Masquer les secondes',
 		secondsShowAria: 'Afficher les secondes',
 		clockTimezone: 'Fuseau horaire :',
-		timezoneSelectAria: 'Sélectionner le fuseau horaire'
+		timezoneSelectAria: 'Sélectionner le fuseau horaire',
+		sectionHelp: 'Aide',
+		openHelp: 'Documentation & Raccourcis'
+	},
+	helpModal: {
+		title: 'Aide & Documentation KATO',
+		subtitle: 'Guide utilisateur et liste complète des raccourcis clavier',
+		closeAria: "Fermer la fenêtre d'aide",
+		closeBtn: 'Fermer',
+		tip: 'Astuce : appuyez sur {key} ou cliquez en dehors pour fermer'
 	},
 	incidentBar: {
 		noIncidents: '✓ Aucun incident actif',

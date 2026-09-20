@@ -100,6 +100,15 @@ export interface TranslationSchema {
 		secondsShowAria: string;
 		clockTimezone: string;
 		timezoneSelectAria: string;
+		sectionHelp: string;
+		openHelp: string;
+	};
+	helpModal: {
+		title: string;
+		subtitle: string;
+		closeAria: string;
+		closeBtn: string;
+		tip: string;
 	};
 	incidentBar: {
 		noIncidents: string;

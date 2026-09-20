@@ -24,7 +24,7 @@
 	import IncidentBar from '$lib/components/IncidentBar.svelte';
 	import DetailModal from '$lib/components/DetailModal.svelte';
 	import SkipLink from '$lib/components/SkipLink.svelte';
-	import KeyboardHelpModal from '$lib/components/KeyboardHelpModal.svelte';
+	import HelpModal from '$lib/components/HelpModal.svelte';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import ArrowDown from 'lucide-svelte/icons/arrow-down';
 	import { toggleFullscreen } from '$lib/utils/fullscreen';
@@ -47,7 +47,7 @@
 	let { data }: { data: PageData } = $props();
 
 	let currentLocale = $state<SupportedLocale>(getLocale());
-	let isKeyboardHelpOpen = $state(false);
+	let isHelpOpen = $state(false);
 	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
 		translate(key, params, currentLocale);
 
@@ -428,7 +428,7 @@
 
 		if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
 			event.preventDefault();
-			isKeyboardHelpOpen = !isKeyboardHelpOpen;
+			isHelpOpen = !isHelpOpen;
 		} else if (event.key === 'f' || event.key === 'F') {
 			event.preventDefault();
 			void toggleFullscreen(dashboardContainer ?? undefined);
@@ -444,8 +444,8 @@
 			const nextIndex = (themes.indexOf(current) + 1) % themes.length;
 			applyTheme(themes[nextIndex]);
 		} else if (event.key === 'Escape') {
-			if (isKeyboardHelpOpen) {
-				isKeyboardHelpOpen = false;
+			if (isHelpOpen) {
+				isHelpOpen = false;
 			} else if (selectedProbe) {
 				selectedProbe = null;
 			} else if (isTvMode) {
@@ -485,7 +485,7 @@
 <div
 	id="tv-container"
 	bind:this={dashboardContainer}
-	inert={Boolean(selectedProbe || isKeyboardHelpOpen)}
+	inert={Boolean(selectedProbe || isHelpOpen)}
 	onclickcapture={handleClickCapture}
 	onauxclickcapture={handleClickCapture}
 	oncontextmenucapture={(e) => {
@@ -511,7 +511,7 @@
 		{isMobile}
 		{forceZeroScroll}
 		ontoggleZeroScroll={toggleZeroScroll}
-		onopenkeyboardhelp={() => (isKeyboardHelpOpen = true)}
+		onopenhelp={() => (isHelpOpen = true)}
 	/>
 
 	<!-- "Connection lost" alert banner on server or network disruption -->
@@ -583,8 +583,8 @@
 	onclose={() => (selectedProbe = null)}
 />
 
-<!-- Accessible keyboard shortcuts modal -->
-<KeyboardHelpModal
-	isOpen={isKeyboardHelpOpen}
-	onclose={() => (isKeyboardHelpOpen = false)}
+<!-- Accessible markdown help modal -->
+<HelpModal
+	isOpen={isHelpOpen}
+	onclose={() => (isHelpOpen = false)}
 />

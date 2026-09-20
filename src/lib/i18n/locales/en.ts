@@ -95,7 +95,16 @@ export const en: TranslationSchema = {
 		secondsHideAria: 'Hide seconds',
 		secondsShowAria: 'Show seconds',
 		clockTimezone: 'Timezone:',
-		timezoneSelectAria: 'Select timezone'
+		timezoneSelectAria: 'Select timezone',
+		sectionHelp: 'Help',
+		openHelp: 'Documentation & Shortcuts'
+	},
+	helpModal: {
+		title: 'KATO Help & Documentation',
+		subtitle: 'User guide and complete list of keyboard shortcuts',
+		closeAria: 'Close help modal',
+		closeBtn: 'Close',
+		tip: 'Tip: press {key} or click outside to close anytime'
 	},
 	incidentBar: {
 		noIncidents: '✓ No active incidents',

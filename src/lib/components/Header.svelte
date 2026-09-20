@@ -11,7 +11,7 @@
 	import Smartphone from 'lucide-svelte/icons/smartphone';
 	import Maximize from 'lucide-svelte/icons/maximize';
 	import Minimize from 'lucide-svelte/icons/minimize';
-	import Keyboard from 'lucide-svelte/icons/keyboard';
+	import CircleHelp from 'lucide-svelte/icons/circle-help';
 	import { toggleFullscreen, onFullscreenChange } from '$lib/utils/fullscreen';
 	import {
 		t as translate,
@@ -31,7 +31,8 @@
 		isMobile = false,
 		forceZeroScroll = true,
 		ontoggleZeroScroll,
-		onopenkeyboardhelp
+		onopenkeyboardhelp,
+		onopenhelp
 	}: {
 		probes: NormalizedProbe[];
 		lastUpdate?: string;
@@ -41,6 +42,7 @@
 		forceZeroScroll?: boolean;
 		ontoggleZeroScroll?: () => void;
 		onopenkeyboardhelp?: () => void;
+		onopenhelp?: () => void;
 	} = $props();
 
 	import {
@@ -406,15 +408,21 @@
 			{/if}
 		</button>
 
-		<!-- Keyboard shortcuts button (?) -->
+		<!-- Help & shortcuts button (?) -->
 		<button
 			type="button"
-			onclick={onopenkeyboardhelp}
+			onclick={() => {
+				if (onopenhelp) {
+					onopenhelp();
+				} else if (onopenkeyboardhelp) {
+					onopenkeyboardhelp();
+				}
+			}}
 			class="p-1 rounded-md text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30 transition-colors cursor-pointer"
-			title="{t('keyboardHelp.title')} (?)"
-			aria-label="{t('keyboardHelp.title')} (?)"
+			title="{t('helpModal.title')} (?)"
+			aria-label="{t('helpModal.title')} (?)"
 		>
-			<Keyboard class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+			<CircleHelp class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 		</button>
 
 		<!-- Settings menu button / Theme selector -->
@@ -622,6 +630,31 @@
 							{/each}
 						</select>
 					</div>
+
+					<!-- Help & documentation section -->
+					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
+						<span>{t('settings.sectionHelp')}</span>
+					</div>
+					<button
+						type="button"
+						onclick={() => {
+							isSettingsOpen = false;
+							if (onopenhelp) {
+								onopenhelp();
+							} else if (onopenkeyboardhelp) {
+								onopenkeyboardhelp();
+							}
+						}}
+						class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-800/30 transition-colors cursor-pointer text-[var(--kato-text-primary)] hover:text-emerald-400 group"
+					>
+						<div class="flex items-center gap-2">
+							<CircleHelp class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+							<span>{t('settings.openHelp')}</span>
+						</div>
+						<kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono text-[var(--kato-text-secondary)] group-hover:text-emerald-300">
+							?
+						</kbd>
+					</button>
 				</div>
 			{/if}
 		</div>
