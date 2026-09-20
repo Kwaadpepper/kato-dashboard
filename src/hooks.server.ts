@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import { env } from '$env/dynamic/private';
 import { MockAdapter } from '$lib/server/adapters/mock.adapter';
 import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
 import { store } from '$lib/server/store';
@@ -16,7 +16,7 @@ import type { MonitoringAdapter } from '$lib/types';
  * Reads environment variable KATO_ADAPTER (or ADAPTER_TYPE) to select the adapter.
  * Supported values: "uptimerobot", "mock" (default).
  */
-const adapterType = (process.env.KATO_ADAPTER || process.env.ADAPTER_TYPE || 'mock').toLowerCase();
+const adapterType = (env.KATO_ADAPTER || env.ADAPTER_TYPE || 'mock').toLowerCase();
 
 /**
  * Instantiates and initializes the monitoring adapter at startup.
@@ -31,9 +31,9 @@ async function bootstrap(): Promise<void> {
 		adapter = new UptimeRobotAdapter();
 		console.log(`[Kato] Selected adapter: uptimerobot`);
 
-		const apiKey = process.env.UPTIMEROBOT_API_KEY ?? '';
-		const pollInterval = process.env.UPTIMEROBOT_POLL_INTERVAL
-			? parseInt(process.env.UPTIMEROBOT_POLL_INTERVAL, 10)
+		const apiKey = env.UPTIMEROBOT_API_KEY ?? '';
+		const pollInterval = env.UPTIMEROBOT_POLL_INTERVAL
+			? Number.parseInt(env.UPTIMEROBOT_POLL_INTERVAL, 10)
 			: 30000;
 
 		await adapter.initialize({ apiKey, pollInterval });
@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
 		adapter = new MockAdapter();
 		console.log(`[Kato] Selected adapter: mock`);
 
-		const count = parseInt(process.env.KATO_MOCK_COUNT ?? '50', 10);
+		const count = Number.parseInt(env.KATO_MOCK_COUNT ?? '50', 10);
 		await adapter.initialize({ count });
 	}
 
@@ -54,10 +54,8 @@ async function bootstrap(): Promise<void> {
 	startPolling(adapter, store);
 }
 
-// Immediately launch on server module load
-bootstrap().catch((err) => {
-	console.error('[Kato] Critical startup error:', err);
-});
+// Await at module level so every request is served after the adapter is ready
+await bootstrap();
 
 // ============================================================================
 // SVELTEKIT HOOK
@@ -68,34 +66,27 @@ bootstrap().catch((err) => {
  * Manages access control when KATO_AUTH_ENABLED is active.
  */
 export const handle: Handle = async ({ event, resolve }) => {
-	if (isAuthEnabled()) {
-		const { pathname } = event.url;
+	if (!isAuthEnabled()) return resolve(event);
 
-		// Allow access to internal bundle assets and favicon
-		const isStaticAsset = pathname.startsWith('/_app/') || pathname === '/favicon.svg';
+	const { pathname } = event.url;
+	if (pathname.startsWith('/_app/') || pathname === '/favicon.svg') return resolve(event);
 
-		if (!isStaticAsset) {
-			const sessionToken = event.cookies.get(SESSION_COOKIE_NAME);
-			const authenticated = isValidSession(sessionToken);
+	const sessionToken = event.cookies.get(SESSION_COOKIE_NAME);
+	const authenticated = isValidSession(sessionToken);
 
-			if (pathname === '/login') {
-				// Already authenticated: redirect to dashboard
-				if (authenticated) {
-					throw redirect(303, '/');
-				}
-			} else {
-				// Protected route: reject API or redirect page if unauthenticated
-				if (!authenticated) {
-					if (pathname.startsWith('/api/')) {
-						return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-							status: 401,
-							headers: { 'Content-Type': 'application/json' }
-						});
-					}
-					throw redirect(303, '/login');
-				}
-			}
+	if (pathname === '/login') {
+		if (authenticated) throw redirect(303, '/');
+		return resolve(event);
+	}
+
+	if (!authenticated) {
+		if (pathname.startsWith('/api/')) {
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+				status: 401,
+				headers: { 'Content-Type': 'application/json' }
+			});
 		}
+		throw redirect(303, '/login');
 	}
 
 	return resolve(event);
