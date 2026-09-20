@@ -1,11 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
 		<script>
 			try {
+				var savedLocale = localStorage.getItem('kato-locale') || 'fr';
+				document.documentElement.lang = savedLocale;
 				var savedTheme = localStorage.getItem('kato-theme') || 'dark';
 				var resolved = savedTheme === 'auto'
 					? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')

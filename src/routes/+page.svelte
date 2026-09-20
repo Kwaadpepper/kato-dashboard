@@ -23,6 +23,8 @@
 	import ProbeGrid from '$lib/components/ProbeGrid.svelte';
 	import IncidentBar from '$lib/components/IncidentBar.svelte';
 	import DetailModal from '$lib/components/DetailModal.svelte';
+	import SkipLink from '$lib/components/SkipLink.svelte';
+	import KeyboardHelpModal from '$lib/components/KeyboardHelpModal.svelte';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import ArrowDown from 'lucide-svelte/icons/arrow-down';
 	import { toggleFullscreen } from '$lib/utils/fullscreen';
@@ -30,8 +32,10 @@
 		playAlertDown,
 		playAlertRecovery,
 		playAlertCritical,
-		unlockAudio
+		unlockAudio,
+		toggleSound
 	} from '$lib/utils/sounds';
+	import { applyTheme, type Theme } from '$lib/utils/theme';
 	import {
 		t as translate,
 		onLocaleChange,
@@ -43,6 +47,7 @@
 	let { data }: { data: PageData } = $props();
 
 	let currentLocale = $state<SupportedLocale>(getLocale());
+	let isKeyboardHelpOpen = $state(false);
 	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
 		translate(key, params, currentLocale);
 
@@ -409,7 +414,7 @@
 		}
 	});
 
-	// Gestionnaire global du clavier : 'F' (plein écran), 'Escape' (mode TV / modale)
+	// Gestionnaire global du clavier : '?' (aide), 'F' (plein écran), 'M' (son), 'T' (thème), 'Escape'
 	function handleGlobalKeydown(event: KeyboardEvent): void {
 		const target = event.target as HTMLElement | null;
 		const isInput =
@@ -421,11 +426,27 @@
 
 		if (isInput) return;
 
-		if (event.key === 'f' || event.key === 'F') {
+		if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
+			event.preventDefault();
+			isKeyboardHelpOpen = !isKeyboardHelpOpen;
+		} else if (event.key === 'f' || event.key === 'F') {
 			event.preventDefault();
 			void toggleFullscreen(dashboardContainer ?? undefined);
+		} else if (event.key === 'm' || event.key === 'M') {
+			event.preventDefault();
+			toggleSound();
+		} else if (event.key === 't' || event.key === 'T') {
+			event.preventDefault();
+			const themes: Theme[] = ['dark', 'light', 'amoled'];
+			const current = (typeof document !== 'undefined'
+				? (document.documentElement.getAttribute('data-theme-mode') as Theme)
+				: 'dark') || 'dark';
+			const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+			applyTheme(themes[nextIndex]);
 		} else if (event.key === 'Escape') {
-			if (selectedProbe) {
+			if (isKeyboardHelpOpen) {
+				isKeyboardHelpOpen = false;
+			} else if (selectedProbe) {
 				selectedProbe = null;
 			} else if (isTvMode) {
 				void exitTvMode();
@@ -457,10 +478,14 @@
 	<title>{currentLocale ? t('common.pageTitle', { count: sortedProbes.length }) : ''}</title>
 </svelte:head>
 
+<!-- Liens d'accès rapide (Skip links RGAA 12.7) -->
+<SkipLink hasIncidents={incidents.filter((i) => i.resolvedAt === null).length > 0} />
+
 <!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) sur desktop -->
 <div
 	id="tv-container"
 	bind:this={dashboardContainer}
+	inert={Boolean(selectedProbe || isKeyboardHelpOpen)}
 	onclickcapture={handleClickCapture}
 	onauxclickcapture={handleClickCapture}
 	oncontextmenucapture={(e) => {
@@ -486,6 +511,7 @@
 		{isMobile}
 		{forceZeroScroll}
 		ontoggleZeroScroll={toggleZeroScroll}
+		onopenkeyboardhelp={() => (isKeyboardHelpOpen = true)}
 	/>
 
 	<!-- Bannière "Connexion perdue" en cas d'interruption serveur ou réseau -->
@@ -503,11 +529,13 @@
 
 	<!-- Zone principale de la grille supervisée par ResizeObserver (drift anti burn-in isolé) -->
 	<main
+		id="main-content"
+		tabindex="-1"
 		bind:this={gridContainer}
 		ontouchstart={handleTouchStart}
 		ontouchmove={handleTouchMove}
 		ontouchend={handleTouchEnd}
-		class="flex-1 w-full h-full relative {isTvMode ? 'animate-kato-drift' : ''} {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
+		class="flex-1 w-full h-full relative focus:outline-none {isTvMode ? 'animate-kato-drift' : ''} {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
 	>
 		<!-- Indicateur visuel Pull-to-refresh natif sur mobile -->
 		{#if isMobile && (pullDistance > 0 || isRefreshing)}
@@ -553,4 +581,10 @@
 	probe={selectedProbe}
 	{incidents}
 	onclose={() => (selectedProbe = null)}
+/>
+
+<!-- Aide des raccourcis clavier accessible -->
+<KeyboardHelpModal
+	isOpen={isKeyboardHelpOpen}
+	onclose={() => (isKeyboardHelpOpen = false)}
 />

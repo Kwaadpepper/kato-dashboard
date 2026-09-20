@@ -39,21 +39,65 @@
 	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
 		translate(key, params, activeLocale);
 
+	let dialogElement = $state<HTMLElement | null>(null);
+	let closeButtonElement = $state<HTMLButtonElement | null>(null);
+	let openerElement: HTMLElement | null = null;
+
+	const color = $derived(probe ? STATUS_COLORS[probe.status] ?? STATUS_COLORS.up : STATUS_COLORS.up);
+	const statusLabel = $derived(probe ? getStatusLabel(probe.status, activeLocale) : '');
+
 	onMount(() => {
 		return onLocaleChange((loc) => {
 			activeLocale = loc;
 		});
 	});
 
-	const color = $derived(probe ? STATUS_COLORS[probe.status] ?? STATUS_COLORS.up : STATUS_COLORS.up);
-	const statusLabel = $derived(probe ? getStatusLabel(probe.status, activeLocale) : '');
-
-	// Gestion de la touche Échap pour refermer la vue détail
+	// Gestion de la touche Échap et Focus Trap (bouclage Tab / Shift+Tab) - RGAA 7.1 / 7.4
 	function handleKeydown(e: KeyboardEvent) {
+		if (!probe) return;
+
 		if (e.key === 'Escape') {
+			e.preventDefault();
+			e.stopPropagation();
 			onclose();
+			return;
+		}
+
+		if (e.key === 'Tab' && dialogElement) {
+			const focusableElements = dialogElement.querySelectorAll<HTMLElement>(
+				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+			);
+			if (focusableElements.length === 0) return;
+
+			const firstElement = focusableElements[0];
+			const lastElement = focusableElements[focusableElements.length - 1];
+
+			if (e.shiftKey) {
+				if (document.activeElement === firstElement) {
+					e.preventDefault();
+					lastElement.focus();
+				}
+			} else {
+				if (document.activeElement === lastElement) {
+					e.preventDefault();
+					firstElement.focus();
+				}
+			}
 		}
 	}
+
+	// Capture et restitution du focus à l'ouverture et fermeture de la modale
+	$effect(() => {
+		if (probe) {
+			openerElement = document.activeElement as HTMLElement | null;
+			setTimeout(() => {
+				closeButtonElement?.focus();
+			}, 30);
+		} else if (openerElement) {
+			openerElement.focus();
+			openerElement = null;
+		}
+	});
 
 	function formatDuration(downSince?: string): string {
 		if (!downSince) return t('detailModal.recent');
@@ -163,7 +207,8 @@
 		<!-- Conteneur modal : Plein écran sur mobile (<640px), Panneau latéral (side-panel) sur Desktop -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
-			class="w-full h-full sm:max-w-md sm:h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between overflow-y-auto select-none"
+			bind:this={dialogElement}
+			class="w-full h-full sm:max-w-md sm:h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col justify-between overflow-y-auto select-none outline-none"
 			onclick={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-modal="true"
@@ -198,18 +243,21 @@
 								class="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-emerald-400 truncate mt-1.5 max-w-full transition-colors"
 							>
 								<span class="truncate">{probe.url}</span>
-								<ExternalLink class="w-3.5 h-3.5 shrink-0" />
+								<span class="sr-only"> (ouvre dans un nouvel onglet)</span>
+								<ExternalLink class="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
 							</a>
 						{/if}
 					</div>
 
-					<!-- Bouton Fermer (accessible au tactile) -->
+					<!-- Bouton Fermer (accessible au tactile et au clavier) -->
 					<button
+						bind:this={closeButtonElement}
+						type="button"
 						onclick={onclose}
 						class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
 						aria-label={t('detailModal.closeAria')}
 					>
-						<X class="w-5 h-5" />
+						<X class="w-5 h-5" aria-hidden="true" />
 					</button>
 				</div>
 
@@ -474,6 +522,7 @@
 			<!-- ============================================================= -->
 			<div class="p-6 border-t border-slate-800">
 				<button
+					type="button"
 					onclick={onclose}
 					class="w-full py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors cursor-pointer shadow-md"
 				>

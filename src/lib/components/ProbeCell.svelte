@@ -22,14 +22,18 @@
 		isFlashing = false,
 		density = 'medium',
 		cellSize: _cellSize = 120,
-		onselect
+		tabIndex = 0,
+		onselect,
+		oncellfocus
 	}: {
 		probe: NormalizedProbe;
 		prevStatus?: ProbeStatus;
 		isFlashing?: boolean;
 		density: GridDensity;
 		cellSize?: number;
+		tabIndex?: number;
 		onselect?: (probe: NormalizedProbe) => void;
+		oncellfocus?: () => void;
 	} = $props();
 
 	let activeLocale = $state<SupportedLocale>(getLocale());
@@ -99,22 +103,24 @@
 	<!-- MODE LARGE (1-12 sondes) : Carte détaillée maximale                   -->
 	<!-- ===================================================================== -->
 	<div
-		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {cardStyleClasses} {isDown
+		id={`probe-cell-${probe.id}`}
+		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
-		tabindex="0"
+		tabindex={tabIndex}
 		role="button"
 		aria-label={t('probe.cellAria', { name: probe.name, status: statusLabel, uptime: uptimeDisplay, latency: responseTimeDisplay })}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
+		onfocus={oncellfocus}
 	>
 		<!-- En-tête de la carte : Nom + URL + Icône statut -->
 		<div class="flex justify-between items-start gap-2 min-w-0">
 			<div class="min-w-0 flex-1">
-				<h3 class="text-base font-semibold text-[var(--kato-text-primary)] truncate" title={probe.name}>
+				<h2 class="text-base font-semibold text-[var(--kato-text-primary)] truncate" title={probe.name}>
 					{probe.name}
-				</h3>
+				</h2>
 				{#if probe.url}
 					<p class="text-xs text-[var(--kato-text-secondary)] font-mono truncate mt-0.5" title={probe.url}>
 						{probe.url}
@@ -123,7 +129,7 @@
 			</div>
 
 			<!-- Icône de statut Lucide -->
-			<div class="shrink-0 flex items-center gap-1.5 mt-0.5">
+			<div class="shrink-0 flex items-center gap-1.5 mt-0.5" aria-hidden="true">
 				{#if probe.status === 'up'}
 					<CircleCheck class="w-4 h-4 text-emerald-400" />
 				{:else if probe.status === 'down'}
@@ -167,22 +173,24 @@
 	<!-- MODE MEDIUM (13-48 sondes) : Carte intermédiaire compacte             -->
 	<!-- ===================================================================== -->
 	<div
-		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {cardStyleClasses} {isDown
+		id={`probe-cell-${probe.id}`}
+		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
-		tabindex="0"
+		tabindex={tabIndex}
 		role="button"
 		aria-label={t('probe.cellAria', { name: probe.name, status: statusLabel, uptime: uptimeDisplay, latency: responseTimeDisplay })}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
+		onfocus={oncellfocus}
 	>
 		<!-- Ligne supérieure : Nom + Pastille -->
 		<div class="flex items-center justify-between gap-2 min-w-0">
-			<h3 class="text-sm font-medium text-[var(--kato-text-primary)] truncate" title={probe.name}>
+			<h2 class="text-sm font-medium text-[var(--kato-text-primary)] truncate" title={probe.name}>
 				{probe.name}
-			</h3>
-			<span class="w-2.5 h-2.5 rounded-full shrink-0 {color.bgClass} shadow-xs"></span>
+			</h2>
+			<span class="w-2.5 h-2.5 rounded-full shrink-0 {color.bgClass} shadow-xs" aria-hidden="true"></span>
 		</div>
 
 		<!-- Ligne inférieure : Uptime + Latence -->
@@ -201,23 +209,25 @@
 	<!-- MODE COMPACT (49-120 sondes) : Cellule ultra-synthétique en ligne     -->
 	<!-- ===================================================================== -->
 	<div
-		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/50 {compactStyleClasses} {isDown
+		id={`probe-cell-${probe.id}`}
+		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {compactStyleClasses} {isDown
 			? 'animate-kato-pulse'
 			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
-		tabindex="0"
+		tabindex={tabIndex}
 		role="button"
 		aria-label="{probe.name} : {statusLabel}, {t('probe.latency').toLowerCase()} {responseTimeDisplay}"
 		onclick={handleClick}
 		onkeydown={handleKeydown}
+		onfocus={oncellfocus}
 	>
 		<!-- Bande couleur verticale plaquée à gauche -->
-		<div class="w-1 h-full rounded-full absolute left-0 top-0 bottom-0 {color.bgClass}"></div>
+		<div class="w-1 h-full rounded-full absolute left-0 top-0 bottom-0 {color.bgClass}" aria-hidden="true"></div>
 
 		<!-- Nom tronqué avec padding gauche pour la bande -->
-		<span class="text-xs font-medium text-[var(--kato-text-primary)] truncate pl-2" title={probe.name}>
+		<h2 class="text-xs font-medium text-[var(--kato-text-primary)] truncate pl-2" title={probe.name}>
 			{probe.name}
-		</span>
+		</h2>
 
 		<!-- Temps de réponse ou badge statut -->
 		<span class="text-[11px] font-mono text-[var(--kato-text-secondary)] shrink-0 ml-1.5">

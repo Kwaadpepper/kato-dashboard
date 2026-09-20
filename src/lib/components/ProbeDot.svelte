@@ -17,14 +17,18 @@
     isFlashing = false,
     density = "micro",
     cellSize = 32,
+    tabIndex = 0,
     onselect,
+    oncellfocus,
   }: {
     probe: NormalizedProbe;
     prevStatus?: ProbeStatus;
     isFlashing?: boolean;
     density: "micro" | "pixel";
     cellSize?: number;
+    tabIndex?: number;
     onselect?: (probe: NormalizedProbe) => void;
+    oncellfocus?: () => void;
   } = $props();
 
   let activeLocale = $state<SupportedLocale>(getLocale());
@@ -89,12 +93,14 @@
 </script>
 
 <div
-	class="relative group flex items-center justify-center w-full h-full select-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-400 {density === 'pixel' ? 'rounded-none' : 'rounded-sm'}"
+	id={`probe-cell-${probe.id}`}
+	class="relative group flex items-center justify-center w-full h-full select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-1 focus-visible:z-20 {density === 'pixel' ? 'rounded-none' : 'rounded-sm'}"
 	title={tooltipText}
 	role="button"
-	tabindex="0"
+	tabindex={tabIndex}
 	onclick={handleClick}
 	onkeydown={handleKeydown}
+	onfocus={oncellfocus}
 	aria-label={t('probe.dotAria', {
 		name: probe.name,
 		status: statusLabel,

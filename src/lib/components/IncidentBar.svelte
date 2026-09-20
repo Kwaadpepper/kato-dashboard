@@ -15,6 +15,8 @@
 	} from '$lib/i18n';
 	import ChevronUp from 'lucide-svelte/icons/chevron-up';
 	import ChevronDown from 'lucide-svelte/icons/chevron-down';
+	import Pause from 'lucide-svelte/icons/pause';
+	import Play from 'lucide-svelte/icons/play';
 	import { onMount } from 'svelte';
 
 	let {
@@ -31,6 +33,7 @@
 
 	let marqueeDuration = $state(getInitialMarqueeDuration());
 	let isExpanded = $state(false);
+	let isPaused = $state(false);
 	let drawerNow = $state(Date.now());
 
 	// File d'attente FIFO et gestionnaire d'isolation de performance
@@ -104,6 +107,7 @@
 	<!-- Isolation stricte : aucun recalcul layout sur le reste du dashboard   -->
 	<!-- ===================================================================== -->
 	<footer
+		id="incident-bar"
 		class="fixed bottom-0 left-0 right-0 z-40 h-8 sm:h-10 bg-[var(--kato-bg-secondary)] border-t border-[var(--kato-border)] flex items-center justify-center select-none transition-colors duration-150"
 		role="status"
 		aria-live="polite"
@@ -121,6 +125,7 @@
 	<!-- ===================================================================== -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<footer
+		id="incident-bar"
 		class="fixed bottom-0 left-0 right-0 z-40 bg-red-950 border-t border-red-800/60 flex flex-col text-red-200 select-none transition-[max-height] duration-200 shadow-2xl {isExpanded ? 'max-h-80' : 'h-8 sm:h-10'}"
 		role="alert"
 		aria-live="assertive"
@@ -148,12 +153,30 @@
 				{/if}
 			</div>
 
+			<!-- Bouton Pause / Lecture du défilement (RGAA 13.8) -->
+			<button
+				type="button"
+				onclick={(e) => {
+					e.stopPropagation();
+					isPaused = !isPaused;
+				}}
+				class="p-1 rounded text-red-300 hover:text-white hover:bg-red-900/60 transition-colors mr-2 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)]"
+				title={isPaused ? 'Reprendre le défilement des incidents (P)' : 'Mettre en pause le défilement des incidents (P)'}
+				aria-label={isPaused ? 'Reprendre le défilement des incidents' : 'Mettre en pause le défilement des incidents'}
+			>
+				{#if isPaused}
+					<Play class="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
+				{:else}
+					<Pause class="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
+				{/if}
+			</button>
+
 			<!-- Zone d'affichage : défilement continu infini sans accroc (0% -> -50% GPU) -->
 			<div class="flex-1 overflow-hidden relative" style="contain: layout paint; transform: translate3d(0, 0, 0);">
 				<div
-					class={tvMode
+					class="{tvMode
 						? 'animate-kato-marquee flex items-center will-change-transform'
-						: 'flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar'}
+						: 'flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar'} {isPaused ? 'marquee-paused' : ''}"
 					style="--kato-marquee-duration: {marqueeDuration}s;"
 					onanimationiteration={handleAnimationIteration}
 				>
@@ -195,8 +218,10 @@
 						e.stopPropagation();
 						toggleExpand();
 					}}
-					class="sm:hidden p-1 text-red-300 hover:text-white shrink-0 ml-2"
+					class="sm:hidden p-1 text-red-300 hover:text-white shrink-0 ml-2 cursor-pointer"
 					aria-label={isExpanded ? t('incidentBar.collapseAria') : t('incidentBar.expandAria')}
+					aria-expanded={isExpanded}
+					aria-controls="incidents-drawer-list"
 				>
 					{#if isExpanded}
 						<ChevronDown class="w-4 h-4" />
@@ -209,7 +234,7 @@
 
 		<!-- Liste déroulante des incidents quand déplié sur mobile -->
 		{#if isExpanded && !tvMode}
-			<div class="border-t border-red-900/60 bg-red-950/95 overflow-y-auto max-h-64 p-3 space-y-2 divide-y divide-red-900/40">
+			<div id="incidents-drawer-list" class="border-t border-red-900/60 bg-red-950/95 overflow-y-auto max-h-64 p-3 space-y-2 divide-y divide-red-900/40">
 				{#each incidents.filter((i) => i.resolvedAt === null) as incident (incident.id)}
 					<div class="pt-2 first:pt-0 flex items-center justify-between gap-2 text-xs font-mono">
 						<div class="flex items-center gap-2 min-w-0">

@@ -61,6 +61,7 @@
 	--kato-text-primary: #F8FAFC;
 	--kato-text-secondary: #94A3B8;
 	--kato-border: #334155;
+	--kato-focus-ring: #38BDF8;
 	color-scheme: dark;
 
 	/* Tokens de cartes de sondes (Dark) */
@@ -149,6 +150,7 @@
 	--kato-text-primary: #0F172A;
 	--kato-text-secondary: #64748B;
 	--kato-border: #E2E8F0;
+	--kato-focus-ring: #0284C7;
 	color-scheme: light;
 
 	/* Tokens de cartes de sondes (Light) */
@@ -237,6 +239,7 @@
 	--kato-text-primary: #F8FAFC;
 	--kato-text-secondary: #A1A1AA;
 	--kato-border: #27272A;
+	--kato-focus-ring: #38BDF8;
 	color-scheme: dark;
 
 	/* Tokens de cartes de sondes (AMOLED: fond noir pur avec bordure contrastée) */
@@ -530,7 +533,7 @@ body.cursor-hidden * {
 }
 
 /* ============================================================================
- * ACCESSIBILITÉ : PREFERS-REDUCED-MOTION (Désactivation globale)
+ * ACCESSIBILITÉ : PREFERS-REDUCED-MOTION & FOCUS-VISIBLE (RGAA 10.7, 12.7, 13.8)
  * ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
 	.animate-kato-pulse,
@@ -540,4 +543,55 @@ body.cursor-hidden * {
 	.animate-marquee {
 		animation: none !important;
 	}
+}
+
+/* 1. Indicateurs de Focus Universels (:focus-visible) - RGAA 10.7 */
+:where(a, button, input, select, textarea, [tabindex="0"], [role="button"]):focus-visible {
+	outline: 2px solid var(--kato-focus-ring) !important;
+	outline-offset: 2px !important;
+}
+
+/* 2. Pause automatique du défilement lors de la prise de focus (RGAA 13.8) */
+.animate-kato-marquee:focus-within,
+.animate-marquee:focus-within,
+.marquee-paused {
+	animation-play-state: paused !important;
+}
+
+/* 3. Liens d'évitement (Skip links) et textes pour lecteurs d'écran (RGAA 12.7) */
+.sr-only {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+.sr-only.focus\:not-sr-only:focus,
+.sr-only.focus\:not-sr-only:focus-visible,
+.skip-link:focus,
+.skip-link:focus-visible {
+	position: fixed !important;
+	top: 12px !important;
+	left: 12px !important;
+	z-index: 1000 !important;
+	width: auto !important;
+	height: auto !important;
+	padding: 8px 16px !important;
+	margin: 0 !important;
+	overflow: visible !important;
+	clip: auto !important;
+	white-space: normal !important;
+	background-color: var(--kato-bg-secondary) !important;
+	color: var(--kato-text-primary) !important;
+	border: 2px solid var(--kato-focus-ring) !important;
+	border-radius: 8px !important;
+	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+	font-weight: 600 !important;
+	font-size: 13px !important;
+	text-decoration: none !important;
 }

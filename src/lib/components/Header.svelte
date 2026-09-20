@@ -11,6 +11,7 @@
 	import Smartphone from 'lucide-svelte/icons/smartphone';
 	import Maximize from 'lucide-svelte/icons/maximize';
 	import Minimize from 'lucide-svelte/icons/minimize';
+	import Keyboard from 'lucide-svelte/icons/keyboard';
 	import { toggleFullscreen, onFullscreenChange } from '$lib/utils/fullscreen';
 	import {
 		t as translate,
@@ -29,7 +30,8 @@
 		connectionStatus = 'connected',
 		isMobile = false,
 		forceZeroScroll = true,
-		ontoggleZeroScroll
+		ontoggleZeroScroll,
+		onopenkeyboardhelp
 	}: {
 		probes: NormalizedProbe[];
 		lastUpdate?: string;
@@ -38,6 +40,7 @@
 		isMobile?: boolean;
 		forceZeroScroll?: boolean;
 		ontoggleZeroScroll?: () => void;
+		onopenkeyboardhelp?: () => void;
 	} = $props();
 
 	import {
@@ -70,6 +73,7 @@
 	let now = $state(Date.now());
 	let isSettingsOpen = $state(false);
 	let settingsContainer = $state<HTMLElement | null>(null);
+	let settingsButtonElement = $state<HTMLButtonElement | null>(null);
 
 	function handleWindowClick(event: MouseEvent) {
 		if (!isSettingsOpen) return;
@@ -187,7 +191,10 @@
 <svelte:window
 	onclickcapture={handleWindowClick}
 	onkeydown={(e) => {
-		if (e.key === 'Escape' && isSettingsOpen) isSettingsOpen = false;
+		if (e.key === 'Escape' && isSettingsOpen) {
+			isSettingsOpen = false;
+			settingsButtonElement?.focus();
+		}
 	}}
 />
 
@@ -197,14 +204,15 @@
 		: 'h-12 text-sm'}"
 >
 	<div class="flex items-center gap-3 sm:gap-4 min-w-0">
-		<!-- Logo KATO (masqué sur mobile <768px pour gain d'espace) -->
-		<span
+		<!-- Logo KATO (Titre principal h1 conforme RGAA 9.1) -->
+		<h1
 			class="hidden md:inline font-bold text-[var(--kato-text-primary)] tracking-wider select-none shrink-0 {compact
 				? 'text-sm font-extrabold'
 				: 'text-lg'}"
 		>
 			KATO
-		</span>
+			<span class="sr-only"> — Dashboard de supervision haute densité</span>
+		</h1>
 
 		<!-- Score Global : {up}/{total} UP -->
 		<span
@@ -398,15 +406,29 @@
 			{/if}
 		</button>
 
+		<!-- Bouton Aide Clavier (?) -->
+		<button
+			type="button"
+			onclick={onopenkeyboardhelp}
+			class="p-1 rounded-md text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30 transition-colors cursor-pointer"
+			title="Aide des raccourcis clavier (?)"
+			aria-label="Aide des raccourcis clavier (?)"
+		>
+			<Keyboard class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+		</button>
+
 		<!-- Bouton Menu Paramètres / Sélecteur de thème -->
 		<div class="relative" bind:this={settingsContainer}>
 			<button
+				bind:this={settingsButtonElement}
 				type="button"
 				onclick={() => (isSettingsOpen = !isSettingsOpen)}
 				class="p-1 rounded-md text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30 transition-colors cursor-pointer"
 				title={t('header.settingsTitle')}
 				aria-label={t('header.settingsAria')}
 				aria-expanded={isSettingsOpen}
+				aria-haspopup="dialog"
+				aria-controls="settings-dropdown"
 			>
 				<Settings class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 			</button>
@@ -414,6 +436,9 @@
 			{#if isSettingsOpen}
 				<!-- Dropdown sélecteur de langue, thème et paramètres -->
 				<div
+					id="settings-dropdown"
+					role="region"
+					aria-label="Paramètres du dashboard"
 					class="absolute right-0 top-full mt-2 w-60 max-h-[80vh] overflow-y-auto rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
 				>
 					<!-- Section Langue -->
@@ -509,11 +534,12 @@
 
 					<!-- Curseur de réglage fin de la vitesse limite -->
 					<div class="px-3 py-2 border-t border-[var(--kato-border)] flex flex-col gap-1.5 bg-slate-950/20">
-						<div class="flex items-center justify-between text-[11px] text-[var(--kato-text-secondary)]">
+						<label for="marquee-duration-slider" class="flex items-center justify-between text-[11px] text-[var(--kato-text-secondary)]">
 							<span>{t('settings.marqueeLimit')}</span>
 							<span class="font-mono font-bold text-[var(--kato-text-primary)]">{currentMarqueeDuration}s</span>
-						</div>
+						</label>
 						<input
+							id="marquee-duration-slider"
 							type="range"
 							min="15"
 							max="120"
