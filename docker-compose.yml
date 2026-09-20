@@ -1,6 +1,7 @@
 services:
   kato:
-    build: .
+    # Pour builder localement, remplacer 'image' par 'build: .'
+    image: ghcr.io/kwaadpepper/kato-dashboard:latest
     ports:
       - "${PORT:-3000}:3000"
     env_file:
