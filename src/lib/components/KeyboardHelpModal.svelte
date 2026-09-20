@@ -1,6 +1,14 @@
 <script lang="ts">
 	import X from 'lucide-svelte/icons/x';
 	import Keyboard from 'lucide-svelte/icons/keyboard';
+	import {
+		t as translate,
+		getLocale,
+		onLocaleChange,
+		type SupportedLocale,
+		type TranslationKey
+	} from '$lib/i18n';
+	import { onMount } from 'svelte';
 
 	let {
 		isOpen = false,
@@ -10,22 +18,28 @@
 		onclose: () => void;
 	} = $props();
 
+	let activeLocale = $state<SupportedLocale>(getLocale());
+	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+		translate(key, params, activeLocale);
+
+	onMount(() => onLocaleChange((loc) => (activeLocale = loc)));
+
 	let dialogElement: HTMLElement | null = $state(null);
 	let closeButtonElement: HTMLButtonElement | null = $state(null);
 	let previousActiveElement: HTMLElement | null = null;
 
-	const shortcuts = [
-		{ keys: ['↑', '↓', '←', '→'], desc: 'Naviguer dans la grille de sondes (navigation 2D)' },
-		{ keys: ['Début', 'Fin'], desc: 'Aller à la première sonde (DOWN) ou à la dernière' },
-		{ keys: ['Entrée', 'Espace'], desc: 'Ouvrir la fiche détaillée de la sonde sélectionnée' },
-		{ keys: ['Échap'], desc: 'Fermer la vue détail / menu / quitter le plein écran' },
-		{ keys: ['F'], desc: 'Basculer en plein écran' },
-		{ keys: ['M'], desc: 'Activer / couper le son des alertes' },
-		{ keys: ['T'], desc: 'Changer de thème (Sombre, Clair, AMOLED, Auto)' },
-		{ keys: ['P'], desc: 'Mettre en pause / reprendre le défilement des incidents' },
-		{ keys: ['Tab', 'Maj + Tab'], desc: 'Naviguer séquentiellement entre les zones' },
-		{ keys: ['?'], desc: 'Ouvrir ou fermer cette aide clavier' }
-	];
+	const shortcuts = $derived([
+		{ keys: ['↑', '↓', '←', '→'], desc: t('keyboardHelp.navigateGrid') },
+		{ keys: activeLocale === 'fr' ? ['Début', 'Fin'] : ['Home', 'End'], desc: t('keyboardHelp.jumpFirstLast') },
+		{ keys: activeLocale === 'fr' ? ['Entrée', 'Espace'] : ['Enter', 'Space'], desc: t('keyboardHelp.openDetail') },
+		{ keys: activeLocale === 'fr' ? ['Échap'] : ['Esc'], desc: t('keyboardHelp.closeOrExit') },
+		{ keys: ['F'], desc: t('keyboardHelp.toggleFullscreen') },
+		{ keys: ['M'], desc: t('keyboardHelp.toggleMute') },
+		{ keys: ['T'], desc: t('keyboardHelp.cycleTheme') },
+		{ keys: ['P'], desc: t('keyboardHelp.toggleMarquee') },
+		{ keys: ['Tab', 'Shift + Tab'], desc: t('keyboardHelp.navigateRegions') },
+		{ keys: ['?'], desc: t('keyboardHelp.toggleHelp') }
+	]);
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (!isOpen) return;
@@ -76,14 +90,14 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen}
-	<!-- Overlay d'arrière-plan -->
+	<!-- Background overlay -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-200"
 		onclick={onclose}
 	>
-		<!-- Boîte de dialogue modale -->
+		<!-- Modal dialog container -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			bind:this={dialogElement}
@@ -94,7 +108,7 @@
 			aria-labelledby="keyboard-help-title"
 			onclick={(e) => e.stopPropagation()}
 		>
-			<!-- En-tête -->
+			<!-- Header -->
 			<div class="flex items-center justify-between pb-3 border-b border-[var(--kato-border)]">
 				<div class="flex items-center gap-2.5">
 					<div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
@@ -102,10 +116,10 @@
 					</div>
 					<div>
 						<h2 id="keyboard-help-title" class="text-base font-bold">
-							Raccourcis Clavier & Accessibilité
+							{t('keyboardHelp.title')}
 						</h2>
 						<p class="text-xs text-[var(--kato-text-secondary)]">
-							Contrôlez l'ensemble du dashboard sans toucher la souris
+							{t('keyboardHelp.subtitle')}
 						</p>
 					</div>
 				</div>
@@ -115,13 +129,13 @@
 					type="button"
 					onclick={onclose}
 					class="p-1.5 rounded-lg hover:bg-slate-800 text-[var(--kato-text-secondary)] hover:text-white transition-colors cursor-pointer"
-					aria-label="Fermer l'aide des raccourcis clavier"
+					aria-label={t('keyboardHelp.closeAria')}
 				>
 					<X class="w-5 h-5" aria-hidden="true" />
 				</button>
 			</div>
 
-			<!-- Liste des raccourcis -->
+			<!-- Shortcuts list -->
 			<div class="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
 				{#each shortcuts as item (item.desc)}
 					<div
@@ -143,15 +157,15 @@
 				{/each}
 			</div>
 
-			<!-- Pied de page -->
+			<!-- Footer -->
 			<div class="pt-2 border-t border-[var(--kato-border)] flex items-center justify-between text-xs text-[var(--kato-text-secondary)]">
-				<span>Astuce : appuyez sur <kbd class="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-[10px] text-white">Échap</kbd> pour fermer à tout moment</span>
+				<span>{t('keyboardHelp.tip', { key: activeLocale === 'fr' ? 'Échap' : 'Esc' })}</span>
 				<button
 					type="button"
 					onclick={onclose}
 					class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors cursor-pointer text-xs"
 				>
-					Fermer
+					{t('keyboardHelp.closeBtn')}
 				</button>
 			</div>
 		</div>

@@ -54,7 +54,7 @@
 		return false;
 	});
 
-	// Détection des transitions d'état UP → DOWN (flashing sans aucun $effect récursif)
+	// State transition detection UP -> DOWN (flashing without recursive $effect)
 	const shouldFlash = $derived(isFlashing || (prevStatus === 'up' && probe.status === 'down'));
 
 	function triggerSelect(target: EventTarget | null) {
@@ -90,16 +90,16 @@
 
 	const displayUrl = $derived(cleanDisplayUrl(probe.url));
 
-	// Classes d'arrière-plan et de bordure basées sur les CSS Custom Properties pour les 3 thèmes
+	// Background and border classes based on CSS Custom Properties across all themes
 	const cardStyleClasses = $derived(`probe-card probe-card-${probe.status} border`);
 
-	// Classes d'arrière-plan et bordure pour le mode compact
+	// Background and border classes for compact mode
 	const compactStyleClasses = $derived(`probe-card probe-card-${probe.status} border`);
 </script>
 
 {#if density === 'large'}
 	<!-- ===================================================================== -->
-	<!-- MODE LARGE (1-12 sondes) : Carte détaillée structurée en 3 zones      -->
+	<!-- LARGE MODE (1-12 probes): Detailed card structured in 3 zones         -->
 	<!-- ===================================================================== -->
 	<div
 		id={`probe-cell-${probe.id}`}
@@ -121,7 +121,7 @@
 		onkeydown={handleKeydown}
 		onfocus={oncellfocus}
 	>
-		<!-- Zone 1 : En-tête (URL épurée à gauche + Indicateur statut unique à droite) -->
+		<!-- Zone 1: Header (clean URL left + status indicator right) -->
 		<div class="flex justify-between items-center gap-2 min-w-0">
 			{#if displayUrl}
 				<span
@@ -134,7 +134,7 @@
 				<span></span>
 			{/if}
 
-			<!-- Indicateur statut unique sans doublon -->
+			<!-- Unique status indicator -->
 			<div class="shrink-0 flex items-center" aria-hidden="true">
 				{#if probe.status === 'up'}
 					<CircleCheck class="w-4 h-4 text-emerald-400" />
@@ -152,7 +152,7 @@
 			</div>
 		</div>
 
-		<!-- Zone 2 : Cœur / Centre (Nom du service mis en valeur sur 2 à 3 lignes) -->
+		<!-- Zone 2: Body / Center (Service name on 2-3 lines) -->
 		<div class="my-auto py-2 flex items-center">
 			<h2
 				class="font-semibold text-[var(--kato-text-primary)] line-clamp-3 break-words"
@@ -163,7 +163,7 @@
 			</h2>
 		</div>
 
-		<!-- Zone 3 : Pied de carte (Mini-pills Uptime 24h & Latence) -->
+		<!-- Zone 3: Footer (Mini-pills Uptime 24h & Latency) -->
 		<div class="flex items-center justify-between gap-1.5 pt-1">
 			<div class="kato-pill">
 				<span class="kato-pill-label">{t('probe.uptime24h')}</span>
@@ -178,7 +178,7 @@
 
 {:else if density === 'medium'}
 	<!-- ===================================================================== -->
-	<!-- MODE MEDIUM (13-48 sondes) : Carte intermédiaire compacte en 3 zones  -->
+	<!-- MEDIUM MODE (13-48 probes): Intermediate compact card in 3 zones       -->
 	<!-- ===================================================================== -->
 	<div
 		id={`probe-cell-${probe.id}`}
@@ -200,12 +200,12 @@
 		onkeydown={handleKeydown}
 		onfocus={oncellfocus}
 	>
-		<!-- Zone 1 : En-tête (Indicateur statut unique) -->
+		<!-- Zone 1: Header (Unique status indicator) -->
 		<div class="flex items-center justify-end min-w-0">
 			<span class="w-2.5 h-2.5 rounded-full shrink-0 {color.bgClass} shadow-xs" aria-hidden="true"></span>
 		</div>
 
-		<!-- Zone 2 : Cœur / Centre (Nom sur 2 lignes) -->
+		<!-- Zone 2: Body / Center (Name on 2 lines) -->
 		<div class="my-auto py-1 flex items-center">
 			<h2
 				class="font-medium text-[var(--kato-text-primary)] line-clamp-2 break-words"
@@ -216,8 +216,8 @@
 			</h2>
 		</div>
 
-		<!-- Zone 3 : Pied de carte (Mini-pills Uptime + Latence) -->
-		<div class="flex items-center justify-between gap-1 w-full pt-1">
+		<!-- Zone 3: Footer (Mini-pills Uptime + Latency) -->
+		<div class="flex items-center justify-between gap-1.5 w-full pt-1">
 			<div class="kato-pill text-[11px] py-0.5 px-1.5">
 				<span class="kato-pill-label text-[9px]">{t('probe.uptime24h')}</span>
 				<span class="kato-pill-value text-[11px] sm:text-xs">{uptimeDisplay}</span>
@@ -230,7 +230,7 @@
 
 {:else}
 	<!-- ===================================================================== -->
-	<!-- MODE COMPACT (49-120 sondes) : Cellule verticale empilée              -->
+	<!-- COMPACT MODE (49-120 probes): Vertically stacked cell                  -->
 	<!-- ===================================================================== -->
 	<div
 		id={`probe-cell-${probe.id}`}
@@ -247,12 +247,12 @@
 		onkeydown={handleKeydown}
 		onfocus={oncellfocus}
 	>
-		<!-- Zone 1 : En-tête (Indicateur statut dans le coin supérieur) -->
+		<!-- Zone 1: Header (Status indicator in corner) -->
 		<div class="flex items-center justify-end w-full">
 			<span class="w-2 h-2 rounded-full shrink-0 {color.bgClass} shadow-xs" aria-hidden="true"></span>
 		</div>
 
-		<!-- Zone 2 : Cœur / Centre (Nom sur 2 lignes centré) -->
+		<!-- Zone 2: Body / Center (Centered 2-line name) -->
 		<div class="my-auto py-0.5 flex items-center justify-center text-center px-0.5">
 			<h2
 				class="font-medium text-[var(--kato-text-primary)] line-clamp-2 break-words text-center"
@@ -263,7 +263,7 @@
 			</h2>
 		</div>
 
-		<!-- Zone 3 : Pied de carte (Latence en mono centrée) -->
+		<!-- Zone 3: Footer (Centered monospace latency) -->
 		<div class="flex items-center justify-center w-full">
 			<span class="text-[10px] sm:text-[11px] font-mono text-[var(--kato-text-secondary)]">
 				{responseTimeDisplay}

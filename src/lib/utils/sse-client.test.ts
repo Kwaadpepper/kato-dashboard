@@ -97,11 +97,11 @@ describe('sse-client utility module', () => {
 		const instance = MockEventSource.instances[0];
 		assert.equal(instance.url, '/api/events');
 
-		// Simuler open
+		// Simulate open
 		instance.simulateOpen();
 		assert.equal(receivedStatus, 'connected');
 
-		// Simuler payload init
+		// Simulate init payload
 		const mockState: DashboardState = {
 			probes: [],
 			incidents: [],
@@ -165,7 +165,7 @@ describe('sse-client utility module', () => {
 		instance1.simulateOpen();
 		assert.ok(statuses.includes('connected'));
 
-		// Simuler erreur avec fermeture
+		// Simulate error with connection close
 		instance1.simulateError(true);
 		assert.ok(statuses.includes('disconnected'));
 		assert.ok(statuses.includes('reconnecting'));

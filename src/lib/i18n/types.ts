@@ -3,8 +3,8 @@ import type { SupportedLocale } from '$lib/types';
 export type { SupportedLocale };
 
 /**
- * Schéma canonique de toutes les traductions de l'application Kato Dashboard.
- * Doit être implémenté à 100% par chaque locale (ex: fr, en).
+ * Canonical translation schema for the Kato Dashboard application.
+ * All locales (en, fr, etc.) must implement 100% of this structure.
  */
 export interface TranslationSchema {
 	common: {
@@ -16,6 +16,8 @@ export interface TranslationSchema {
 		close: string;
 		recent: string;
 		pageTitle: string;
+		probeGridAria: string;
+		opensInNewTab: string;
 	};
 	status: {
 		up: string;
@@ -106,6 +108,8 @@ export interface TranslationSchema {
 		inQueueTooltip: string;
 		expandAria: string;
 		collapseAria: string;
+		pauseMarquee: string;
+		resumeMarquee: string;
 	};
 	detailModal: {
 		closeAria: string;
@@ -160,6 +164,29 @@ export interface TranslationSchema {
 		passwordPlaceholder: string;
 		unlock: string;
 		invalidPassword: string;
+		securityBadge: string;
+	};
+	skipLink: {
+		navAria: string;
+		mainContent: string;
+		incidentBar: string;
+	};
+	keyboardHelp: {
+		title: string;
+		subtitle: string;
+		closeAria: string;
+		closeBtn: string;
+		tip: string;
+		navigateGrid: string;
+		jumpFirstLast: string;
+		openDetail: string;
+		closeOrExit: string;
+		toggleFullscreen: string;
+		toggleMute: string;
+		cycleTheme: string;
+		toggleMarquee: string;
+		navigateRegions: string;
+		toggleHelp: string;
 	};
 	time: {
 		secondShort: string;
@@ -172,7 +199,7 @@ export interface TranslationSchema {
 }
 
 /**
- * Type utilitaire pour extraire les clés pointées (e.g. 'common.loading', 'header.scoreAria').
+ * Utility type to extract dot-notated nested keys (e.g. 'common.loading', 'header.scoreAria').
  */
 export type NestedKeyOf<ObjectType extends object> = {
 	[Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object

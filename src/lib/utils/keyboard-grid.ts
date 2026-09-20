@@ -1,12 +1,12 @@
 /**
- * Utilitaire de navigation 2D au clavier pour la grille de sondes (RGAA 7.1 / 12.1)
+ * 2D keyboard navigation utility for the probe grid (WCAG / accessibility).
  *
- * Gère le calcul des indices suivant/précédent en fonction des touches directionnelles :
- * - Flèche Droite / Flèche Gauche : sonde suivante / précédente (+1 / -1)
- * - Flèche Bas / Flèche Haut : saut de ligne vertical (+colonnes / -colonnes)
- * - Début (Home) : première sonde (index 0, la plus critique en tri smart)
- * - Fin (End) : dernière sonde (index total - 1)
- * - PageDown / PageUp : saut d'un bloc de 3 lignes
+ * Computes next/previous indices based on directional keys:
+ * - ArrowRight / ArrowLeft: next / previous probe (+1 / -1)
+ * - ArrowDown / ArrowUp: vertical row jump (+columns / -columns)
+ * - Home: first probe (index 0, most critical under smart sort)
+ * - End: last probe (total index - 1)
+ * - PageDown / PageUp: jump 3 rows
  */
 export function calculateNextGridIndex(
 	currentIndex: number,

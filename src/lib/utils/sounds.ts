@@ -1,7 +1,7 @@
 /**
- * Module de notifications sonores Web Audio API pour Kato Dashboard.
- * Génère des alertes sonores pures par synthèse audio (OscillatorNode + GainNode),
- * sans aucun fichier audio externe.
+ * Web Audio API sound notification module for Kato Dashboard.
+ * Generates pure synthesizer alert sounds (OscillatorNode + GainNode)
+ * without requiring any external audio files.
  */
 
 export const SOUND_STORAGE_KEY = 'kato-sound-enabled';
@@ -13,8 +13,8 @@ type SoundListener = (enabled: boolean) => void;
 const listeners = new Set<SoundListener>();
 
 /**
- * Initialise ou récupère le singleton AudioContext du navigateur.
- * Gère la compatibilité cross-browser et la sortie de l'état 'suspended'.
+ * Initializes or retrieves the singleton AudioContext instance.
+ * Handles cross-browser compatibility and auto-resumes from 'suspended' state.
  */
 export function getAudioContext(): AudioContext | null {
 	if (typeof window === 'undefined') return null;
@@ -30,7 +30,7 @@ export function getAudioContext(): AudioContext | null {
 
 	if (audioCtx && audioCtx.state === 'suspended') {
 		void audioCtx.resume().catch(() => {
-			// Bloqué par la politique autoplay du navigateur tant qu'aucune interaction utilisateur n'a eu lieu
+			// Blocked by browser autoplay policy until user interaction occurs
 		});
 	}
 
@@ -38,7 +38,7 @@ export function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Déverrouille l'AudioContext lors d'une interaction utilisateur (clic, touche).
+ * Unlocks AudioContext upon user interaction (click, keypress).
  */
 export function unlockAudio(): void {
 	const ctx = getAudioContext();
@@ -48,7 +48,7 @@ export function unlockAudio(): void {
 }
 
 /**
- * Vérifie si les notifications sonores sont activées (lecture depuis localStorage ou BFF).
+ * Checks whether audio notifications are enabled (from localStorage or BFF default).
  */
 export function isSoundEnabled(bffDefault?: boolean): boolean {
 	if (typeof window === 'undefined') return bffDefault ?? false;
@@ -59,7 +59,7 @@ export function isSoundEnabled(bffDefault?: boolean): boolean {
 			return soundEnabledState;
 		}
 	} catch (err) {
-		console.warn('[Sounds] Erreur de lecture de localStorage:', err);
+		console.warn('[Sounds] Failed to read from localStorage:', err);
 	}
 	if (typeof bffDefault === 'boolean') {
 		soundEnabledState = bffDefault;
@@ -68,14 +68,14 @@ export function isSoundEnabled(bffDefault?: boolean): boolean {
 }
 
 /**
- * Initialise l'état sonore avec prise en compte du réglage par défaut BFF.
+ * Initializes sound state considering BFF default setting.
  */
 export function initSound(bffDefault?: boolean): boolean {
 	return isSoundEnabled(bffDefault);
 }
 
 /**
- * Active ou désactive les notifications sonores et persiste l'état dans localStorage.
+ * Enables or disables audio notifications and persists state in localStorage.
  */
 export function setSoundEnabled(enabled: boolean): void {
 	soundEnabledState = enabled;
@@ -83,7 +83,7 @@ export function setSoundEnabled(enabled: boolean): void {
 		try {
 			localStorage.setItem(SOUND_STORAGE_KEY, String(enabled));
 		} catch (err) {
-			console.warn('[Sounds] Erreur d\'écriture dans localStorage:', err);
+			console.warn('[Sounds] Failed to write to localStorage:', err);
 		}
 		if (enabled) {
 			unlockAudio();
@@ -93,13 +93,13 @@ export function setSoundEnabled(enabled: boolean): void {
 		try {
 			listener(enabled);
 		} catch (e) {
-			console.error('[Sounds] Erreur dans le listener de son:', e);
+			console.error('[Sounds] Error in sound listener:', e);
 		}
 	}
 }
 
 /**
- * Alterne l'état d'activation du son.
+ * Toggles audio notification state.
  */
 export function toggleSound(): boolean {
 	const next = !isSoundEnabled();
@@ -108,7 +108,7 @@ export function toggleSound(): boolean {
 }
 
 /**
- * S'abonne aux changements d'état du son.
+ * Subscribes to sound state changes.
  */
 export function onSoundChange(listener: SoundListener): () => void {
 	listeners.add(listener);
@@ -119,12 +119,12 @@ export function onSoundChange(listener: SoundListener): () => void {
 }
 
 /**
- * Joue un bip sonore via un OscillatorNode et un GainNode avec fade-out propre.
+ * Plays an audio beep using OscillatorNode and GainNode with clean fade-out.
  *
- * @param frequency Fréquence en Hertz (ex: 880, 440)
- * @param durationMs Durée du bip en millisecondes
- * @param type Forme d'onde ('sine', 'triangle', 'square', 'sawtooth'), défaut: 'sine'
- * @param startDelayMs Délai avant démarrage en millisecondes (pour séquencer plusieurs bips)
+ * @param frequency Frequency in Hertz (e.g. 880, 440)
+ * @param durationMs Beep duration in milliseconds
+ * @param type Waveform ('sine', 'triangle', 'square', 'sawtooth'), default: 'sine'
+ * @param startDelayMs Delay before playback in milliseconds (for sequencing multiple beeps)
  */
 export function playBeep(
 	frequency: number,
@@ -148,9 +148,9 @@ export function playBeep(
 		osc.type = type;
 		osc.frequency.setValueAtTime(frequency, startTime);
 
-		// Enveloppe sonore nette : attaque rapide (5ms), palier et extinction exponentielle sans clic
+		// Clean sound envelope: rapid attack (5ms), sustain and exponential decay to prevent clicks
 		const attackSec = 0.005;
-		const maxGain = 0.15; // Volume modéré
+		const maxGain = 0.15; // Moderate volume
 
 		gain.gain.setValueAtTime(0.0001, startTime);
 		gain.gain.linearRampToValueAtTime(maxGain, startTime + attackSec);
@@ -170,19 +170,19 @@ export function playBeep(
 			} catch {}
 		};
 	} catch (err) {
-		console.warn('[Sounds] Impossible d\'émettre le son Web Audio:', err);
+		console.warn('[Sounds] Unable to emit Web Audio sound:', err);
 	}
 }
 
 /**
- * Alerte Sonde DOWN : Bip aigu (880Hz, 200ms).
+ * DOWN Probe Alert: High-pitched beep (880Hz, 200ms).
  */
 export function playAlertDown(): void {
 	playBeep(880, 200, 'sine');
 }
 
 /**
- * Alerte Rétablissement DOWN → UP : Double bip grave (440Hz, 100ms × 2).
+ * Recovery Alert (DOWN -> UP): Double low beep (440Hz, 100ms x 2).
  */
 export function playAlertRecovery(): void {
 	playBeep(440, 100, 'sine', 0);
@@ -190,7 +190,7 @@ export function playAlertRecovery(): void {
 }
 
 /**
- * Alerte Critique (≥ 3 sondes DOWN simultanément) : Séquence de 3 beeps aigus (880Hz).
+ * Critical Alert (>= 3 probes DOWN simultaneously): 3 high-pitched beeps (880Hz).
  */
 export function playAlertCritical(): void {
 	playBeep(880, 120, 'sine', 0);

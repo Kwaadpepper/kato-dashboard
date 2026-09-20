@@ -48,13 +48,13 @@
     return false;
   });
 
-  // Détection des transitions d'état UP → DOWN (flashing sans $effect)
+  // State transition detection UP -> DOWN (flashing without $effect)
   const shouldFlash = $derived(isFlashing || (prevStatus === "up" && probe.status === "down"));
 
-  // Dimensions adaptées à cellSize :
-  // - pixel : pseudo-pixel carré avec marge minimale, pour éviter les ronds trop larges
-  // - micro : plus petit mais reste lisible
-  	const dotStyle = $derived.by(() => {
+  // Sizing adapted to cellSize:
+  // - pixel: square pseudo-pixel with minimal margin to prevent overly large circles
+  // - micro: smaller but remains legible
+  const dotStyle = $derived.by(() => {
 		if (density === 'pixel') {
 			return 'width: 100%; height: 100%;';
 		}
@@ -118,7 +118,7 @@
 		aria-hidden="true"
 	></div>
 
-  <!-- Tooltip contextuel au survol -->
+  <!-- Contextual tooltip on hover -->
   <div
     class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:flex flex-col items-center z-50 pointer-events-none"
   >

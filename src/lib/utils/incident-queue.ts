@@ -1,10 +1,10 @@
 /**
  * incident-queue.ts
  *
- * Gestionnaire de file d'attente (FIFO) et d'isolation de performance pour le bandeau d'incidents.
- * - Garantit l'indépendance de performance (aucun recalcul de layout global, pas de re-render continu)
- * - Assure que les éléments en cours de défilement vont jusqu'au bout avant d'appliquer de nouveaux événements
- * - File d'attente tampon (pending queue) pour les nouveaux incidents ou résolutions
+ * Queue manager (FIFO) and performance isolation module for the incident marquee bar.
+ * - Guarantees performance isolation (no global layout shifts, avoids continuous re-renders)
+ * - Ensures currently scrolling marquee items complete their cycle before applying new events
+ * - Buffered queue (pending queue) for newly opened or resolved incidents
  */
 
 import type { NormalizedIncident, SupportedLocale } from '$lib/types';
@@ -18,28 +18,28 @@ export interface DisplayedIncident {
 }
 
 export interface IncidentQueueState {
-	/** Incidents actuellement visibles et en défilement sur le bandeau */
+	/** Incidents currently displayed and scrolling on the marquee bar */
 	displayed: DisplayedIncident[];
-	/** Nombre total d'incidents actifs réels (incluant ceux en file d'attente) */
+	/** Total count of actual active incidents (including queued ones) */
 	activeCount: number;
-	/** Nombre d'incidents en attente dans la file pour le prochain cycle */
+	/** Count of incidents queued for the next scrolling cycle */
 	pendingCount: number;
-	/** Indique si le bandeau a un défilement actif */
+	/** Whether marquee scrolling is currently active */
 	isScrolling: boolean;
-	/** Compteur du cycle courant (incrémenté à chaque nouveau cycle) */
+	/** Monotonic cycle counter (incremented on each completed iteration) */
 	cycleCount: number;
 }
 
 export type IncidentQueueListener = (state: IncidentQueueState) => void;
 
 /**
- * Formate la durée écoulée depuis startedAt de façon concise et lisible.
- * Ex: "2m 14s", "1h 05m 12s", "1j 3h 10m" (FR) ou "1d 3h 10m" (EN)
+ * Formats elapsed duration since startedAt concisely.
+ * Examples: "2m 14s", "1h 05m 12s", "1d 3h 10m" (EN) or "1j 3h 10m" (FR).
  */
 export function formatIncidentDuration(
 	startedAt: string,
 	currentMs = Date.now(),
-	locale: SupportedLocale = 'fr'
+	locale: SupportedLocale = 'en'
 ): string {
 	if (!startedAt) return '0s';
 	const startMs = new Date(startedAt).getTime();
@@ -49,7 +49,7 @@ export function formatIncidentDuration(
 	const hours = Math.floor((diffSec % 86400) / 3600);
 	const mins = Math.floor((diffSec % 3600) / 60);
 	const secs = diffSec % 60;
-	const dayUnit = locale === 'en' ? 'd' : 'j';
+	const dayUnit = locale === 'fr' ? 'j' : 'd';
 
 	if (days > 0) return `${days}${dayUnit} ${hours}h ${mins}m`;
 	if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
@@ -129,20 +129,18 @@ export class IncidentQueueManager {
 	}
 
 	/**
-	 * Met à jour les incidents reçus (depuis SSE ou props).
-	 * Règle d'or : si un défilement est en cours, on laisse défiler jusqu'au bout
-	 * et on stocke la nouvelle version dans la file d'attente (FIFO).
+	 * Updates received incidents (from SSE or props).
+	 * If scrolling is active, allow the current animation to complete and queue
+	 * the new batch in the pending FIFO queue.
 	 *
-	 * @param rawIncidents Liste brute des incidents reçus
-	 * @param shouldAnimate Vrai si le mode défilement est actif (ex: mode TV)
+	 * @param rawIncidents Raw incident list
+	 * @param shouldAnimate True if marquee animation is active
 	 */
 	public setIncidents(rawIncidents: NormalizedIncident[], shouldAnimate = true): void {
-		// Ne conserver que les incidents non résolus
 		const active = rawIncidents.filter((inc) => inc.resolvedAt === null);
 		this.lastActiveIncidents = active;
 
-		// Si l'animation n'est pas active (mode statique / mobile non-TV) :
-		// Mise à jour immédiate sans file d'attente
+		// Static / non-scrolling mode: immediate update without queueing
 		if (!shouldAnimate) {
 			const now = Date.now();
 			this.displayed = active.map((inc) => snapshotIncident(inc, now, this.locale));
@@ -152,9 +150,8 @@ export class IncidentQueueManager {
 			return;
 		}
 
-		// Mode défilement actif :
+		// Active scrolling mode:
 		if (!this.isScrolling || this.displayed.length === 0) {
-			// Rien ne défile actuellement : démarrer immédiatement avec les incidents actifs
 			if (active.length > 0) {
 				const now = Date.now();
 				this.displayed = active.map((inc) => snapshotIncident(inc, now, this.locale));
@@ -168,39 +165,33 @@ export class IncidentQueueManager {
 			}
 			this.notify();
 		} else {
-			// Un défilement est déjà en cours d'exécution :
-			// ON NE TOUCHE PAS à this.displayed pour laisser les éléments aller jusqu'au bout !
-			// On place la nouvelle liste dans la file d'attente (pendingQueue)
+			// Scrolling in progress: buffer in pendingQueue until cycle finishes
 			this.pendingQueue = active;
 			this.notify();
 		}
 	}
 
 	/**
-	 * Déclenché lorsque l'animation termine un cycle de défilement (onanimationiteration ou fin).
-	 * À ce moment précis, les éléments ont défilé jusqu'au bout de l'écran.
-	 * On dépile la file d'attente pour le cycle suivant.
+	 * Invoked when the marquee animation completes a cycle.
+	 * Flushes the pending queue into the displayed list.
 	 */
 	public onCycleComplete(): void {
 		const now = Date.now();
 
 		if (this.pendingQueue !== null) {
-			// La file contient une mise à jour d'événements
 			if (this.pendingQueue.length > 0) {
 				this.displayed = this.pendingQueue.map((inc) => snapshotIncident(inc, now, this.locale));
 				this.isScrolling = true;
 				this.cycleCount++;
 				this.pendingQueue = null;
 			} else {
-				// Tous les incidents ont été résolus pendant le cycle :
-				// Les éléments ont fini de sortir de l'écran, on bascule à l'état nominal
 				this.displayed = [];
 				this.isScrolling = false;
 				this.pendingQueue = null;
 			}
 			this.notify();
 		} else if (this.displayed.length > 0) {
-			// Aucun changement dans la file : rafraîchir les durées de panne pour le cycle suivant
+			// Refresh elapsed outage durations for next cycle
 			this.displayed = this.displayed.map((item) => ({
 				...item,
 				formattedDuration: formatIncidentDuration(item.startedAt, now, this.locale)
@@ -211,7 +202,7 @@ export class IncidentQueueManager {
 	}
 
 	/**
-	 * Force l'actualisation immédiate sans attendre la fin du cycle (ex: sortie du mode TV).
+	 * Forces immediate queue flush without waiting for cycle completion.
 	 */
 	public flush(): void {
 		const now = Date.now();
@@ -223,7 +214,7 @@ export class IncidentQueueManager {
 	}
 
 	/**
-	 * Réinitialise complètement la file.
+	 * Resets the incident queue state.
 	 */
 	public reset(): void {
 		this.displayed = [];
@@ -236,12 +227,12 @@ export class IncidentQueueManager {
 }
 
 /**
- * Fabrique d'une nouvelle instance de gestionnaire de file d'attente.
+ * Factory creating a new IncidentQueueManager instance.
  */
 export function createIncidentQueue(
 	initialIncidents: NormalizedIncident[] = [],
 	initialScrolling = false,
-	locale: SupportedLocale = 'fr'
+	locale: SupportedLocale = 'en'
 ): IncidentQueueManager {
 	return new IncidentQueueManager(initialIncidents, initialScrolling, locale);
 }

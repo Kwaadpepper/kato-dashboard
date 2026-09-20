@@ -1,22 +1,22 @@
 @import 'tailwindcss';
 
 /* ============================================================================
- * KEYFRAMES OFFICIELS KATO (docs/COLORS_AND_THEME.md)
+ * KATO OFFICIAL KEYFRAMES (docs/COLORS_AND_THEME.md)
  * ============================================================================ */
 
-/* 1. Pulse Alert (Sondes DOWN) */
+/* 1. Pulse Alert (DOWN probes) */
 @keyframes kato-pulse {
 	0%, 100% { transform: scale(1); opacity: 1; }
 	50% { transform: scale(1.04); opacity: 0.8; }
 }
 
-/* 2. Border Flash (Transition UP → DOWN) */
+/* 2. Border Flash (UP -> DOWN transition) */
 @keyframes kato-border-flash {
 	0%, 100% { box-shadow: inset 0 0 0 2px transparent; }
 	25%, 75% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.6); }
 }
 
-/* 3. Incident Marquee (Mode TV - Défilement continu infini fluide 60fps) */
+/* 3. Incident Marquee (TV Mode - continuous infinite 60fps marquee) */
 @keyframes kato-marquee {
 	0% {
 		transform: translate3d(0, 0, 0);
@@ -26,7 +26,7 @@
 	}
 }
 
-/* 4. Anti Burn-In Drift (Mode TV - Déplacement lent sur 10 min) */
+/* 4. Anti Burn-In Drift (TV Mode - subtle 10-minute drift) */
 @keyframes kato-drift {
 	0%, 100% { transform: translate(0, 0); }
 	25% { transform: translate(3px, 1px); }
@@ -35,7 +35,7 @@
 }
 
 /* ============================================================================
- * EXTENSION DU THÈME TAILWIND CSS v4
+ * TAILWIND CSS v4 THEME EXTENSION
  * ============================================================================ */
 @theme {
 	--animate-kato-pulse: kato-pulse 2s ease-in-out infinite;
@@ -51,10 +51,10 @@
 }
 
 /* ============================================================================
- * SYSTÈME DE THÈMES (docs/COLORS_AND_THEME.md)
+ * THEME SYSTEM (docs/COLORS_AND_THEME.md)
  * ============================================================================ */
 
-/* 1. Thème Sombre (Par défaut) : Fond #0F172A */
+/* 1. Dark Theme (Default): Background #0F172A */
 :root, [data-theme='dark'] {
 	--kato-bg-primary: #0F172A;
 	--kato-bg-secondary: #1E293B;
@@ -64,7 +64,7 @@
 	--kato-focus-ring: #38BDF8;
 	color-scheme: dark;
 
-	/* Tokens de cartes de sondes (Dark) */
+	/* Probe card tokens (Dark) */
 	--probe-up-bg: rgba(6, 78, 59, 0.3);
 	--probe-up-border: rgba(4, 120, 87, 0.5);
 	--probe-up-text: #6EE7B7;
@@ -96,7 +96,7 @@
 	--probe-dot-bg-pending: #3B82F6;
 	--probe-dot-bg-maintenance: #8B5CF6;
 
-	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 6:1 sur #0F172A) */
+	/* Semantic status text tokens (WCAG AA - Contrast >= 6:1 on #0F172A) */
 	--status-up-text: #34D399;
 	--status-down-text: #F87171;
 	--status-degraded-text: #FBBF24;
@@ -104,7 +104,7 @@
 	--status-pending-text: #60A5FA;
 	--status-maintenance-text: #A78BFA;
 
-	/* Badges d'en-tête (Dark) */
+	/* Header badges (Dark) */
 	--badge-up-bg: rgba(6, 78, 59, 0.6);
 	--badge-up-border: rgba(4, 120, 87, 0.6);
 	--badge-up-text: #6EE7B7;
@@ -129,7 +129,7 @@
 	--badge-maintenance-border: rgba(124, 58, 237, 0.6);
 	--badge-maintenance-text: #C4B5FD;
 
-	/* Indicateur de fraîcheur (Dark) */
+	/* Freshness indicator (Dark) */
 	--freshness-green-bg: rgba(6, 78, 59, 0.3);
 	--freshness-green-border: rgba(4, 120, 87, 0.5);
 	--freshness-green-text: #34D399;
@@ -149,7 +149,7 @@
 	--kato-pill-label: #94A3B8;
 }
 
-/* 2. Thème Clair : Fond #F8FAFC */
+/* 2. Light Theme: Background #F8FAFC */
 [data-theme='light'] {
 	--kato-bg-primary: #F8FAFC;
 	--kato-bg-secondary: #FFFFFF;
@@ -159,7 +159,7 @@
 	--kato-focus-ring: #0284C7;
 	color-scheme: light;
 
-	/* Tokens de cartes de sondes (Light) */
+	/* Probe card tokens (Light) */
 	--probe-up-bg: #ECFDF5;
 	--probe-up-border: #A7F3D0;
 	--probe-up-text: #065F46;
@@ -191,7 +191,7 @@
 	--probe-dot-bg-pending: #3B82F6;
 	--probe-dot-bg-maintenance: #8B5CF6;
 
-	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 4.5:1 sur fond blanc/clair) */
+	/* Semantic status text tokens (WCAG AA - Contrast >= 4.5:1 on light background) */
 	--status-up-text: #047857;
 	--status-down-text: #B91C1C;
 	--status-degraded-text: #B45309;
@@ -199,7 +199,7 @@
 	--status-pending-text: #1D4ED8;
 	--status-maintenance-text: #6D28D9;
 
-	/* Badges d'en-tête (Light) */
+	/* Header badges (Light) */
 	--badge-up-bg: #ECFDF5;
 	--badge-up-border: #A7F3D0;
 	--badge-up-text: #065F46;
@@ -224,7 +224,7 @@
 	--badge-maintenance-border: #DDD6FE;
 	--badge-maintenance-text: #5B21B6;
 
-	/* Indicateur de fraîcheur (Light) */
+	/* Freshness indicator (Light) */
 	--freshness-green-bg: #ECFDF5;
 	--freshness-green-border: #A7F3D0;
 	--freshness-green-text: #065F46;
@@ -244,7 +244,7 @@
 	--kato-pill-label: #64748B;
 }
 
-/* 3. Thème AMOLED : Fond #000000 (Noir pur pour OLED / TV) */
+/* 3. AMOLED Theme: Background #000000 (Pure black for OLED / TV) */
 [data-theme='amoled'] {
 	--kato-bg-primary: #000000;
 	--kato-bg-secondary: #0A0A0A;
@@ -254,7 +254,7 @@
 	--kato-focus-ring: #38BDF8;
 	color-scheme: dark;
 
-	/* Tokens de cartes de sondes (AMOLED: fond noir pur avec bordure contrastée) */
+	/* Probe card tokens (AMOLED: pure black background with high contrast border) */
 	--probe-up-bg: #000000;
 	--probe-up-border: #047857;
 	--probe-up-text: #34D399;
@@ -286,7 +286,7 @@
 	--probe-dot-bg-pending: #000000;
 	--probe-dot-bg-maintenance: #000000;
 
-	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 6:1 sur noir) */
+	/* Semantic status text tokens (WCAG AA - Contrast >= 6:1 on black) */
 	--status-up-text: #34D399;
 	--status-down-text: #F87171;
 	--status-degraded-text: #FBBF24;
@@ -294,7 +294,7 @@
 	--status-pending-text: #60A5FA;
 	--status-maintenance-text: #A78BFA;
 
-	/* Badges d'en-tête (AMOLED) */
+	/* Header badges (AMOLED) */
 	--badge-up-bg: #000000;
 	--badge-up-border: #047857;
 	--badge-up-text: #34D399;
@@ -319,7 +319,7 @@
 	--badge-maintenance-border: #7C3AED;
 	--badge-maintenance-text: #A78BFA;
 
-	/* Indicateur de fraîcheur (AMOLED) */
+	/* Freshness indicator (AMOLED) */
 	--freshness-green-bg: #000000;
 	--freshness-green-border: #047857;
 	--freshness-green-text: #34D399;
@@ -339,14 +339,14 @@
 	--kato-pill-label: #A1A1AA;
 }
 
-/* Application globale sur body */
+/* Global body application */
 body {
 	background-color: var(--kato-bg-primary);
 	color: var(--kato-text-primary);
 	border-color: var(--kato-border);
 }
 
-/* Classes utilitaires pour les cellules de sondes adaptées au thème actif */
+/* Utility classes for probe cells adapted to active theme */
 .probe-card {
 	width: 100%;
 	height: 100%;
@@ -361,7 +361,7 @@ body {
 	border-color: var(--probe-card-hover-border);
 }
 
-/* Capsules / mini-pills pour les métriques Uptime & Latence */
+/* Mini-pills for Uptime & Latency metrics */
 .kato-pill {
 	display: inline-flex;
 	align-items: center;
@@ -425,7 +425,7 @@ body {
 	--probe-card-text: var(--probe-maintenance-text);
 }
 
-/* En mode AMOLED : pastilles ProbeDot en fond noir pur avec bordure colorée */
+/* In AMOLED mode: ProbeDot dots with pure black background and colored border */
 [data-theme='amoled'] .probe-dot-up {
 	background-color: #000000 !important;
 	border: 2px solid #10B981 !important;
@@ -452,7 +452,7 @@ body {
 }
 
 /* ============================================================================
- * BADGES DE COMPTEURS D'EN-TÊTE & FRAÎCHEUR (WCAG AA SUR TOUS LES THÈMES)
+ * HEADER COUNTER BADGES & FRESHNESS (WCAG AA ON ALL THEMES)
  * ============================================================================ */
 
 .status-badge-up {
@@ -503,7 +503,7 @@ body {
 }
 
 /* ============================================================================
- * CLASSES UTILITAIRES D'ANIMATION ET EFFETS VISUELS
+ * ANIMATION UTILITY CLASSES & VISUAL EFFECTS
  * ============================================================================ */
 
 .animate-kato-pulse {
@@ -527,7 +527,7 @@ body {
 	animation-play-state: paused;
 }
 
-/* Rétrocompatibilité avec animate-marquee */
+/* Backward compatibility with animate-marquee */
 .animate-marquee {
 	display: flex;
 	width: max-content;
@@ -546,13 +546,13 @@ body {
 	animation: kato-drift 600s ease-in-out infinite;
 }
 
-/* Glow d'alerte pour les pannes prolongées (DOWN > 1 min) */
+/* Alert glow for prolonged outages (DOWN > 1 min) */
 .kato-glow-red {
 	box-shadow: 0 0 15px 2px rgba(239, 68, 68, 0.3),
 	            0 0 30px 4px rgba(239, 68, 68, 0.1);
 }
 
-/* Masquage de barre de défilement */
+/* Scrollbar hiding */
 .no-scrollbar::-webkit-scrollbar {
 	display: none;
 }
@@ -563,10 +563,10 @@ body {
 }
 
 /* ============================================================================
- * MODE TV : NEUTRALISATION DU CURSEUR ET MASQUAGE D'INACTIVITÉ
+ * TV MODE: CURSOR NEUTRALIZATION & INACTIVITY HIDING
  * ============================================================================ */
 
-/* En mode TV (curseur actif), neutralise l'apparence pointeur des éléments cliquables */
+/* In TV mode (active cursor), neutralize pointer appearance of clickable elements */
 .tv-mode a,
 .tv-mode button,
 .tv-mode [role="button"],
@@ -574,7 +574,7 @@ body {
 	cursor: default;
 }
 
-/* Masquage absolu du curseur après 5s d'inactivité - priorité absolue sur tout élément */
+/* Absolute cursor hiding after 5s inactivity - highest priority over all elements */
 html.tv-cursor-hidden,
 html.tv-cursor-hidden *,
 body.tv-cursor-hidden,
@@ -587,7 +587,7 @@ body.cursor-hidden * {
 }
 
 /* ============================================================================
- * ACCESSIBILITÉ : PREFERS-REDUCED-MOTION & FOCUS-VISIBLE (RGAA 10.7, 12.7, 13.8)
+ * ACCESSIBILITY: PREFERS-REDUCED-MOTION & FOCUS-VISIBLE (WCAG 2.1)
  * ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
 	.animate-kato-pulse,
@@ -599,20 +599,20 @@ body.cursor-hidden * {
 	}
 }
 
-/* 1. Indicateurs de Focus Universels (:focus-visible) - RGAA 10.7 */
+/* 1. Universal Focus Indicators (:focus-visible) - WCAG 2.4.7 */
 :where(a, button, input, select, textarea, [tabindex="0"], [role="button"]):focus-visible {
 	outline: 2px solid var(--kato-focus-ring) !important;
 	outline-offset: 2px !important;
 }
 
-/* 2. Pause automatique du défilement lors de la prise de focus (RGAA 13.8) */
+/* 2. Automatic pause on focus (WCAG 2.2.2) */
 .animate-kato-marquee:focus-within,
 .animate-marquee:focus-within,
 .marquee-paused {
 	animation-play-state: paused !important;
 }
 
-/* 3. Liens d'évitement (Skip links) et textes pour lecteurs d'écran (RGAA 12.7) */
+/* 3. Skip links & screen reader texts (WCAG 2.4.1) */
 .sr-only {
 	position: absolute !important;
 	width: 1px !important;

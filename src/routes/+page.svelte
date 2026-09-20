@@ -61,7 +61,7 @@
 	let _source = $state<string>(data.initialState?.source ?? 'unknown');
 	let connectionStatus = $state<ConnectionStatus>('connected');
 
-	// Registre des statuts précédents pour la détection fine des transitions UP → DOWN
+	// Previous status registry for fine detection of UP -> DOWN transitions
 	// svelte-ignore state_referenced_locally
 	let previousStatuses = $state<Record<string, ProbeStatus>>(
 		data.initialState?.probes
@@ -69,10 +69,10 @@
 			: {}
 	);
 
-	// Ensemble des identifiants de sondes en train de clignoter (UP → DOWN)
+	// Set of probe IDs currently flashing (UP -> DOWN)
 	let flashingProbeIds = $state<Set<string>>(new Set());
 
-	// Flash sur la bordure du container principal lors d'une bascule UP → DOWN
+	// Border flash on main container on UP -> DOWN transition
 	let containerFlashing = $state(false);
 	let flashTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -84,20 +84,20 @@
 		}, 2000);
 	}
 
-	// Alerte critique de masse : ≥ 30% des sondes sont DOWN → fond bg-red-950/20
+	// Mass critical alert: >= 30% of probes are DOWN -> bg-red-950/20 background
 	const downCount = $derived(probes.filter((p) => p.status === 'down').length);
 	const isCriticalDownRatio = $derived(probes.length > 0 && downCount / probes.length >= 0.3);
 
-	// Conteneur DOM de la grille pour le ResizeObserver
+	// Grid DOM container for ResizeObserver
 	let gridContainer: HTMLElement | null = $state(null);
 	let containerWidth = $state<number>(1920);
 	let containerHeight = $state<number>(992);
 	let innerWidth = $state<number>(1920);
 
-	// Détection précise du mode mobile (< 768px) pour adaptation du layout et du tactile
+	// Mobile mode detection (< 768px) for responsive layout and touch interactions
 	const isMobile = $derived(innerWidth < 768);
 
-	// État de sélection d'une sonde pour la vue détaillée (Modal fullscreen mobile / Side-panel desktop)
+	// Selected probe state for detail view (fullscreen modal on mobile / side-panel on desktop)
 	let selectedProbe = $state<NormalizedProbe | null>(null);
 
 	function handleSelectProbe(probe: NormalizedProbe) {
@@ -112,7 +112,7 @@
 		}
 	}
 
-	// Gestion du geste tactile "Pull-to-refresh" natif sur mobile
+	// Mobile pull-to-refresh touch gesture handling
 	let touchStartY = 0;
 	let isPulling = $state(false);
 	let pullDistance = $state(0);
@@ -151,13 +151,13 @@
 		pullDistance = 0;
 	}
 
-	// Conteneur DOM principal du dashboard pour l'anti burn-in et le plein écran
+	// Main dashboard DOM container for anti burn-in and fullscreen
 	let dashboardContainer: HTMLElement | null = $state(null);
-	// Lit le paramètre URL ?tv=1 via $page.url.searchParams pour l'état initial (SSR + hydratation)
+	// Reads ?tv=1 URL parameter for initial state (SSR + hydration)
 	let isTvActiveState = $state($page.url.searchParams.get('tv') === '1');
 	const isTvMode = $derived(isTvActiveState);
 
-	// Nettoie proprement le paramètre ?tv=1 de l'URL du navigateur et du store SvelteKit
+	// Cleans ?tv=1 parameter from browser URL and SvelteKit router store
 	function cleanTvParamFromUrl(): void {
 		if (typeof window === 'undefined') return;
 		const currentUrl = new URL(window.location.href);
@@ -171,33 +171,33 @@
 		}
 	}
 
-	// Mode compact activé en mode TV (h-8) ou si le parc comporte plus de 100 sondes
+	// Compact header enabled in TV mode (h-8) or when probe count exceeds 100
 	const isCompactHeader = $derived(isTvMode || probes.length > 100);
 
-	// Mode Zéro-scroll avec pixels collés sur mobile (activé par défaut pour vue 100% compacte)
+	// Zero-scroll mode with contiguous pixel look on mobile (default enabled for compact view)
 	let forceZeroScroll = $state(true);
 
 	function toggleZeroScroll() {
 		forceZeroScroll = !forceZeroScroll;
 	}
 
-	// 1. Tri intelligent : DOWN en tête (haut-gauche), puis DEGRADED, UP par criticité, etc.
+	// 1. Smart sort: DOWN first (top-left), then DEGRADED, UP by criticality, etc.
 	const sortedProbes = $derived(sortProbesSmart(probes));
 
-	// 2. Calcul dynamique de la géométrie de grille adaptative (zéro scroll)
+	// 2. Dynamic adaptive grid calculation (zero scroll)
 	const layout: GridLayout = $derived(
 		calculateGrid({
 			viewportWidth: containerWidth,
 			viewportHeight: containerHeight,
 			probeCount: sortedProbes.length,
-			headerHeight: 0, // La hauteur est déjà réservée par le padding du conteneur
+			headerHeight: 0, // Height is handled by container padding
 			incidentBarHeight: 0,
 			isMobile,
 			forceZeroScroll: isMobile && forceZeroScroll
 		})
 	);
 
-	// 3. Souscription SSE (Server-Sent Events) pour les flux temps réel et reconnexion au pull-to-refresh
+	// 3. SSE subscription (Server-Sent Events) for real-time streaming and pull-to-refresh
 	let disconnectSSE: (() => void) | null = null;
 
 	function setupSSE() {
@@ -220,7 +220,7 @@
 				previousStatuses = initStatusMap;
 			},
 			(delta: DashboardDelta) => {
-				// A. Détection des transitions UP → DOWN et DOWN → UP avec alertes sonores
+				// A. Detect UP -> DOWN and DOWN -> UP transitions with sound alerts
 				if (delta.changed.length > 0) {
 					let upToDownCount = 0;
 					let downToUpCount = 0;
@@ -243,12 +243,12 @@
 					previousStatuses = updatedPrev;
 					probes = Array.from(probeMap.values());
 
-					// Maintient la sonde actuellement ouverte synchronisée avec les mises à jour SSE
+					// Keep currently open probe synchronized with SSE updates
 					if (selectedProbe && probeMap.has(selectedProbe.id)) {
 						selectedProbe = probeMap.get(selectedProbe.id)!;
 					}
 
-					// Active le flash sur les cartes de sondes qui viennent de tomber (sans aucun $effect enfant)
+					// Trigger flash on cards of newly DOWN probes
 					if (newFlashing.size > 0) {
 						flashingProbeIds = newFlashing;
 						setTimeout(() => {
@@ -256,15 +256,15 @@
 						}, 2000);
 					}
 
-					// Flash visuel sur le container principal si au moins une sonde est tombée
+					// Visual flash on main container if at least one probe went DOWN
 					if (upToDownCount > 0) {
 						triggerContainerFlash();
 					}
 
-					// Notifications sonores selon les règles de surveillance :
-					// - ≥ 3 sondes passent DOWN simultanément : alerte critique (3 beeps)
-					// - Au moins 1 sonde passe DOWN : alerte coupure (beep aigu)
-					// - Rétablissement d'une sonde DOWN → UP : alerte retour à la normale (double beep)
+					// Audio notifications based on monitoring rules:
+					// - >= 3 probes pass DOWN simultaneously: critical alert (3 beeps)
+					// - At least 1 probe passes DOWN: outage alert (high beep)
+					// - Probe recovery DOWN -> UP: recovery alert (double beep)
 					if (upToDownCount >= 3) {
 						playAlertCritical();
 					} else if (upToDownCount > 0) {
@@ -274,7 +274,7 @@
 					}
 				}
 
-				// B. Fusion des incidents nouveaux et résolus
+				// B. Merge new and resolved incidents
 				if (delta.newIncidents.length > 0 || delta.resolvedIncidentIds.length > 0) {
 					const incidentMap = new Map(incidents.map((i) => [i.id, i]));
 					for (const newInc of delta.newIncidents) {
@@ -289,7 +289,7 @@
 					incidents = Array.from(incidentMap.values());
 				}
 
-				// C. Horodatage de l'événement
+				// C. Event timestamp
 				lastUpdate = delta.timestamp;
 			},
 			(heartbeat) => {
@@ -304,21 +304,21 @@
 	async function performRefresh() {
 		isRefreshing = true;
 		try {
-			// Reconnexion forcée SSE (déclenche immédiatement l'envoi du snapshot complet 'init')
+			// Forced SSE reconnection (immediately triggers full 'init' snapshot)
 			setupSSE();
-			// Délai visuel de confort pour l'animation pull-to-refresh
+			// Animation delay for pull-to-refresh
 			await new Promise((resolve) => setTimeout(resolve, 600));
 		} finally {
 			isRefreshing = false;
 		}
 	}
 
-	// 4. Cycle de vie initialisé sur le client (onMount) pour éviter les re-renders récursifs
+	// 4. Client-side lifecycle initialization (onMount)
 	onMount(() => {
-		// Démarrage de la connexion SSE une seule fois
+		// Launch SSE connection once
 		setupSSE();
 
-		// ResizeObserver supervisant le conteneur de grille
+		// ResizeObserver monitoring the grid container
 		let observer: ResizeObserver | null = null;
 		let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -353,12 +353,12 @@
 			observer.observe(gridContainer);
 		}
 
-		// Si tv=1 : appelle enterTvMode() au mount avec le conteneur de grille
+		// If tv=1: call enterTvMode() at mount with the grid container
 		if ($page.url.searchParams.get('tv') === '1') {
 			void enterTvMode(gridContainer);
 		}
 
-		// Synchronisation continue avec l'état effectif du mode TV
+		// Continual synchronization with TV mode state
 		const unsubTv = onTvModeChange((active) => {
 			isTvActiveState = active;
 			if (!active) {
@@ -366,7 +366,7 @@
 			}
 		});
 
-		// Détection d'inactivité : réactive le mode TV après 30s d'inactivité uniquement si le mode TV a été explicitement demandé (?tv=1)
+		// Inactivity detection: reactivates TV mode after 30s of inactivity if ?tv=1 was requested
 		let cleanupInactivity = () => {};
 		if ($page.url.searchParams.get('tv') === '1') {
 			cleanupInactivity = startInactivityDetection(30_000, () => {
@@ -374,13 +374,13 @@
 			});
 		}
 
-		// Écoute de l'événement personnalisé 'probe-detail' propagé par bullage
+		// Listen for bubbled 'probe-detail' custom event
 		const handleCustomProbeDetail = (e: Event) => {
 			handleProbeDetailCustomEvent(e);
 		};
 		window.addEventListener('probe-detail', handleCustomProbeDetail);
 
-		// Déverrouillage de l'AudioContext dès le premier geste utilisateur (politique autoplay)
+		// Unlock AudioContext on first user interaction (browser autoplay policy)
 		const unlockHandler = () => {
 			unlockAudio();
 		};
@@ -406,7 +406,7 @@
 		};
 	});
 
-	// Surveillance des changements de navigation (?tv=1) via afterNavigate (sans $effect réactif)
+	// Monitor route changes (?tv=1) via afterNavigate
 	afterNavigate(({ to }) => {
 		const shouldEnterTv = to?.url.searchParams.get('tv') === '1';
 		if (shouldEnterTv && !isTvActiveState) {
@@ -414,7 +414,7 @@
 		}
 	});
 
-	// Gestionnaire global du clavier : '?' (aide), 'F' (plein écran), 'M' (son), 'T' (thème), 'Escape'
+	// Global keyboard navigation: '?' (help), 'F' (fullscreen), 'M' (sound), 'T' (theme), 'Escape'
 	function handleGlobalKeydown(event: KeyboardEvent): void {
 		const target = event.target as HTMLElement | null;
 		const isInput =
@@ -455,7 +455,7 @@
 		}
 	}
 
-	// Neutralisation des clics de navigation / modale en mode TV (les contrôles de l'en-tête restent accessibles)
+	// Disable navigation / modal clicks in TV mode (header controls remain accessible)
 	function handleClickCapture(event: MouseEvent): void {
 		if (isTvMode) {
 			const target = event.target as HTMLElement | null;
@@ -478,10 +478,10 @@
 	<title>{currentLocale ? t('common.pageTitle', { count: sortedProbes.length }) : ''}</title>
 </svelte:head>
 
-<!-- Liens d'accès rapide (Skip links RGAA 12.7) -->
+<!-- Accessibility skip links (WCAG 2.1) -->
 <SkipLink hasIncidents={incidents.filter((i) => i.resolvedAt === null).length > 0} />
 
-<!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) sur desktop -->
+<!-- Strict fullscreen zero-scroll container (100vw / 100vh) on desktop -->
 <div
 	id="tv-container"
 	bind:this={dashboardContainer}
@@ -502,7 +502,7 @@
 		? 'pt-8'
 		: 'pt-12'} pb-8 sm:pb-10"
 >
-	<!-- En-tête supérieur (Header fixe) -->
+	<!-- Fixed Header -->
 	<Header
 		{probes}
 		{lastUpdate}
@@ -514,7 +514,7 @@
 		onopenkeyboardhelp={() => (isKeyboardHelpOpen = true)}
 	/>
 
-	<!-- Bannière "Connexion perdue" en cas d'interruption serveur ou réseau -->
+	<!-- "Connection lost" alert banner on server or network disruption -->
 	{#if connectionStatus !== 'connected'}
 		<div
 			class="fixed {isCompactHeader ? 'top-8' : 'top-12'} left-0 right-0 z-40 bg-red-600 text-white font-medium text-xs sm:text-sm py-1 px-4 flex items-center justify-center gap-2 shadow-lg backdrop-blur-xs transition-all animate-pulse"
@@ -527,7 +527,7 @@
 		</div>
 	{/if}
 
-	<!-- Zone principale de la grille supervisée par ResizeObserver (drift anti burn-in isolé) -->
+	<!-- Main grid area supervised by ResizeObserver (isolated anti burn-in drift) -->
 	<main
 		id="main-content"
 		tabindex="-1"
@@ -537,7 +537,7 @@
 		ontouchend={handleTouchEnd}
 		class="flex-1 w-full h-full relative focus:outline-none {isTvMode ? 'animate-kato-drift' : ''} {layout.overflows ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'}"
 	>
-		<!-- Indicateur visuel Pull-to-refresh natif sur mobile -->
+		<!-- Native mobile pull-to-refresh indicator -->
 		{#if isMobile && (pullDistance > 0 || isRefreshing)}
 			<div
 				class="w-full flex items-center justify-center gap-2 py-2 text-xs font-mono bg-slate-900/95 border-b border-slate-800 transition-all duration-150 select-none shrink-0"
@@ -572,18 +572,18 @@
 		{/if}
 	</main>
 
-	<!-- Bandeau d'alertes inférieur (IncidentBar fixe) -->
+	<!-- Fixed lower IncidentBar -->
 	<IncidentBar {incidents} tvMode={isTvMode} />
 </div>
 
-<!-- Modal plein écran sur mobile / Panneau latéral sur desktop -->
+<!-- Fullscreen modal on mobile / Side-panel on desktop -->
 <DetailModal
 	probe={selectedProbe}
 	{incidents}
 	onclose={() => (selectedProbe = null)}
 />
 
-<!-- Aide des raccourcis clavier accessible -->
+<!-- Accessible keyboard shortcuts modal -->
 <KeyboardHelpModal
 	isOpen={isKeyboardHelpOpen}
 	onclose={() => (isKeyboardHelpOpen = false)}

@@ -8,27 +8,27 @@ import { redirect, type Handle } from '@sveltejs/kit';
 import type { MonitoringAdapter } from '$lib/types';
 
 // ============================================================================
-// INITIALISATION AU DÉMARRAGE DU SERVEUR
+// SERVER STARTUP INITIALIZATION
 // ============================================================================
 
 /**
- * Lit la variable d'environnement KATO_ADAPTER (ou ADAPTER_TYPE) pour sélectionner l'adaptateur.
- * Valeurs supportées : "uptimerobot", "mock" (défaut).
+ * Reads environment variable KATO_ADAPTER (or ADAPTER_TYPE) to select the adapter.
+ * Supported values: "uptimerobot", "mock" (default).
  */
 const adapterType = (process.env.KATO_ADAPTER || process.env.ADAPTER_TYPE || 'mock').toLowerCase();
 
 /**
- * Instancie et initialise l'adaptateur de monitoring au démarrage du module.
- * Le hook handle n'est pas le bon endroit pour un init async global : on
- * utilise un IIFE async qui s'exécute une seule fois au chargement du module.
+ * Instantiates and initializes the monitoring adapter at startup.
+ * The handle hook is not meant for one-time global async init;
+ * an async IIFE runs once when the server module loads.
  */
 async function bootstrap(): Promise<void> {
 	let adapter: MonitoringAdapter;
 
-	// Sélection et instanciation de l'adaptateur selon la configuration
+	// Select and instantiate adapter based on configuration
 	if (adapterType === 'uptimerobot') {
 		adapter = new UptimeRobotAdapter();
-		console.log(`[Kato] Adaptateur sélectionné : uptimerobot`);
+		console.log(`[Kato] Selected adapter: uptimerobot`);
 
 		const apiKey = process.env.UPTIMEROBOT_API_KEY ?? '';
 		const pollInterval = process.env.UPTIMEROBOT_POLL_INTERVAL
@@ -38,39 +38,39 @@ async function bootstrap(): Promise<void> {
 		await adapter.initialize({ apiKey, pollInterval });
 	} else {
 		adapter = new MockAdapter();
-		console.log(`[Kato] Adaptateur sélectionné : mock`);
+		console.log(`[Kato] Selected adapter: mock`);
 
 		const count = parseInt(process.env.KATO_MOCK_COUNT ?? '50', 10);
 		await adapter.initialize({ count });
 	}
 
-	console.log(`[Kato] Adaptateur initialisé — type: ${adapter.name}`);
+	console.log(`[Kato] Adapter initialized — type: ${adapter.name}`);
 
-	// Enregistrement de l'adaptateur pour les endpoints de consultation unitaire
+	// Register adapter for individual lookup endpoints
 	setActiveAdapter(adapter);
 
-	// Démarrage du polling (produit les mises à jour dans le store)
+	// Start background polling (publishes updates to the store)
 	startPolling(adapter, store);
 }
 
-// Lancement immédiat au chargement du module serveur
+// Immediately launch on server module load
 bootstrap().catch((err) => {
-	console.error('[Kato] Erreur critique au démarrage :', err);
+	console.error('[Kato] Critical startup error:', err);
 });
 
 // ============================================================================
-// HOOK SVELTEKIT
+// SVELTEKIT HOOK
 // ============================================================================
 
 /**
- * Hook serveur SvelteKit.
- * Gère le contrôle d'accès si KATO_AUTH_ENABLED est actif.
+ * SvelteKit server handle hook.
+ * Manages access control when KATO_AUTH_ENABLED is active.
  */
 export const handle: Handle = async ({ event, resolve }) => {
 	if (isAuthEnabled()) {
 		const { pathname } = event.url;
 
-		// Autoriser l'accès aux assets internes du bundle et favicon
+		// Allow access to internal bundle assets and favicon
 		const isStaticAsset = pathname.startsWith('/_app/') || pathname === '/favicon.svg';
 
 		if (!isStaticAsset) {
@@ -78,12 +78,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const authenticated = isValidSession(sessionToken);
 
 			if (pathname === '/login') {
-				// Utilisateur déjà authentifié : redirection vers la vue principale
+				// Already authenticated: redirect to dashboard
 				if (authenticated) {
 					throw redirect(303, '/');
 				}
 			} else {
-				// Route protégée : rejeter ou rediriger si non authentifié
+				// Protected route: reject API or redirect page if unauthenticated
 				if (!authenticated) {
 					if (pathname.startsWith('/api/')) {
 						return new Response(JSON.stringify({ error: 'Unauthorized' }), {

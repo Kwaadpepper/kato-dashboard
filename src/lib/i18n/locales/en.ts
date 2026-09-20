@@ -9,7 +9,9 @@ export const en: TranslationSchema = {
 		operational: 'Operational',
 		close: 'Close',
 		recent: 'recent',
-		pageTitle: 'Kato Dashboard ({count} probes)'
+		pageTitle: 'Kato Dashboard ({count} probes)',
+		probeGridAria: 'Monitoring probe grid',
+		opensInNewTab: '(opens in a new tab)'
 	},
 	status: {
 		up: 'Operational',
@@ -101,7 +103,9 @@ export const en: TranslationSchema = {
 		inQueue: '+{count} in queue',
 		inQueueTooltip: 'Queued events (will scroll on next cycle)',
 		expandAria: 'Expand incidents',
-		collapseAria: 'Collapse incidents'
+		collapseAria: 'Collapse incidents',
+		pauseMarquee: 'Pause incident ticker (P)',
+		resumeMarquee: 'Resume incident ticker (P)'
 	},
 	detailModal: {
 		closeAria: 'Close detail view',
@@ -155,7 +159,30 @@ export const en: TranslationSchema = {
 		passwordLabel: 'Password',
 		passwordPlaceholder: '••••••••••••',
 		unlock: 'Unlock',
-		invalidPassword: 'Incorrect password'
+		invalidPassword: 'Incorrect password',
+		securityBadge: ' — Security Access'
+	},
+	skipLink: {
+		navAria: 'Skip links',
+		mainContent: 'Skip to main content (Probe grid)',
+		incidentBar: 'Skip to incident bar'
+	},
+	keyboardHelp: {
+		title: 'Keyboard Shortcuts & Accessibility',
+		subtitle: 'Control the entire dashboard without touching the mouse',
+		closeAria: 'Close keyboard shortcuts help',
+		closeBtn: 'Close',
+		tip: 'Tip: press {key} to close at any time',
+		navigateGrid: 'Navigate probe grid (2D arrow navigation)',
+		jumpFirstLast: 'Jump to first (DOWN) or last probe',
+		openDetail: 'Open detailed view of selected probe',
+		closeOrExit: 'Close detail view / menu / exit fullscreen',
+		toggleFullscreen: 'Toggle fullscreen',
+		toggleMute: 'Enable / mute sound alerts',
+		cycleTheme: 'Cycle theme (Dark, Light, AMOLED, Auto)',
+		toggleMarquee: 'Pause / resume incident scrolling',
+		navigateRegions: 'Sequentially navigate between regions',
+		toggleHelp: 'Open or close this keyboard help'
 	},
 	time: {
 		secondShort: 's',

@@ -52,7 +52,7 @@
 		});
 	});
 
-	// Gestion de la touche Échap et Focus Trap (bouclage Tab / Shift+Tab) - RGAA 7.1 / 7.4
+	// Escape key handling and focus trap (Tab / Shift+Tab looping) - WCAG / accessibility compliance
 	function handleKeydown(e: KeyboardEvent) {
 		if (!probe) return;
 
@@ -86,7 +86,7 @@
 		}
 	}
 
-	// Capture et restitution du focus à l'ouverture et fermeture de la modale
+	// Focus management: capture opener element and restore focus on close
 	$effect(() => {
 		if (probe) {
 			openerElement = document.activeElement as HTMLElement | null;
@@ -109,7 +109,7 @@
 	let isFetchingHistory = $state(false);
 	let nowTime = $state(Date.now());
 
-	// Rafraîchissement automatique de la pendule toutes les 5 secondes tant que la modale est affichée
+	// Auto-refresh timestamp every 5 seconds while modal is mounted
 	$effect(() => {
 		if (!probe) return;
 		const timer = setInterval(() => {
@@ -118,7 +118,7 @@
 		return () => clearInterval(timer);
 	});
 
-	// Récupération optionnelle en arrière-plan des logs serveur / fournisseur
+	// Optional background fetching of server/provider historical incident logs
 	$effect(() => {
 		const targetProbeId = probe?.id;
 		if (!targetProbeId) {
@@ -142,7 +142,7 @@
 					}
 				}
 			} catch {
-				// Repli silencieux et immédiat sur les incidents en mémoire
+				// Silent fallback to in-memory incidents
 			} finally {
 				if (!aborted) {
 					isFetchingHistory = false;
@@ -158,7 +158,7 @@
 		};
 	});
 
-	// Fusion transparente des incidents locaux (SSE) et de l'historique serveur
+	// Seamless merge of local real-time (SSE) incidents with server history
 	const mergedIncidents = $derived.by(() => {
 		if (!probe) return [];
 		const base = incidents.filter((i) => i.probeId === probe.id);
@@ -172,11 +172,11 @@
 		);
 	});
 
-	// 24 créneaux horaires d'1h pour la barre
+	// 24 1-hour time slots for the availability bar
 	const slots = $derived(build24hSlots(mergedIncidents, nowTime, activeLocale));
-	// Événements d'incidents antéchronologiques
+	// Chronological incident events (newest first)
 	const historyEvents = $derived(probe ? buildProbeHistoryEvents(probe, mergedIncidents, nowTime) : []);
-	// Synthèse métrique sur 24h
+	// 24h metric summary
 	const historyStats = $derived(probe ? computeProbeHistoryStats(probe, mergedIncidents, nowTime) : null);
 
 	function getSlotBgClass(status: string): string {
@@ -197,14 +197,14 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if probe}
-	<!-- Overlay d'arrière-plan (fermeture au clic hors panneau) -->
+	<!-- Background overlay (click outside to close) -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end transition-opacity duration-200"
 		onclick={onclose}
 	>
-		<!-- Conteneur modal : Plein écran sur mobile (<640px), Panneau latéral (side-panel) sur Desktop -->
+		<!-- Modal container: full-screen on mobile (<640px), side-panel on desktop -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
 			bind:this={dialogElement}
@@ -216,7 +216,7 @@
 			tabindex="-1"
 		>
 			<!-- ============================================================= -->
-			<!-- EN-TÊTE DE LA FICHE DÉTAILLÉE                                 -->
+			<!-- DETAILED VIEW HEADER                                          -->
 			<!-- ============================================================= -->
 			<div>
 				<div class="p-6 border-b border-slate-800 flex items-start justify-between gap-4">
@@ -243,13 +243,13 @@
 								class="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-emerald-400 truncate mt-1.5 max-w-full transition-colors"
 							>
 								<span class="truncate">{probe.url}</span>
-								<span class="sr-only"> (ouvre dans un nouvel onglet)</span>
+								<span class="sr-only"> {t('common.opensInNewTab')}</span>
 								<ExternalLink class="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
 							</a>
 						{/if}
 					</div>
 
-					<!-- Bouton Fermer (accessible au tactile et au clavier) -->
+					<!-- Close button (touch and keyboard accessible) -->
 					<button
 						bind:this={closeButtonElement}
 						type="button"
@@ -262,10 +262,10 @@
 				</div>
 
 				<!-- ============================================================= -->
-				<!-- CORPS : STATUT, MÉTRIQUES & DISPONIBILITÉ                     -->
+				<!-- BODY: STATUS, METRICS & AVAILABILITY                          -->
 				<!-- ============================================================= -->
 				<div class="p-6 space-y-6">
-					<!-- Statut Actuel & Alerte -->
+					<!-- Current Status & Alert -->
 					<div>
 						<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2 font-sans">
 							{t('detailModal.currentStatus')}
@@ -286,9 +286,9 @@
 						{/if}
 					</div>
 
-					<!-- Métriques de Performance (Latence & Uptime) -->
+					<!-- Performance Metrics (Latency & Uptime) -->
 					<div class="grid grid-cols-2 gap-3">
-						<!-- Latence / Response time -->
+						<!-- Latency / Response time -->
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
 								<Activity class="w-3.5 h-3.5" />
@@ -299,7 +299,7 @@
 							</p>
 						</div>
 
-						<!-- Uptime 24 Heures -->
+						<!-- 24-Hour Uptime -->
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
 								<Clock class="w-3.5 h-3.5" />
@@ -311,7 +311,7 @@
 						</div>
 					</div>
 
-					<!-- Uptime 7 Jours & Criticité -->
+					<!-- 7-Day Uptime & Criticality -->
 					<div class="grid grid-cols-2 gap-3">
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
@@ -335,7 +335,7 @@
 					</div>
 
 					<!-- ========================================================= -->
-					<!-- NOUVELLE SECTION : HISTORIQUE RÉCENT (24H)                 -->
+					<!-- RECENT HISTORY SECTION (24H)                              -->
 					<!-- ========================================================= -->
 					<div class="space-y-3 pt-2">
 						<div class="flex items-center justify-between">
@@ -362,7 +362,7 @@
 							</div>
 						</div>
 
-						<!-- Frise temporelle horizontale de 24 créneaux (1 bloc = 1 heure) -->
+						<!-- Horizontal timeline with 24 hourly slots (1 block = 1 hour) -->
 						<div class="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5">
 							<div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
 								<span>{t('detailModal.twentyFourHoursAgo')}</span>
@@ -372,7 +372,7 @@
 								<span>{t('detailModal.now')}</span>
 							</div>
 
-							<!-- Segments horaires avec infobulles natives au survol -->
+							<!-- Hourly segments with native hover tooltips -->
 							<div class="flex items-center gap-1 h-6 w-full py-0.5 select-none" role="img" aria-label={t('detailModal.hourlyAvailabilityAria')}>
 								{#each slots as slot (slot.index)}
 									<div
@@ -382,7 +382,7 @@
 								{/each}
 							</div>
 
-							<!-- Légende sous la barre -->
+							<!-- Legend below timeline bar -->
 							<div class="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-800/80">
 								<div class="flex items-center gap-1.5">
 									<span class="w-2 h-2 rounded-xs bg-emerald-500"></span>
@@ -399,7 +399,7 @@
 							</div>
 						</div>
 
-						<!-- Mini KPIs de synthèse -->
+						<!-- Summary KPI indicators -->
 						<div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
 							<div class="p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40">
 								<span class="text-[10px] uppercase text-slate-400 block font-sans">{t('detailModal.kpiIncidents')}</span>
@@ -421,14 +421,14 @@
 							</div>
 						</div>
 
-						<!-- Journal chronologique des bascules UP / DOWN -->
+						<!-- Chronological event log of UP / DOWN switches -->
 						<div class="rounded-xl bg-slate-800/30 border border-slate-700/50 p-3 space-y-2.5">
 							<span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block font-mono">
 								{t('detailModal.eventsLog')}
 							</span>
 
 							{#if historyEvents.length === 0}
-								<!-- Cas nominal : 100% stable -->
+								<!-- Nominal status: 100% stable -->
 								<div class="flex items-center gap-3 py-2 px-1 text-xs text-slate-300">
 									<div class="w-7 h-7 rounded-full bg-emerald-950/60 border border-emerald-800/50 flex items-center justify-center shrink-0">
 										<CircleCheck class="w-4 h-4 text-emerald-400" />
@@ -439,7 +439,7 @@
 									</div>
 								</div>
 							{:else}
-								<!-- Liste des incidents passés et en cours -->
+								<!-- Past and ongoing incidents list -->
 								<div class="space-y-2 max-h-56 overflow-y-auto pr-1">
 									{#each historyEvents as event (event.id)}
 										<div class="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800 flex items-start justify-between gap-3 text-xs font-mono">
@@ -499,7 +499,7 @@
 						</div>
 					</div>
 
-					<!-- Métadonnées système -->
+					<!-- System metadata -->
 					<div class="p-4 rounded-xl bg-slate-800/20 border border-slate-800 text-xs font-mono space-y-2 text-slate-400">
 						<div class="flex justify-between">
 							<span>{t('detailModal.probeId')}</span>
@@ -518,7 +518,7 @@
 			</div>
 
 			<!-- ============================================================= -->
-			<!-- BAS DE VOLET : BOUTON FERMER                                  -->
+			<!-- PANEL FOOTER: CLOSE BUTTON                                    -->
 			<!-- ============================================================= -->
 			<div class="p-6 border-t border-slate-800">
 				<button

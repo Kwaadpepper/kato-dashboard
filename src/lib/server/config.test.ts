@@ -34,8 +34,8 @@ describe('BFF config module', () => {
 
 	it('should gracefully fall back on invalid or unknown values', () => {
 		const invalidEnv = {
-			KATO_DEFAULT_LOCALE: 'es', // non supporté
-			KATO_DEFAULT_THEME: 'neon-pink', // non supporté
+			KATO_DEFAULT_LOCALE: 'es', // unsupported
+			KATO_DEFAULT_THEME: 'neon-pink', // unsupported
 			KATO_DEFAULT_TIME_FORMAT: '48h',
 			KATO_DEFAULT_SHOW_SECONDS: 'maybe',
 			KATO_DEFAULT_SOUND_ENABLED: 'unknown',
@@ -45,7 +45,7 @@ describe('BFF config module', () => {
 
 		const settings = getDefaultClientSettings(invalidEnv);
 
-		assert.equal(settings.locale, 'fr');
+		assert.equal(settings.locale, 'en');
 		assert.equal(settings.theme, 'dark');
 		assert.equal(settings.timeFormat, '24h');
 		assert.equal(settings.showSeconds, true);

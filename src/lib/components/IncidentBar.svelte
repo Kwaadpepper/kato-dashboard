@@ -36,18 +36,18 @@
 	let isPaused = $state(false);
 	let drawerNow = $state(Date.now());
 
-	// File d'attente FIFO et gestionnaire d'isolation de performance
+	// FIFO queue and performance isolation manager
 	// svelte-ignore state_referenced_locally
 	const queueManager = createIncidentQueue(incidents, tvMode, getLocale());
 	let queueState = $state<IncidentQueueState>(queueManager.getState());
 
 	onMount(() => {
-		// Abonnement à la vitesse limite de défilement
+		// Subscribe to marquee speed limit
 		const unsubMarquee = onMarqueeChange((config) => {
 			marqueeDuration = config.duration;
 		});
 
-		// Abonnement aux changements de langue
+		// Subscribe to locale changes
 		const unsubLocale = onLocaleChange((loc) => {
 			activeLocale = loc;
 			queueManager.setLocale(loc);
@@ -61,13 +61,13 @@
 		};
 	});
 
-	// Synchronise les incidents entrants dans la file avant le rendu DOM (même batch, pas de microtask cascade)
+	// Synchronize incoming incidents into queue before DOM render (same batch, avoids microtask cascade)
 	$effect.pre(() => {
 		queueManager.setIncidents(incidents, tvMode);
 		queueState = queueManager.getState();
 	});
 
-	// Rafraîchit l'horodatage uniquement dans le tiroir mobile déplié
+	// Refresh timestamp only when mobile drawer is expanded
 	$effect(() => {
 		if (!isExpanded || tvMode) return;
 		const timer = setInterval(() => {
@@ -76,7 +76,7 @@
 		return () => clearInterval(timer);
 	});
 
-	// Répète les éléments pour garantir une continuité parfaite sans trou visuel sur tout écran
+	// Repeat items to guarantee continuous loop without visual gaps on wide screens
 	const marqueeItems = $derived.by(() => {
 		const items = queueState.displayed;
 		if (items.length === 0) return [];
@@ -88,8 +88,8 @@
 	});
 
 	function handleAnimationIteration() {
-		// Déclenché à la fin de chaque cycle (translation 0% -> -50%)
-		// Le lot a défilé jusqu'au bout : on applique les nouveaux événements de la file
+		// Fired at completion of each cycle (translation 0% -> -50%)
+		// Batch finished scrolling: apply new queued events
 		queueManager.onCycleComplete();
 		queueState = queueManager.getState();
 	}
@@ -103,8 +103,8 @@
 
 {#if queueState.displayed.length === 0 && queueState.activeCount === 0}
 	<!-- ===================================================================== -->
-	<!-- CAS NOMINAL : Aucun incident actif                                    -->
-	<!-- Isolation stricte : aucun recalcul layout sur le reste du dashboard   -->
+	<!-- NOMINAL CASE: No active incidents                                     -->
+	<!-- Strict containment: no layout recalculations on the rest of dashboard -->
 	<!-- ===================================================================== -->
 	<footer
 		id="incident-bar"
@@ -120,8 +120,8 @@
 	</footer>
 {:else}
 	<!-- ===================================================================== -->
-	<!-- CAS CRITIQUE : Incidents en cours                                     -->
-	<!-- File d'attente FIFO + GPU Compositor thread pour 60fps stable         -->
+	<!-- CRITICAL CASE: Ongoing incidents                                      -->
+	<!-- FIFO queue + GPU Compositor thread for stable 60fps marquee           -->
 	<!-- ===================================================================== -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<footer
@@ -131,13 +131,13 @@
 		aria-live="assertive"
 		style="contain: layout paint; transform: translate3d(0, 0, 0);"
 	>
-		<!-- Barre principale : clic pour étendre sur mobile -->
+		<!-- Main bar: click to expand on mobile -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="h-8 sm:h-10 w-full flex items-center px-3 sm:px-4 cursor-pointer sm:cursor-default shrink-0 overflow-hidden"
 			onclick={toggleExpand}
 		>
-			<!-- Compteur d'alertes ancré à gauche avec nombre d'incidents actifs réels -->
+			<!-- Alert counter anchored left with active count -->
 			<div
 				class="flex items-center gap-1.5 sm:gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-wider text-red-300 shrink-0 pr-2.5 sm:pr-4 border-r border-red-800/60 mr-2 sm:mr-4"
 			>
@@ -153,7 +153,7 @@
 				{/if}
 			</div>
 
-			<!-- Bouton Pause / Lecture du défilement (RGAA 13.8) -->
+			<!-- Pause / Resume button (WCAG 2.2.2) -->
 			<button
 				type="button"
 				onclick={(e) => {
@@ -161,8 +161,8 @@
 					isPaused = !isPaused;
 				}}
 				class="p-1 rounded text-red-300 hover:text-white hover:bg-red-900/60 transition-colors mr-2 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)]"
-				title={isPaused ? 'Reprendre le défilement des incidents (P)' : 'Mettre en pause le défilement des incidents (P)'}
-				aria-label={isPaused ? 'Reprendre le défilement des incidents' : 'Mettre en pause le défilement des incidents'}
+				title={isPaused ? t('incidentBar.resumeMarquee') : t('incidentBar.pauseMarquee')}
+				aria-label={isPaused ? t('incidentBar.resumeMarquee') : t('incidentBar.pauseMarquee')}
 			>
 				{#if isPaused}
 					<Play class="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
@@ -171,7 +171,7 @@
 				{/if}
 			</button>
 
-			<!-- Zone d'affichage : défilement continu infini sans accroc (0% -> -50% GPU) -->
+			<!-- Display area: seamless continuous infinite marquee (0% -> -50% GPU) -->
 			<div class="flex-1 overflow-hidden relative" style="contain: layout paint; transform: translate3d(0, 0, 0);">
 				<div
 					class="{tvMode
@@ -180,7 +180,7 @@
 					style="--kato-marquee-duration: {marqueeDuration}s;"
 					onanimationiteration={handleAnimationIteration}
 				>
-					<!-- Bloc 1 : premier lot continu -->
+					<!-- Block 1: primary stream -->
 					<div class="flex items-center gap-8 pr-8 shrink-0">
 						{#each marqueeItems as incident, idx (`b1-${incident.id}-${idx}`)}
 							<div class="flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm text-red-200 font-mono">
@@ -193,7 +193,7 @@
 						{/each}
 					</div>
 
-					<!-- Bloc 2 : duplication exacte pour boucle infinie transparente à 60fps (en TV) -->
+					<!-- Block 2: exact duplicate for seamless 60fps loop (in TV mode) -->
 					{#if tvMode}
 						<div class="flex items-center gap-8 pr-8 shrink-0" aria-hidden="true">
 							{#each marqueeItems as incident, idx (`b2-${incident.id}-${idx}`)}
@@ -210,7 +210,7 @@
 				</div>
 			</div>
 
-			<!-- Indicateur Chevron sur mobile (pour déplier / replier) -->
+			<!-- Mobile Chevron indicator (to expand / collapse) -->
 			{#if !tvMode}
 				<button
 					type="button"
@@ -232,7 +232,7 @@
 			{/if}
 		</div>
 
-		<!-- Liste déroulante des incidents quand déplié sur mobile -->
+		<!-- Expanded incident drawer on mobile -->
 		{#if isExpanded && !tvMode}
 			<div id="incidents-drawer-list" class="border-t border-red-900/60 bg-red-950/95 overflow-y-auto max-h-64 p-3 space-y-2 divide-y divide-red-900/40">
 				{#each incidents.filter((i) => i.resolvedAt === null) as incident (incident.id)}

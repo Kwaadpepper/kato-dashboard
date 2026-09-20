@@ -101,7 +101,7 @@
 		now = Date.now();
 	}
 
-	// Abonnements aux bascules de thème, de langue, de son, de défilement, d'horloge et plein écran
+	// Subscriptions for theme, locale, sound, marquee, clock, and fullscreen
 	onMount(() => {
 		const unsubscribe = onThemeChange((theme) => {
 			activeTheme = theme;
@@ -125,7 +125,7 @@
 			updateCurrentTime();
 		});
 
-		// Horloge et indicateur de fraîcheur mis à jour chaque seconde (isolé hors scheduler $effect)
+		// Clock and freshness updated every second (isolated outside $effect scheduler)
 		updateCurrentTime();
 		const interval = setInterval(updateCurrentTime, 1000);
 
@@ -167,14 +167,14 @@
 		return 'var(--status-down-text)';
 	});
 
-	// Temps écoulé en secondes depuis lastUpdate
+	// Elapsed time in seconds since lastUpdate
 	const freshnessSeconds = $derived.by(() => {
 		if (!lastUpdate) return 0;
 		const updateMs = new Date(lastUpdate).getTime();
 		return Math.max(0, Math.floor((now - updateMs) / 1000));
 	});
 
-	// Indicateur de fraîcheur : passe immédiatement en rouge si déconnecté ou > 60s
+	// Freshness indicator: turns red immediately if disconnected or > 60s
 	const isFreshnessRed = $derived(connectionStatus !== 'connected' || freshnessSeconds >= 60);
 
 	const freshnessClass = $derived.by(() => {
@@ -204,17 +204,17 @@
 		: 'h-12 text-sm'}"
 >
 	<div class="flex items-center gap-3 sm:gap-4 min-w-0">
-		<!-- Logo KATO (Titre principal h1 conforme RGAA 9.1) -->
+		<!-- KATO Logo (Main h1 title, WCAG 2.1) -->
 		<h1
 			class="hidden md:inline font-bold text-[var(--kato-text-primary)] tracking-wider select-none shrink-0 {compact
 				? 'text-sm font-extrabold'
 				: 'text-lg'}"
 		>
 			KATO
-			<span class="sr-only"> — Dashboard de supervision haute densité</span>
+			<span class="sr-only"> — High-density monitoring dashboard</span>
 		</h1>
 
-		<!-- Score Global : {up}/{total} UP -->
+		<!-- Overall score: {up}/{total} UP -->
 		<span
 			class="font-mono font-bold shrink-0 {compact
 				? 'text-xs'
@@ -225,13 +225,13 @@
 			{countUp}/{total} UP
 		</span>
 
-		<!-- Badges Compteurs : masqués en-dessous de 480px, réduits entre 480px et 768px -->
+		<!-- Counter Badges: hidden below 480px, reduced between 480px and 768px -->
 		<div
 			class="hidden min-[480px]:flex items-center gap-1 sm:gap-1.5 flex-wrap"
 			role="group"
 			aria-label={t('header.statusCountsGroup')}
 		>
-			<!-- UP (vert) -->
+			<!-- UP (green) -->
 			{#if !compact || countUp > 0}
 				<span
 					class="status-badge-up flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
@@ -243,7 +243,7 @@
 				</span>
 			{/if}
 
-			<!-- DEGRADED (ambre) -->
+			<!-- DEGRADED (amber) -->
 			{#if !compact || countDegraded > 0}
 				<span
 					class="status-badge-degraded flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
@@ -255,7 +255,7 @@
 				</span>
 			{/if}
 
-			<!-- DOWN (rouge) -->
+			<!-- DOWN (red) -->
 			{#if !compact || countDown > 0}
 				<span
 					class="status-badge-down flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0 {countDown >
@@ -270,7 +270,7 @@
 				</span>
 			{/if}
 
-			<!-- PAUSED (gris) -->
+			<!-- PAUSED (gray) -->
 			{#if !compact || countPaused > 0}
 				<span
 					class="status-badge-paused flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
@@ -282,7 +282,7 @@
 				</span>
 			{/if}
 
-			<!-- PENDING (bleu) -->
+			<!-- PENDING (blue) -->
 			{#if countPending > 0}
 				<span
 					class="status-badge-pending flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
@@ -294,7 +294,7 @@
 				</span>
 			{/if}
 
-			<!-- MAINTENANCE (violet) -->
+			<!-- MAINTENANCE (purple) -->
 			{#if countMaintenance > 0}
 				<span
 					class="status-badge-maintenance flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
@@ -311,9 +311,9 @@
 	<!-- Spacer -->
 	<div class="flex-1"></div>
 
-	<!-- Section droite : Horloge, Fraîcheur et Paramètres de Thème -->
+	<!-- Right section: Clock, Freshness, and Theme settings -->
 	<div class="flex items-center gap-2 sm:gap-3 shrink-0">
-		<!-- Horloge : format complet sur desktop, condensé sur mobile -->
+		<!-- Clock: full format on desktop, compact on mobile -->
 		<span
 			class="text-[var(--kato-text-secondary)] font-mono text-xs sm:text-sm flex items-center gap-1 shrink-0"
 			aria-label={t('header.clockAria', {
@@ -331,7 +331,7 @@
 			{/if}
 		</span>
 
-		<!-- Indicateur de fraîcheur : visible en mode standard, en mode TV et systématiquement si déconnecté ou alerte -->
+		<!-- Freshness indicator: visible in standard mode, TV mode, and always on alert/disconnect -->
 		{#if !compact || isFreshnessRed}
 			<span
 				class="{connectionStatus !== 'connected' ? 'flex' : 'hidden min-[480px]:flex'} font-mono text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-md border items-center gap-1 shrink-0 {freshnessClass}"
@@ -349,7 +349,7 @@
 			</span>
 		{/if}
 
-		<!-- Bascule mode mobile : Grille Zéro-Scroll (pixels collés) / Défilement tactile (44px) -->
+		<!-- Mobile mode toggle: Zero-Scroll Grid / Touch scroll (44px) -->
 		{#if isMobile}
 			<button
 				type="button"
@@ -372,7 +372,7 @@
 			</button>
 		{/if}
 
-		<!-- Mini toggle son (🔊/🔇) -->
+		<!-- Sound toggle (🔊/🔇) -->
 		<button
 			type="button"
 			onclick={handleToggleSound}
@@ -389,7 +389,7 @@
 			{/if}
 		</button>
 
-		<!-- Bascule Plein écran (Fullscreen) -->
+		<!-- Fullscreen toggle -->
 		<button
 			type="button"
 			onclick={() => void toggleFullscreen()}
@@ -406,18 +406,18 @@
 			{/if}
 		</button>
 
-		<!-- Bouton Aide Clavier (?) -->
+		<!-- Keyboard shortcuts button (?) -->
 		<button
 			type="button"
 			onclick={onopenkeyboardhelp}
 			class="p-1 rounded-md text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30 transition-colors cursor-pointer"
-			title="Aide des raccourcis clavier (?)"
-			aria-label="Aide des raccourcis clavier (?)"
+			title="{t('keyboardHelp.title')} (?)"
+			aria-label="{t('keyboardHelp.title')} (?)"
 		>
 			<Keyboard class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 		</button>
 
-		<!-- Bouton Menu Paramètres / Sélecteur de thème -->
+		<!-- Settings menu button / Theme selector -->
 		<div class="relative" bind:this={settingsContainer}>
 			<button
 				bind:this={settingsButtonElement}
@@ -434,14 +434,14 @@
 			</button>
 
 			{#if isSettingsOpen}
-				<!-- Dropdown sélecteur de langue, thème et paramètres -->
+				<!-- Language, theme, and settings dropdown -->
 				<div
 					id="settings-dropdown"
 					role="region"
-					aria-label="Paramètres du dashboard"
+					aria-label={t('header.settingsAria')}
 					class="absolute right-0 top-full mt-2 w-60 max-h-[80vh] overflow-y-auto rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
 				>
-					<!-- Section Langue -->
+					<!-- Language section -->
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)] flex items-center justify-between">
 						<span>{t('settings.sectionLanguage')}</span>
 					</div>
@@ -462,7 +462,7 @@
 							{/if}
 						</button>
 					{/each}
-					<!-- Section Affichage / Plein écran -->
+					<!-- Display / Fullscreen section -->
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)] flex items-center justify-between">
 						<span>{t('settings.sectionDisplay')}</span>
 					</div>
@@ -507,7 +507,7 @@
 						</button>
 					{/each}
 
-					<!-- Section Réglage Vitesse Limite Défilement Incidents -->
+					<!-- Incident Marquee Speed Limit section -->
 					<div class="px-3 py-1.5 mt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
 						<span>{t('settings.sectionMarquee')}</span>
 						<span class="font-mono text-emerald-400">{currentMarqueeDuration}s</span>
@@ -532,7 +532,7 @@
 						</button>
 					{/each}
 
-					<!-- Curseur de réglage fin de la vitesse limite -->
+					<!-- Marquee speed slider -->
 					<div class="px-3 py-2 border-t border-[var(--kato-border)] flex flex-col gap-1.5 bg-slate-950/20">
 						<label for="marquee-duration-slider" class="flex items-center justify-between text-[11px] text-[var(--kato-text-secondary)]">
 							<span>{t('settings.marqueeLimit')}</span>
@@ -558,13 +558,13 @@
 						</div>
 					</div>
 
-					<!-- Section Horloge & Fuseau horaire -->
+					<!-- Clock & Timezone section -->
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
 						<span>{t('settings.sectionClock')}</span>
 						<span class="font-mono text-emerald-400">{clockConfig.format}</span>
 					</div>
 
-					<!-- Format 24h / 12h -->
+					<!-- 24h / 12h format -->
 					<div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
 						<span class="text-[var(--kato-text-secondary)]">{t('settings.clockFormat')}</span>
 						<div class="flex items-center gap-1 bg-slate-900/60 p-0.5 rounded border border-[var(--kato-border)]">
@@ -587,7 +587,7 @@
 						</div>
 					</div>
 
-					<!-- Afficher / masquer les secondes -->
+					<!-- Show / hide seconds -->
 					<div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
 						<span class="text-[var(--kato-text-secondary)]">{t('settings.clockSeconds')}</span>
 						<button
@@ -605,7 +605,7 @@
 						</button>
 					</div>
 
-					<!-- Fuseau horaire -->
+					<!-- Timezone -->
 					<div class="px-3 py-1.5 pb-2 flex flex-col gap-1 text-xs">
 						<label for="timezone-select" class="text-[var(--kato-text-secondary)] text-[11px]">
 							{t('settings.clockTimezone')}

@@ -1,31 +1,31 @@
 import type { SupportedLocale, TranslationKey, TranslationSchema } from './types.ts';
 export type { SupportedLocale, TranslationKey, TranslationSchema };
-import { fr } from './locales/fr.ts';
 import { en } from './locales/en.ts';
+import { fr } from './locales/fr.ts';
 
 export const KATO_LOCALE_STORAGE_KEY = 'kato-locale';
 
 const dictionaries: Record<SupportedLocale, TranslationSchema> = {
-	fr,
-	en
+	en,
+	fr
 };
 
 export const LOCALE_OPTIONS: Array<{ id: SupportedLocale; label: string; flag: string }> = [
-	{ id: 'fr', label: 'Français', flag: '🇫🇷' },
-	{ id: 'en', label: 'English', flag: '🇬🇧' }
+	{ id: 'en', label: 'English', flag: '🇬🇧' },
+	{ id: 'fr', label: 'Français', flag: '🇫🇷' }
 ];
 
 type LocaleListener = (locale: SupportedLocale) => void;
 const listeners = new Set<LocaleListener>();
 
-let currentLocale: SupportedLocale = 'fr';
+let currentLocale: SupportedLocale = 'en';
 
 /**
- * Détermine la locale initiale en respectant la hiérarchie :
- * 1. Choix explicite dans `localStorage`
- * 2. Réglage par défaut transmis par le BFF
- * 3. Langue du navigateur (`navigator.language`)
- * 4. Repli 'fr'
+ * Determines the initial locale following priority hierarchy:
+ * 1. Explicit choice in `localStorage`
+ * 2. Default setting sent from BFF
+ * 3. Browser language (`navigator.language`)
+ * 4. Fallback 'en'
  */
 export function getInitialLocale(bffDefault?: SupportedLocale): SupportedLocale {
 	if (typeof window !== 'undefined') {
@@ -35,7 +35,7 @@ export function getInitialLocale(bffDefault?: SupportedLocale): SupportedLocale 
 				return saved;
 			}
 		} catch (err) {
-			console.warn('[i18n] Impossible de lire localStorage:', err);
+			console.warn('[i18n] Failed to read localStorage:', err);
 		}
 	}
 
@@ -45,15 +45,15 @@ export function getInitialLocale(bffDefault?: SupportedLocale): SupportedLocale 
 
 	if (typeof navigator !== 'undefined' && navigator.language) {
 		const lang = navigator.language.toLowerCase();
-		if (lang.startsWith('fr')) return 'fr';
 		if (lang.startsWith('en')) return 'en';
+		if (lang.startsWith('fr')) return 'fr';
 	}
 
-	return 'fr';
+	return 'en';
 }
 
 /**
- * Initialise la locale au démarrage de l'application.
+ * Initializes the locale at application startup.
  */
 export function initLocale(bffDefault?: SupportedLocale): SupportedLocale {
 	const initial = getInitialLocale(bffDefault);
@@ -62,18 +62,18 @@ export function initLocale(bffDefault?: SupportedLocale): SupportedLocale {
 }
 
 /**
- * Retourne la locale actuellement active.
+ * Returns the currently active locale.
  */
 export function getLocale(): SupportedLocale {
 	return currentLocale;
 }
 
 /**
- * Modifie la locale active, met à jour le DOM (<html lang="...">),
- * persiste dans le localStorage et notifie les abonnés.
+ * Updates the active locale, synchronizes the DOM (<html lang="...">),
+ * persists the preference to localStorage and notifies subscribers.
  */
 export function setLocale(locale: SupportedLocale, persist = true): void {
-	if (locale !== 'fr' && locale !== 'en') return;
+	if (locale !== 'en' && locale !== 'fr') return;
 
 	currentLocale = locale;
 
@@ -85,7 +85,7 @@ export function setLocale(locale: SupportedLocale, persist = true): void {
 		try {
 			localStorage.setItem(KATO_LOCALE_STORAGE_KEY, locale);
 		} catch (err) {
-			console.warn('[i18n] Impossible d\'écrire dans localStorage:', err);
+			console.warn('[i18n] Failed to write to localStorage:', err);
 		}
 	}
 
@@ -99,7 +99,7 @@ export function setLocale(locale: SupportedLocale, persist = true): void {
 }
 
 /**
- * S'abonne aux changements de langue.
+ * Subscribes to locale changes.
  */
 export function onLocaleChange(listener: LocaleListener): () => void {
 	listeners.add(listener);
@@ -110,12 +110,12 @@ export function onLocaleChange(listener: LocaleListener): () => void {
 }
 
 /**
- * Fonction de traduction avec interpolation de variables.
- * Ex: t('header.scoreAria', { countUp: 10, total: 12 })
+ * Translation helper with placeholder variable interpolation.
+ * Example: t('header.scoreAria', { countUp: 10, total: 12 })
  *
- * @param key Clé pointée (e.g. 'common.appName', 'detailModal.closeBtn')
- * @param params Dictionnaire optionnel de paramètres d'interpolation {nom: valeur}
- * @returns La chaîne traduite, avec les placeholders remplacés
+ * @param key Dot-separated key (e.g. 'common.appName', 'detailModal.closeBtn')
+ * @param params Optional dictionary of interpolation parameters {name: value}
+ * @returns Translated string with placeholders replaced
  */
 export function t(
 	key: TranslationKey | string,
@@ -136,7 +136,7 @@ export function t(
 		}
 	}
 
-	// Repli sur le dictionnaire français si la clé est manquante dans la locale courante
+	// Fallback to French dictionary if key is missing in current locale
 	if (typeof val !== 'string') {
 		let fallbackVal: unknown = dictionaries.fr;
 		for (const part of parts) {

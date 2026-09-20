@@ -13,19 +13,19 @@
 
 	let currentTheme = $state<Theme>('dark');
 	let currentResolved = $state<ResolvedTheme>('dark');
-	let currentLocale = $state<SupportedLocale>('fr');
+	let currentLocale = $state<SupportedLocale>('en');
 
 	onMount(() => {
 		const defaults = data.defaultSettings;
 
-		// 1. Initialise la langue (localStorage > BFF env vars > repli 'fr')
+		// 1. Initialize language (localStorage > BFF env vars > fallback 'en')
 		const initialLoc = initLocale(defaults?.locale);
 		currentLocale = initialLoc;
 		const unsubLocale = onLocaleChange((loc) => {
 			currentLocale = loc;
 		});
 
-		// 2. Initialise le thème (localStorage > BFF env vars > repli 'dark')
+		// 2. Initialize theme (localStorage > BFF env vars > fallback 'dark')
 		const initialTheme = getInitialTheme(defaults?.theme);
 		applyTheme(initialTheme);
 		currentTheme = initialTheme;
@@ -34,7 +34,7 @@
 			currentResolved = resolved;
 		});
 
-		// 3. Initialise l'horloge, le son et le défilement avec les valeurs du BFF
+		// 3. Initialize clock, audio alerts, and marquee scrolling configuration
 		if (defaults) {
 			initClockConfig({
 				format: defaults.timeFormat,
@@ -54,7 +54,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Kato — Wallboard High-Density Monitoring</title>
+	<title>Kato — High-Density Wallboard Monitoring</title>
 </svelte:head>
 
 <div

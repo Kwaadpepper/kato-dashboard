@@ -1,15 +1,15 @@
 /**
  * marquee.ts
  *
- * Gestionnaire du réglage de vitesse pour le défilement du bandeau d'incidents (IncidentBar).
- * Permet de définir et persister une vitesse limite de défilement (durée d'animation en secondes).
+ * Speed configuration manager for incident marquee scrolling (IncidentBar).
+ * Defines and persists scroll speed presets (animation duration in seconds).
  */
 
 export type MarqueeSpeed = 'slow' | 'normal' | 'fast';
 
 export interface MarqueeConfig {
 	speed: MarqueeSpeed;
-	duration: number; // en secondes
+	duration: number; // in seconds
 }
 
 export const MARQUEE_STORAGE_KEY = 'kato-marquee-speed';
@@ -20,20 +20,20 @@ export const MARQUEE_SPEED_PRESETS: Record<
 	{ label: string; description: string; duration: number; icon: string }
 > = {
 	slow: {
-		label: 'Lente',
-		description: 'Vitesse limitée pour une lecture confortable (60s)',
+		label: 'Slow',
+		description: 'Relaxed speed for comfortable reading (60s)',
 		duration: 60,
 		icon: '🐢'
 	},
 	normal: {
-		label: 'Normale',
-		description: 'Défilement standard équilibré (40s)',
+		label: 'Normal',
+		description: 'Standard balanced scrolling (40s)',
 		duration: 40,
 		icon: '🚶'
 	},
 	fast: {
-		label: 'Rapide',
-		description: 'Défilement accéléré (25s)',
+		label: 'Fast',
+		description: 'Accelerated scrolling (25s)',
 		duration: 25,
 		icon: '⚡'
 	}
@@ -43,7 +43,7 @@ type MarqueeListener = (config: MarqueeConfig) => void;
 const listeners = new Set<MarqueeListener>();
 
 let currentSpeed: MarqueeSpeed = 'slow';
-let currentDuration = 60; // Par défaut : 60s (vitesse calme et lisible)
+let currentDuration = 60; // Default: 60s (smooth, readable speed)
 
 function notifyListeners(): void {
 	const config: MarqueeConfig = { speed: currentSpeed, duration: currentDuration };
@@ -57,7 +57,7 @@ function notifyListeners(): void {
 }
 
 /**
- * Récupère la vitesse initialement configurée depuis le localStorage ou BFF (défaut: 'slow').
+ * Retrieves the initial marquee speed preset from localStorage or BFF (default: 'slow').
  */
 export function getInitialMarqueeSpeed(bffDefault?: MarqueeSpeed): MarqueeSpeed {
 	if (typeof window === 'undefined') return bffDefault ?? 'slow';
@@ -67,7 +67,7 @@ export function getInitialMarqueeSpeed(bffDefault?: MarqueeSpeed): MarqueeSpeed 
 			return saved;
 		}
 	} catch (err) {
-		console.warn('[Marquee] Erreur lors de la lecture de localStorage:', err);
+		console.warn('[Marquee] Error reading localStorage:', err);
 	}
 	if (bffDefault && bffDefault in MARQUEE_SPEED_PRESETS) {
 		return bffDefault;
@@ -76,7 +76,7 @@ export function getInitialMarqueeSpeed(bffDefault?: MarqueeSpeed): MarqueeSpeed 
 }
 
 /**
- * Récupère la durée de défilement initiale en secondes (défaut: 60s).
+ * Retrieves the initial marquee animation duration in seconds (default: 60s).
  */
 export function getInitialMarqueeDuration(bffDefaultSpeed?: MarqueeSpeed): number {
 	if (typeof window === 'undefined') {
@@ -94,13 +94,13 @@ export function getInitialMarqueeDuration(bffDefaultSpeed?: MarqueeSpeed): numbe
 		const speed = getInitialMarqueeSpeed(bffDefaultSpeed);
 		return MARQUEE_SPEED_PRESETS[speed].duration;
 	} catch (err) {
-		console.warn('[Marquee] Erreur lors de la lecture de la durée:', err);
+		console.warn('[Marquee] Error reading marquee duration:', err);
 	}
 	return 60;
 }
 
 /**
- * Initialise l'état du défilement depuis le stockage local et le BFF.
+ * Initializes marquee configuration from local storage and BFF defaults.
  */
 export function initMarqueeConfig(bffDefault?: MarqueeSpeed): MarqueeConfig {
 	currentSpeed = getInitialMarqueeSpeed(bffDefault);
@@ -109,7 +109,7 @@ export function initMarqueeConfig(bffDefault?: MarqueeSpeed): MarqueeConfig {
 }
 
 /**
- * Définit la vitesse selon un preset ('slow', 'normal', 'fast') et persiste le choix.
+ * Sets the marquee speed by preset ('slow', 'normal', 'fast') and persists the choice.
  */
 export function setMarqueeSpeed(speed: MarqueeSpeed): void {
 	if (!(speed in MARQUEE_SPEED_PRESETS)) return;
@@ -122,7 +122,7 @@ export function setMarqueeSpeed(speed: MarqueeSpeed): void {
 			localStorage.setItem(MARQUEE_STORAGE_KEY, speed);
 			localStorage.setItem(MARQUEE_DURATION_STORAGE_KEY, currentDuration.toString());
 		} catch (err) {
-			console.warn('[Marquee] Erreur d\'écriture dans localStorage:', err);
+			console.warn('[Marquee] Error writing to localStorage:', err);
 		}
 	}
 
@@ -130,13 +130,13 @@ export function setMarqueeSpeed(speed: MarqueeSpeed): void {
 }
 
 /**
- * Définit une durée personnalisée de défilement en secondes (entre 15s et 180s).
+ * Sets a custom marquee scroll duration in seconds (clamped between 15s and 180s).
  */
 export function setMarqueeDuration(durationSeconds: number): void {
 	const clamped = Math.max(15, Math.min(180, Math.round(durationSeconds)));
 	currentDuration = clamped;
 
-	// Détermine le preset le plus proche
+	// Determine the nearest preset
 	if (clamped >= 50) {
 		currentSpeed = 'slow';
 	} else if (clamped >= 32) {
@@ -150,7 +150,7 @@ export function setMarqueeDuration(durationSeconds: number): void {
 			localStorage.setItem(MARQUEE_STORAGE_KEY, currentSpeed);
 			localStorage.setItem(MARQUEE_DURATION_STORAGE_KEY, clamped.toString());
 		} catch (err) {
-			console.warn('[Marquee] Erreur d\'écriture de la durée:', err);
+			console.warn('[Marquee] Error writing marquee duration:', err);
 		}
 	}
 
@@ -158,14 +158,14 @@ export function setMarqueeDuration(durationSeconds: number): void {
 }
 
 /**
- * Retourne la configuration courante du défilement.
+ * Returns the current marquee configuration.
  */
 export function getMarqueeConfig(): MarqueeConfig {
 	return { speed: currentSpeed, duration: currentDuration };
 }
 
 /**
- * S'abonne aux modifications de vitesse de défilement.
+ * Subscribes to marquee speed updates.
  */
 export function onMarqueeChange(listener: MarqueeListener): () => void {
 	listeners.add(listener);

@@ -12,13 +12,13 @@
 	<div
 		class="w-full max-w-sm mx-auto rounded-2xl bg-slate-800/50 p-8 backdrop-blur-sm border border-slate-700/50 shadow-2xl"
 	>
-		<!-- Logo KATO -->
+		<!-- KATO Logo -->
 		<h1 class="text-2xl font-black tracking-widest text-white text-center mb-6">
 			KATO
-			<span class="sr-only"> — Connexion de sécurité</span>
+			<span class="sr-only">{t('login.securityBadge')}</span>
 		</h1>
 
-		<!-- Formulaire d'authentification -->
+		<!-- Authentication form -->
 		<form method="POST" class="space-y-4" novalidate={false}>
 			<div>
 				<label for="password" class="sr-only">{t('login.passwordLabel')}</label>
@@ -44,7 +44,7 @@
 				{t('login.unlock')}
 			</button>
 
-			<!-- Message d'alerte en cas d'erreur de saisie (RGAA 11.10 / 11.11) -->
+			<!-- Error message on invalid authentication -->
 			{#if hasError}
 				<div
 					id="login-error"

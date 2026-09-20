@@ -1,49 +1,49 @@
 import type { DashboardDelta, DashboardState, NormalizedIncident, NormalizedProbe } from '$lib/types';
 import { getDefaultClientSettings } from './config.ts';
 
-/** Durée de la fenêtre glissante des incidents conservés en RAM (24h en ms) */
+/** Rolling window duration for keeping incidents in RAM (24h in ms) */
 const INCIDENT_ROLLING_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Seuil de tolérance pour les variations de temps de réponse (en ms).
- * En dessous de ce seuil, les micro-fluctuations ne génèrent pas de delta.
+ * Tolerance threshold for response time jitter (in ms).
+ * Micro-fluctuations below this threshold do not trigger a delta event.
  */
 const RESPONSE_TIME_JITTER_THRESHOLD_MS = 20;
 
 type DeltaCallback = (delta: DashboardDelta) => void;
 
 /**
- * Store in-memory singleton maintenant l'état courant du dashboard.
+ * In-memory singleton store maintaining current dashboard state.
  *
- * Responsabilités :
- * - Stockage des sondes indexées par ID dans une Map.
- * - Détection différentielle (delta) à chaque mise à jour.
- * - Gestion des incidents avec fenêtre glissante 24h.
- * - Système pub/sub pour notifier l'endpoint SSE.
+ * Responsibilities:
+ * - Probe storage indexed by ID in a Map.
+ * - Differential (delta) change detection on each update.
+ * - Incident management with a 24-hour rolling window.
+ * - Pub/sub system notifying SSE subscribers.
  */
 class DashboardStore {
-	/** Index principal des sondes (ID → sonde) */
+	/** Primary probe index (ID -> probe) */
 	private probes: Map<string, NormalizedProbe> = new Map();
 
-	/** Index des incidents actifs + résolus dans les 24h */
+	/** Incident index for active + resolved within 24h */
 	private incidents: Map<string, NormalizedIncident> = new Map();
 
-	/** Nom du fournisseur source actif */
+	/** Active source provider name */
 	private sourceName = 'unknown';
 
-	/** Horodatage de la dernière mise à jour */
+	/** Timestamp of last update */
 	private lastUpdate = new Date().toISOString();
 
-	/** Registre des abonnés SSE */
+	/** SSE subscribers set */
 	private subscribers: Set<DeltaCallback> = new Set();
 
 	// ============================================================================
-	// LECTURE DE L'ÉTAT
+	// STATE READS
 	// ============================================================================
 
 	/**
-	 * Retourne un snapshot complet de l'état courant du dashboard.
-	 * Utilisé pour l'événement SSE `init` lors d'une nouvelle connexion client.
+	 * Returns a complete snapshot of the dashboard's current state.
+	 * Used for the `init` SSE event when a new client connects.
 	 */
 	getState(): DashboardState {
 		return {
@@ -56,8 +56,8 @@ class DashboardStore {
 	}
 
 	/**
-	 * Retourne les incidents dans la fenêtre glissante des 24 dernières heures,
-	 * triés antéchronologiquement (les plus récents en premier).
+	 * Returns incidents within the 24-hour rolling window,
+	 * sorted in reverse chronological order (most recent first).
 	 */
 	getIncidents(): NormalizedIncident[] {
 		return Array.from(this.incidents.values()).sort(
@@ -66,7 +66,7 @@ class DashboardStore {
 	}
 
 	/**
-	 * Charge des incidents initiaux (ex: fournis par l'adaptateur au démarrage).
+	 * Loads initial incidents (e.g. from adapter during startup).
 	 */
 	loadInitialIncidents(incidents: NormalizedIncident[]): void {
 		for (const inc of incidents) {
@@ -77,19 +77,19 @@ class DashboardStore {
 	}
 
 	// ============================================================================
-	// MISE À JOUR ET DÉTECTION DE DELTA
+	// UPDATES & DELTA DETECTION
 	// ============================================================================
 
 	/**
-	 * Met à jour l'état du store avec une nouvelle liste de sondes.
+	 * Updates the store with a new list of probes.
 	 *
-	 * - Compare chaque sonde avec la version en mémoire.
-	 * - Génère un DashboardDelta si des changements significatifs sont détectés.
-	 * - Met à jour la liste d'incidents (ouverture et clôture).
-	 * - Purge les incidents hors fenêtre glissante (> 24h).
-	 * - Notifie les abonnés si un delta est produit.
+	 * - Compares each probe with memory version.
+	 * - Generates a DashboardDelta if significant changes are detected.
+	 * - Updates incidents list (open and close).
+	 * - Purges incidents outside the 24h rolling window.
+	 * - Notifies subscribers when a delta is produced.
 	 *
-	 * @returns Le delta produit, ou null si rien n'a changé.
+	 * @returns The generated delta, or null if no changes occurred.
 	 */
 	updateProbes(probes: NormalizedProbe[], source?: string): DashboardDelta | null {
 		if (source) {
@@ -102,19 +102,19 @@ class DashboardStore {
 		const newIncidents: NormalizedIncident[] = [];
 		const resolvedIncidentIds: string[] = [];
 
-		// ── 1. Détection des changements ─────────────────────────────────────────
+		// ── 1. Change detection ──────────────────────────────────────────────────
 		for (const incoming of probes) {
 			const existing = this.probes.get(incoming.id);
 
 			if (!existing) {
-				// Nouvelle sonde — toujours considérée comme un changement
+				// New probe — always considered a change
 				if (incoming.status === 'down') {
 					incoming.downSince = incoming.downSince || nowIso;
 				}
 				this.probes.set(incoming.id, { ...incoming });
 				changed.push(incoming);
 
-				// Ouvrir un incident si elle démarre DOWN
+				// Open incident if starting DOWN or DEGRADED
 				if (incoming.status === 'down' || incoming.status === 'degraded') {
 					const incident = this.openIncident(incoming, nowIso);
 					this.incidents.set(incident.id, incident);
@@ -123,7 +123,7 @@ class DashboardStore {
 				continue;
 			}
 
-			// Conserver downSince existant si on est toujours down
+			// Retain existing downSince if still down
 			if (existing.status === 'down' && incoming.status === 'down') {
 				incoming.downSince = existing.downSince;
 			} else if (incoming.status === 'down' && existing.status !== 'down') {
@@ -132,7 +132,7 @@ class DashboardStore {
 				delete incoming.downSince;
 			}
 
-			// Vérifier si un changement significatif s'est produit
+			// Check for significant changes
 			const statusChanged = existing.status !== incoming.status;
 			const responseTimeChanged = hasResponseTimeChanged(
 				existing.responseTime,
@@ -146,7 +146,7 @@ class DashboardStore {
 				this.probes.set(incoming.id, { ...incoming });
 
 				if (statusChanged) {
-					// ── Transition vers un état problématique ───────────────────────
+					// ── Transition to problematic state ──────────────────────────────
 					if (
 						(incoming.status === 'down' || incoming.status === 'degraded') &&
 						existing.status !== 'down' &&
@@ -157,7 +157,7 @@ class DashboardStore {
 						newIncidents.push(incident);
 					}
 
-					// ── Résolution : retour vers un état sain ────────────────────────
+					// ── Recovery: transition back to healthy state ───────────────────
 					if (
 						incoming.status !== 'down' &&
 						incoming.status !== 'degraded' &&
@@ -168,18 +168,18 @@ class DashboardStore {
 					}
 				}
 			} else {
-				// Pas de changement significatif — on met quand même à jour lastCheck
+				// No significant change — still update probe with latest check
 				this.probes.set(incoming.id, { ...incoming });
 			}
 		}
 
-		// ── 2. Purge de la fenêtre glissante (incidents > 24h résolus) ───────────
+		// ── 2. Purge rolling window (resolved incidents > 24h) ───────────────────
 		this.purgeOldIncidents(now);
 
-		// ── 3. Mise à jour de l'horodatage ───────────────────────────────────────
+		// ── 3. Update timestamp ──────────────────────────────────────────────────
 		this.lastUpdate = nowIso;
 
-		// ── 4. Pas de changement significatif → pas de delta ─────────────────────
+		// ── 4. No significant changes -> no delta ────────────────────────────────
 		if (changed.length === 0 && newIncidents.length === 0 && resolvedIncidentIds.length === 0) {
 			return null;
 		}
@@ -191,7 +191,7 @@ class DashboardStore {
 			timestamp: nowIso
 		};
 
-		// ── 5. Notification des abonnés ───────────────────────────────────────────
+		// ── 5. Notify subscribers ────────────────────────────────────────────────
 		this.notifySubscribers(delta);
 
 		return delta;
@@ -202,8 +202,8 @@ class DashboardStore {
 	// ============================================================================
 
 	/**
-	 * Enregistre un abonné pour recevoir les deltas en temps réel.
-	 * Retourne une fonction d'unsubscribe à appeler lors de la déconnexion SSE.
+	 * Registers a subscriber to receive real-time deltas.
+	 * Returns an unsubscribe callback to call on SSE client disconnect.
 	 */
 	subscribe(callback: DeltaCallback): () => void {
 		this.subscribers.add(callback);
@@ -213,18 +213,18 @@ class DashboardStore {
 	}
 
 	/**
-	 * Retourne le nombre d'abonnés actifs au store (utilisé pour les tests de non-fuite mémoire).
+	 * Returns the count of active subscribers (used for leak tests).
 	 */
 	getSubscriberCount(): number {
 		return this.subscribers.size;
 	}
 
 	// ============================================================================
-	// MÉTHODES PRIVÉES
+	// PRIVATE METHODS
 	// ============================================================================
 
 	/**
-	 * Crée un nouvel incident ouvert pour une sonde dégradée ou en panne.
+	 * Creates a new open incident for a degraded or down probe.
 	 */
 	private openIncident(probe: NormalizedProbe, nowIso: string): NormalizedIncident {
 		const incidentId = `inc:${probe.id}:${Date.now()}`;
@@ -240,7 +240,7 @@ class DashboardStore {
 	}
 
 	/**
-	 * Clôture tous les incidents actifs d'une sonde et retourne leurs IDs.
+	 * Closes all active incidents for a probe and returns their IDs.
 	 */
 	private closeIncident(probeId: string, nowIso: string): string[] {
 		const resolved: string[] = [];
@@ -261,8 +261,7 @@ class DashboardStore {
 	}
 
 	/**
-	 * Supprime les incidents résolus dont la date de résolution est hors de
-	 * la fenêtre glissante de 24 heures.
+	 * Removes resolved incidents older than the 24-hour rolling window.
 	 */
 	private purgeOldIncidents(nowMs: number): void {
 		const cutoff = nowMs - INCIDENT_ROLLING_WINDOW_MS;
@@ -277,25 +276,25 @@ class DashboardStore {
 	}
 
 	/**
-	 * Diffuse un delta à tous les abonnés enregistrés.
+	 * Broadcasts a delta to all registered subscribers.
 	 */
 	private notifySubscribers(delta: DashboardDelta): void {
 		for (const cb of this.subscribers) {
 			try {
 				cb(delta);
 			} catch (err) {
-				console.error('[Store] Erreur dans un callback abonné SSE :', err);
+				console.error('[Store] Error in SSE subscriber callback:', err);
 			}
 		}
 	}
 }
 
 // ============================================================================
-// UTILITAIRES
+// UTILITIES
 // ============================================================================
 
 /**
- * Détermine si la variation de temps de réponse dépasse le seuil de jitter.
+ * Determines whether response time jitter exceeds threshold.
  */
 function hasResponseTimeChanged(a: number | null, b: number | null): boolean {
 	if (a === null && b === null) return false;
@@ -304,12 +303,12 @@ function hasResponseTimeChanged(a: number | null, b: number | null): boolean {
 }
 
 // ============================================================================
-// EXPORT DU SINGLETON
+// SINGLETON EXPORT
 // ============================================================================
 
 /**
- * Instance singleton du store partagée entre le poller et l'endpoint SSE.
- * Exportée au niveau module pour être accessible depuis hooks.server.ts et les routes.
+ * Singleton store instance shared between poller and SSE endpoint.
+ * Exported at module level for hooks.server.ts and API routes.
  */
 export const store = new DashboardStore();
 export type { DashboardStore };

@@ -1,5 +1,5 @@
 /**
- * Contrat d'interface pour les adaptateurs de monitoring.
- * Ré-exporte l'interface canonique depuis le modèle de types centralisé.
+ * Monitoring adapter interface contract.
+ * Re-exports canonical interface from centralized type definitions.
  */
 export type { MonitoringAdapter, AdapterConfig } from '$lib/types';

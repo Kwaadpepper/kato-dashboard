@@ -3,6 +3,7 @@
   import ProbeDot from "$lib/components/ProbeDot.svelte";
   import type { GridLayout, NormalizedProbe, ProbeStatus } from "$lib/types";
   import { calculateNextGridIndex } from "$lib/utils/keyboard-grid";
+  import { t } from "$lib/i18n";
 
   let {
     probes = [],
@@ -18,17 +19,17 @@
     onselect?: (probe: NormalizedProbe) => void;
   } = $props();
 
-  // Index de la sonde active pour le roving tabindex (seule cette sonde a tabindex="0")
+  // Active probe index for roving tabindex (only this probe has tabindex="0")
   let focusedIndex = $state(0);
 
-  // Maintient focusedIndex dans les limites si la liste de sondes change
+  // Keep focusedIndex within bounds if probe count changes
   $effect(() => {
     if (probes.length > 0 && focusedIndex >= probes.length) {
       focusedIndex = probes.length - 1;
     }
   });
 
-  // Gestionnaire de navigation 2D aux flèches dans la grille (RGAA 7.1)
+  // 2D directional arrow keyboard navigation handler (WCAG 2.1)
   function handleGridKeydown(event: KeyboardEvent) {
     const nextIndex = calculateNextGridIndex(
       focusedIndex,
@@ -52,7 +53,7 @@
     }
   }
 
-  // Style dynamique de la grille CSS Grid calculé par l'algorithme adaptatif
+  // Dynamic CSS Grid layout computed by adaptive algorithm
   const gridStyle = $derived(
     `grid-template-columns: repeat(${layout.columns}, minmax(0, ${layout.cellSize}px)); ` +
       `grid-auto-rows: ${layout.cellSize}px; ` +
@@ -70,7 +71,7 @@
     : 'p-2 sm:p-4'} select-none"
   style="contain: content;"
   role="region"
-  aria-label="Grille de supervision des sondes"
+  aria-label={t('common.probeGridAria')}
   onkeydown={handleGridKeydown}
 >
   <div

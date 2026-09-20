@@ -8,7 +8,7 @@ import type {
 } from '$lib/types';
 
 /**
- * Modèles types de services pour générer des noms et configurations réalistes.
+ * Service blueprints to generate realistic names and configurations.
  */
 interface ServiceBlueprint {
 	name: string;
@@ -36,12 +36,12 @@ const BLUEPRINTS: ServiceBlueprint[] = [
 	{ name: 'S3 Object Storage', group: 'Infrastructure', criticality: 'high', url: 'https://s3.eu-west-1.kato-storage.io' },
 	{ name: 'DNS Primary Anycast', group: 'Infrastructure', criticality: 'critical', url: 'dns://ns1.kato-dns.net' },
 
-	{ name: 'Customer Web App', group: 'Sites Web', criticality: 'high', url: 'https://app.kato.io' },
-	{ name: 'Marketing Website', group: 'Sites Web', criticality: 'medium', url: 'https://kato.io' },
-	{ name: 'Documentation Hub', group: 'Sites Web', criticality: 'low', url: 'https://docs.kato.io' },
-	{ name: 'Public Status Page', group: 'Sites Web', criticality: 'critical', url: 'https://status.kato.io' },
-	{ name: 'Admin Backoffice', group: 'Sites Web', criticality: 'medium', url: 'https://admin.kato.internal' },
-	{ name: 'Developer Portal', group: 'Sites Web', criticality: 'low', url: 'https://developer.kato.io' },
+	{ name: 'Customer Web App', group: 'Websites', criticality: 'high', url: 'https://app.kato.io' },
+	{ name: 'Marketing Website', group: 'Websites', criticality: 'medium', url: 'https://kato.io' },
+	{ name: 'Documentation Hub', group: 'Websites', criticality: 'low', url: 'https://docs.kato.io' },
+	{ name: 'Public Status Page', group: 'Websites', criticality: 'critical', url: 'https://status.kato.io' },
+	{ name: 'Admin Backoffice', group: 'Websites', criticality: 'medium', url: 'https://admin.kato.internal' },
+	{ name: 'Developer Portal', group: 'Websites', criticality: 'low', url: 'https://developer.kato.io' },
 
 	{ name: 'Worker Analytics Engine', group: 'Production', criticality: 'medium', url: 'https://workers.kato.internal/analytics' },
 	{ name: 'Worker Log Ingestion', group: 'Production', criticality: 'high', url: 'https://workers.kato.internal/logs' },
@@ -58,12 +58,12 @@ const BLUEPRINTS: ServiceBlueprint[] = [
 	{ name: 'QA Testing Cluster', group: 'Staging', criticality: 'low', url: 'https://qa-cluster.kato.dev' }
 ];
 
-const GROUPS = ['Production', 'Staging', 'Infrastructure', 'APIs', 'Sites Web'];
+const GROUPS = ['Production', 'Staging', 'Infrastructure', 'APIs', 'Websites'];
 const CRITICALITIES: Criticality[] = ['critical', 'high', 'medium', 'low'];
 
 /**
- * Adaptateur simulé (Mock) pour le développement et la validation visuelle.
- * Produit un ensemble configurable de sondes réalistes avec transitions dynamiques contrôlées.
+ * Mock monitoring adapter for development and visual validation.
+ * Produces a configurable set of realistic probes with controlled dynamic transitions.
  */
 export class MockAdapter implements MonitoringAdapter {
 	readonly name = 'mock';
@@ -75,7 +75,7 @@ export class MockAdapter implements MonitoringAdapter {
 	private initialized = false;
 
 	/**
-	 * Initialise l'adaptateur avec la configuration fournie.
+	 * Initializes adapter with provided configuration.
 	 */
 	initialize(config: AdapterConfig): Promise<void> {
 		this.config = config;
@@ -98,9 +98,9 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Récupère l'ensemble des sondes supervisées.
-	 * À chaque appel, les sondes conservent leur état avec une probabilité de ~5%
-	 * d'évolution de statut pour simuler une activité dynamique réaliste.
+	 * Fetches all monitored probes.
+	 * Probes hold their state with a ~5% transition probability per poll
+	 * to simulate realistic activity.
 	 */
 	async fetchProbes(): Promise<NormalizedProbe[]> {
 		if (!this.initialized) {
@@ -114,8 +114,8 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Récupère les incidents enregistrés depuis la date spécifiée.
-	 * Retourne les incidents actifs ainsi que ceux résolus dans l'intervalle.
+	 * Fetches recorded incidents since the specified timestamp.
+	 * Returns active incidents and those resolved in the timeframe.
 	 */
 	async fetchIncidents(since: Date): Promise<NormalizedIncident[]> {
 		const sinceTime = since.getTime();
@@ -123,7 +123,7 @@ export class MockAdapter implements MonitoringAdapter {
 
 		for (const incident of this.incidents.values()) {
 			const startedTime = new Date(incident.startedAt).getTime();
-			// Toujours inclure les incidents actifs non résolus
+			// Always include open active incidents
 			if (incident.resolvedAt === null) {
 				list.push({ ...incident });
 				continue;
@@ -135,12 +135,12 @@ export class MockAdapter implements MonitoringAdapter {
 			}
 		}
 
-		// Tri antéchronologique (les plus récents en premier)
+		// Reverse chronological order (most recent first)
 		return list.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
 	}
 
 	/**
-	 * Récupère l'historique récent des incidents pour une sonde spécifique.
+	 * Fetches recent incident history for a specific probe.
 	 */
 	async fetchProbeHistory(probeId: string): Promise<NormalizedIncident[]> {
 		const past24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -149,18 +149,18 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Intervalle de rafraîchissement recommandé (5 secondes pour le dev).
+	 * Recommended polling interval (5 seconds for dev).
 	 */
 	getPollingInterval(): number {
 		return 5000;
 	}
 
 	// ============================================================================
-	// MÉTHODES PRIVÉES DE GÉNÉRATION ET SIMULATION
+	// PRIVATE GENERATION & SIMULATION METHODS
 	// ============================================================================
 
 	/**
-	 * Génère l'état initial des sondes et quelques incidents historiques.
+	 * Generates initial probe state and some historical incidents.
 	 */
 	private generateInitialData(): void {
 		const now = Date.now();
@@ -189,7 +189,7 @@ export class MockAdapter implements MonitoringAdapter {
 
 			this.probes.set(id, probe);
 
-			// Créer un incident actif pour les sondes initialement DOWN
+			// Create active incident for probes starting DOWN
 			if (status === 'down') {
 				const incidentId = `inc:${id}:${now - 600000}`;
 				this.incidents.set(incidentId, {
@@ -197,14 +197,14 @@ export class MockAdapter implements MonitoringAdapter {
 					probeId: id,
 					probeName: probe.name,
 					type: 'down',
-					startedAt: new Date(now - 10 * 60 * 1000).toISOString(), // Il y a 10 min
+					startedAt: new Date(now - 10 * 60 * 1000).toISOString(), // 10 min ago
 					resolvedAt: null,
 					duration: null
 				});
 			}
 		}
 
-		// Injecter des incidents historiques réalistes résolus dans les dernières 24h
+		// Inject realistic historical resolved incidents within last 24h
 		const probeOne = this.probes.get('mock:1') ?? Array.from(this.probes.values())[0];
 		if (probeOne) {
 			const pastIncidentId = `inc:${probeOne.id}:${now - 7200000}`;
@@ -220,7 +220,7 @@ export class MockAdapter implements MonitoringAdapter {
 			});
 		}
 
-		// Incident passé sur mock:3 (panne résolue de 12 min)
+		// Past incident on mock:3 (12 min outage resolved)
 		const probeThree = this.probes.get('mock:3');
 		if (probeThree) {
 			const pastIncId3 = `inc:${probeThree.id}:${now - 18000000}`;
@@ -236,7 +236,7 @@ export class MockAdapter implements MonitoringAdapter {
 			});
 		}
 
-		// Incident de dégradation sur mock:7 (instabilité résolue de 25 min)
+		// Degraded incident on mock:7 (25 min instability resolved)
 		const probeSeven = this.probes.get('mock:7');
 		if (probeSeven) {
 			const pastIncId7 = `inc:${probeSeven.id}:${now - 32400000}`;
@@ -248,20 +248,20 @@ export class MockAdapter implements MonitoringAdapter {
 				startedAt: new Date(now - 9 * 3600 * 1000).toISOString(),
 				resolvedAt: new Date(now - (9 * 3600 - 1500) * 1000).toISOString(),
 				duration: 1500,
-				cause: 'Pic de latence (>1800ms) - GC Pause'
+				cause: 'Latency spike (>1800ms) - GC Pause'
 			});
 		}
 	}
 
 	/**
-	 * Détermine les métadonnées de la sonde (nom, groupe, URL, criticité).
+	 * Resolves probe metadata (name, group, URL, criticality).
 	 */
 	private resolveBlueprint(index: number): ServiceBlueprint {
 		if (index <= BLUEPRINTS.length) {
 			return BLUEPRINTS[index - 1];
 		}
 
-		// Génération procédurale au-delà des blueprints statiques
+		// Procedural generation beyond static blueprints
 		const group = GROUPS[index % GROUPS.length];
 		const criticality = CRITICALITIES[index % CRITICALITIES.length];
 		const name = `${group} Service #${index}`;
@@ -276,7 +276,7 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Détermine le statut initial selon la distribution demandée :
+	 * Determines initial status according to target distribution:
 	 * ~90% up, ~3% degraded, ~2% down, ~3% paused, ~2% pending.
 	 */
 	private resolveInitialStatus(index: number): ProbeStatus {
@@ -299,7 +299,7 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Calcule un temps de réponse réaliste en fonction du statut.
+	 * Computes realistic response time based on status.
 	 */
 	private computeResponseTime(status: ProbeStatus): number | null {
 		if (status === 'down' || status === 'paused' || status === 'pending') {
@@ -307,16 +307,16 @@ export class MockAdapter implements MonitoringAdapter {
 		}
 
 		if (status === 'degraded') {
-			// Dégradation : latence élevée entre 350ms et 500ms
+			// Degraded: high latency between 350ms and 500ms
 			return Math.floor(350 + Math.random() * 150);
 		}
 
-		// Statut UP : latence nominale entre 50ms et 250ms
+		// UP status: nominal latency between 50ms and 250ms
 		return Math.floor(50 + Math.random() * 200);
 	}
 
 	/**
-	 * Calcule un pourcentage d'uptime réaliste entre 95.00% et 100.00%.
+	 * Computes realistic uptime percentage between 95.00% and 100.00%.
 	 */
 	private computeUptime(status: ProbeStatus, seedOffset: number): number {
 		const base = status === 'down' ? 96.2 : status === 'degraded' ? 97.8 : 99.4;
@@ -326,7 +326,7 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Simule le cycle de vie : ~5% de chance de transition par sonde et micro-variations.
+	 * Simulates live cycle: ~5% chance of status transition per probe plus latency micro-variations.
 	 */
 	private simulateLiveCycle(): void {
 		const now = Date.now();
@@ -335,7 +335,7 @@ export class MockAdapter implements MonitoringAdapter {
 		for (const probe of this.probes.values()) {
 			probe.lastCheck = nowIso;
 
-			// 5% de chance de changement de statut
+			// 5% chance of status transition
 			if (Math.random() < 0.05) {
 				const oldStatus = probe.status;
 				const newStatus = this.pickNextStatus(oldStatus);
@@ -344,7 +344,7 @@ export class MockAdapter implements MonitoringAdapter {
 					probe.status = newStatus;
 					probe.responseTime = this.computeResponseTime(newStatus);
 
-					// Gestion des incidents liés aux transitions
+					// Handle incident lifecycle for transitions
 					if (newStatus === 'down' && oldStatus !== 'down') {
 						const incidentId = `inc:${probe.id}:${now}`;
 						this.incidents.set(incidentId, {
@@ -357,7 +357,7 @@ export class MockAdapter implements MonitoringAdapter {
 							duration: null
 						});
 					} else if (oldStatus === 'down' && newStatus !== 'down') {
-						// Clôturer l'incident actif
+						// Close active incident
 						for (const incident of this.incidents.values()) {
 							if (incident.probeId === probe.id && incident.resolvedAt === null) {
 								incident.resolvedAt = nowIso;
@@ -371,9 +371,9 @@ export class MockAdapter implements MonitoringAdapter {
 					}
 				}
 			} else if (probe.status === 'up' || probe.status === 'degraded') {
-				// Micro-variation de latence pour sondes actives
+				// Micro-variations in latency for active probes
 				if (probe.responseTime !== null) {
-					const delta = (Math.random() - 0.5) * 30; // ±15ms
+					const delta = (Math.random() - 0.5) * 30; // +/-15ms
 					const updated = Math.round(probe.responseTime + delta);
 					probe.responseTime = Math.min(500, Math.max(50, updated));
 				}
@@ -382,17 +382,17 @@ export class MockAdapter implements MonitoringAdapter {
 	}
 
 	/**
-	 * Choisit le prochain statut lors d'une transition.
+	 * Picks next status upon transition.
 	 */
 	private pickNextStatus(current: ProbeStatus): ProbeStatus {
 		const roll = Math.random();
 
 		switch (current) {
 			case 'down':
-				// Forte probabilité de rétablissement
+				// High recovery probability
 				return roll < 0.8 ? 'up' : 'degraded';
 			case 'degraded':
-				// Rétablissement vers UP, bascule en DOWN ou persistance
+				// Recover to UP, drop to DOWN, or remain degraded
 				return roll < 0.7 ? 'up' : roll < 0.9 ? 'down' : 'degraded';
 			case 'paused':
 				return roll < 0.6 ? 'up' : 'paused';
@@ -402,7 +402,7 @@ export class MockAdapter implements MonitoringAdapter {
 				return roll < 0.7 ? 'up' : 'maintenance';
 			case 'up':
 			default:
-				// Dégradation ou panne ponctuelle
+				// Occasional degradation or outage
 				return roll < 0.5 ? 'degraded' : roll < 0.8 ? 'down' : 'paused';
 		}
 	}

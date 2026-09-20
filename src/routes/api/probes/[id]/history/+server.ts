@@ -5,7 +5,7 @@ import { getActiveAdapter } from '$lib/server/adapter';
 import { store } from '$lib/server/store';
 import type { NormalizedIncident } from '$lib/types';
 
-/** Durée de mise en cache mémoire (2 minutes en ms) pour préserver les quotas d'appels API */
+/** Memory cache TTL (2 minutes in ms) to preserve API call quotas */
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
 interface CachedEntry {
@@ -13,11 +13,11 @@ interface CachedEntry {
 	incidents: NormalizedIncident[];
 }
 
-/** Cache en mémoire des historiques individuels par ID de sonde */
+/** In-memory cache of individual histories by probe ID */
 const historyCache = new Map<string, CachedEntry>();
 
 export const GET: RequestHandler = async ({ params, cookies }) => {
-	// Contrôle d'accès si l'authentification est activée
+	// Access control when authentication is enabled
 	if (isAuthEnabled()) {
 		const token = cookies.get(SESSION_COOKIE_NAME);
 		if (!isValidSession(token)) {
@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 
 	const now = Date.now();
 
-	// 1. Vérification du cache mémoire
+	// 1. Check memory cache
 	const cached = historyCache.get(probeId);
 	if (cached && now - cached.timestamp < CACHE_TTL_MS) {
 		return json({
@@ -45,20 +45,20 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 	let incidents: NormalizedIncident[] = [];
 	const adapter = getActiveAdapter();
 
-	// 2. Interrogation de l'adaptateur si la méthode unitaire est disponible
+	// 2. Query adapter if unit history method is available
 	if (adapter && typeof adapter.fetchProbeHistory === 'function') {
 		try {
 			incidents = await adapter.fetchProbeHistory(probeId);
 		} catch (err) {
-			console.warn(`[API History] Erreur lors de la récupération pour ${probeId} :`, err);
+			console.warn(`[API History] Error fetching history for ${probeId}:`, err);
 		}
 	}
 
-	// 3. Repli sur les incidents du store local en RAM
+	// 3. Fallback to RAM store incidents
 	if (!incidents || incidents.length === 0) {
 		incidents = store.getIncidents().filter((i) => i.probeId === probeId);
 	} else {
-		// Fusionner d'éventuels incidents du store en direct
+		// Merge live store incidents if any
 		const storeMatches = store.getIncidents().filter((i) => i.probeId === probeId);
 		const map = new Map<string, NormalizedIncident>();
 		for (const inc of storeMatches) {
@@ -72,7 +72,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 		);
 	}
 
-	// 4. Mise en cache mémoire
+	// 4. Cache in memory
 	historyCache.set(probeId, {
 		timestamp: now,
 		incidents

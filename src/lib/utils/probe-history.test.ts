@@ -73,7 +73,10 @@ describe('probe-history utility module', () => {
 			assert.equal(slot21.status, 'down');
 			assert.equal(slot21.incidentCount, 1);
 			assert.equal(slot21.downtimeSeconds, 1800);
-			assert.match(slot21.label, /Panne/);
+			assert.match(slot21.label, /Outage/);
+
+			const slotsFr = build24hSlots([incident], fixedNow, 'fr');
+			assert.match(slotsFr[21].label, /Panne/);
 
 			// Adjacent slots should remain 'up'
 			assert.equal(slots[20].status, 'up');
@@ -97,7 +100,10 @@ describe('probe-history utility module', () => {
 			const slots = build24hSlots([incident], fixedNow);
 			const slot22 = slots[22];
 			assert.equal(slot22.status, 'degraded');
-			assert.match(slot22.label, /Dégradé/);
+			assert.match(slot22.label, /Degraded/);
+
+			const slotsFr = build24hSlots([incident], fixedNow, 'fr');
+			assert.match(slotsFr[22].label, /Dégradé/);
 		});
 	});
 
@@ -217,7 +223,8 @@ describe('probe-history utility module', () => {
 			assert.equal(formatDurationCompact(125), '2m 5s');
 			assert.equal(formatDurationCompact(3600), '1h');
 			assert.equal(formatDurationCompact(7320), '2h 2m');
-			assert.equal(formatDurationCompact(90000), '1j 1h');
+			assert.equal(formatDurationCompact(90000), '1d 1h');
+			assert.equal(formatDurationCompact(90000, 'fr'), '1j 1h');
 		});
 	});
 
@@ -225,15 +232,18 @@ describe('probe-history utility module', () => {
 		it('should format today, yesterday and past dates', () => {
 			const todayIso = new Date('2026-09-19T14:30:00.000Z').toISOString();
 			const resultToday = formatEventDateTime(todayIso, fixedNow);
-			assert.match(resultToday, /Aujourd'hui à \d{2}:\d{2}/);
+			assert.match(resultToday, /Today at \d{2}:\d{2}/);
+			assert.match(formatEventDateTime(todayIso, fixedNow, 'fr'), /Aujourd'hui à \d{2}:\d{2}/);
 
 			const yesterdayIso = new Date('2026-09-18T20:15:00.000Z').toISOString();
 			const resultYesterday = formatEventDateTime(yesterdayIso, fixedNow);
-			assert.match(resultYesterday, /Hier à \d{2}:\d{2}/);
+			assert.match(resultYesterday, /Yesterday at \d{2}:\d{2}/);
+			assert.match(formatEventDateTime(yesterdayIso, fixedNow, 'fr'), /Hier à \d{2}:\d{2}/);
 
 			const pastIso = new Date('2026-09-15T10:00:00.000Z').toISOString();
 			const resultPast = formatEventDateTime(pastIso, fixedNow);
-			assert.match(resultPast, /15\/09 à \d{2}:\d{2}/);
+			assert.match(resultPast, /09\/15 at \d{2}:\d{2}/);
+			assert.match(formatEventDateTime(pastIso, fixedNow, 'fr'), /15\/09 à \d{2}:\d{2}/);
 		});
 	});
 });

@@ -1,10 +1,10 @@
-# Kato — Wallboard High-Density Monitoring
+# Kato — High-Density Monitoring Wallboard
 
-> **Kato** est un dashboard de supervision haute densité conçu pour afficher de 1 à plus de 200 sondes en temps réel avec **zéro défilement** sur écran desktop et TV. Il agrège les données d'APIs de monitoring tierces (UptimeRobot, etc.) via un serveur BFF (Backend-For-Frontend) et les diffuse au navigateur en Server-Sent Events (SSE).
+> **Kato** is a real-time, high-density monitoring dashboard engineered to visualize anywhere from 1 to 200+ probes on a single screen with **zero scrolling** on desktop and TV wallboards. It aggregates third-party monitoring services (such as UptimeRobot) through a lightweight SvelteKit BFF (Backend-For-Frontend) and pushes differential updates to client browsers using native Server-Sent Events (SSE).
 
 ---
 
-## 📸 Aperçu
+## 📸 Preview
 
 ```text
 +-----------------------------------------------------------------------------------+
@@ -23,177 +23,186 @@
 +-----------------------------------------------------------------------------------+
 ```
 
-*(Placeholder screenshot : capture d'écran du wallboard en mode sombre avec 200 sondes)*
+---
+
+## ✨ Key Features
+
+- **Guaranteed Zero-Scroll (Desktop & TV)**: Proprietary adaptive grid algorithm dynamically computes cell geometries, rows, columns, gaps, and density tiers to fit 100% of the viewport without vertical or horizontal scrollbars.
+- **5 Progressive Density Modes**:
+  - `large` (1–12 probes): Detailed cards featuring name, target URL, 24h uptime, and latency sparklines.
+  - `medium` (13–48 probes): Compact cards balancing information density and readability.
+  - `compact` (49–120 probes): Condensed rows with status badges and response times.
+  - `micro` (121–300 probes): High-density status dots with instant contextual tooltips.
+  - `pixel` (> 300 probes): Ultra-dense heatmap matrix.
+- **Server-Sent Events (SSE) Real-Time Stream**: Unidirectional HTTP event stream (`init` full snapshot, `update` fine-grained deltas, `heartbeat` every 15s) with automatic reconnection and state reconciliation.
+- **Intelligent Prioritization**: Probes experiencing outages (`DOWN`) are automatically promoted to the top-left, followed by `DEGRADED` monitors, healthy monitors sorted by criticality, and alphabetical sorting.
+- **24/7 TV & Wallboard Mode (`?tv=1`)**: Automatic fullscreen (`requestFullscreen`), cursor auto-hiding after 5 seconds of inactivity, periodic anti burn-in drift (±3px every 10 min), Screen Wake Lock integration, and continuous incident marquee ticker.
+- **Accessibility & Design Themes (WCAG AA)**: Fully accessible with high-contrast themes (**Dark**, **Light**, **AMOLED / Pure Black**, **Auto**). Full keyboard navigation (2D grid arrow keys, `Home`, `End`, `PageUp`, `PageDown`), screen reader live regions (`aria-live`), and skip links.
+- **Multilingual Support**: Fully internationalized in **English** (default) and **French** with runtime switching and persistence.
+- **Zero Database / Zero Bloat**: 100% in-memory architecture. Restarting the server performs a fast clean re-sync with third-party providers.
 
 ---
 
-## ✨ Fonctionnalités clés
+## 🛠️ Tech Stack
 
-- **Zéro scroll garanti (Desktop)** : Algorithme de grille adaptatif calculant les dimensions optimales (lignes, colonnes, gap, densité) pour occuper 100% de l'espace disponible sans défilement.
-- **5 niveaux de densité visuelle** :
-  - `large` (1 à 12 sondes) : Cartes détaillées avec nom, URL, uptime 24h, latence.
-  - `medium` (13 à 48 sondes) : Cartes intermédiaires compactes.
-  - `compact` (49 à 120 sondes) : Lignes synthétiques avec jauge et temps de réponse.
-  - `micro` (121 à 300 sondes) : Micro-pastilles carrées/circulaires avec tooltip contextuel.
-  - `pixel` (> 300 sondes) : Grille ultra-dense façon heatmap.
-- **Flux temps réel SSE (Server-Sent Events)** : Communication unidirectionnelle push serveur → client (`init`, `update` deltas, `heartbeat` 15s). Aucune latence, reconnexion automatique.
-- **Tri prioritaire intelligent** : Les sondes critiques (`DOWN`) s'affichent immédiatement en haut à gauche, suivies des états `DEGRADED`, puis des sondes saines triées par criticité et latence.
-- **Mode TV / Wallboard (`?tv=1`)** : Plein écran automatique, masquage du curseur après 5s d'inactivité, anti burn-in par micro-dérive périodique (drift ±3px / 10min), défilement horizontal continu des incidents (*marquee*).
-- **Accessibilité & Thèmes (WCAG AA)** : Support des modes Sombre (*Dark*), Clair (*Light*), et Noir pur (*AMOLED/OLED*). Ratios de contraste strictement supérieurs à 4.5:1 sur chaque thème.
-- **Dégradation gracieuse** : En cas d'interruption serveur ou réseau, bannière « Connexion perdue », indicateur de fraîcheur virant au rouge, et réessais automatiques avec réconciliation de snapshot à la reconnexion.
+- **Framework**: [SvelteKit 2](https://kit.svelte.dev/) with **Svelte 5** (modern Runes: `$state`, `$derived`, `$effect`)
+- **Server Adapter**: `@sveltejs/adapter-node` (standalone persistent Node.js service)
+- **Styling**: Tailwind CSS v4 + PostCSS
+- **Language**: TypeScript (strict mode enabled across client and server)
+- **Real-Time Delivery**: Native Server-Sent Events (`EventSource`)
+- **Icons**: Lucide Icons (`lucide-svelte`)
+- **Persistence**: In-memory singleton store with rolling 24-hour incident buffer
 
 ---
 
-## 🛠️ Stack Technique
+## 🚀 Quick Start
 
-- **Framework** : SvelteKit 2 (Svelte 5 avec Runes `$state`, `$derived`, `$effect`)
-- **Adaptateur** : `@sveltejs/adapter-node`
-- **CSS** : Tailwind CSS v4 + PostCSS
-- **Langage** : TypeScript strict
-- **Temps réel** : SSE (`EventSource`) natif
-- **Icônes** : Lucide Icons (`lucide-svelte`)
-- **Stockage** : Mémoire vive (*in-memory* singleton store, restart = reset)
+### Prerequisites
 
----
-
-## 🚀 Installation & Démarrage
-
-### Prérequis
-
-- Node.js 20+ ou supérieur
-- npm 10+
+- Node.js 20.x or higher
+- npm 10.x or higher
 
 ### Installation
 
 ```bash
-# Cloner le dépôt
+# Clone the repository
 git clone https://github.com/votre-orga/kato-dashboard.git
 cd kato-dashboard
 
-# Installer les dépendances
+# Install dependencies
 npm install
 
-# Copier le fichier d'environnement
+# Create environment configuration
 cp .env.example .env
 ```
 
-### Démarrage en développement
+### Development Server
 
 ```bash
 npm run dev
 ```
 
-L'application est accessible sur `http://localhost:5173`.
+Open `http://localhost:5173` in your browser.
 
-### Compilation et exécution de production
+### Production Build & Run
 
 ```bash
-# Build de production
+# Compile and build bundle
 npm run build
 
-# Lancement du serveur Node de production
+# Start production Node.js server
 node build
 ```
 
+The application will be accessible at `http://localhost:3000` (or your configured `PORT`).
+
 ---
 
-## ⚙️ Configuration (.env)
+## ⚙️ Configuration (`.env`)
 
-Les variables d'environnement suivantes permettent de paramétrer Kato :
+Configure your installation using environment variables:
 
-| Variable | Type | Valeur par défaut | Description |
+| Variable | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `KATO_ADAPTER` | `string` | `mock` | Adaptateur de supervision actif (`mock` ou `uptimerobot`). |
-| `KATO_MOCK_COUNT` | `number` | `50` | Nombre de sondes générées en mode mock. |
-| `KATO_AUTH_ENABLED` | `boolean` | `false` | Activer la protection de l'interface par mot de passe. |
-| `KATO_AUTH_PASSWORD` | `string` | `changeme` | Mot de passe d'accès requis si l'authentification est activée. |
-| `UPTIMEROBOT_API_KEY` | `string` | *(vide)* | Clé API UptimeRobot v3 (en lecture seule recommandée). |
-| `UPTIMEROBOT_POLL_INTERVAL`| `number` | `30000` | Intervalle de polling côté serveur en ms (défaut : 30s). |
-| `PORT` | `number` | `3000` | Port d'écoute du serveur Node.js en production. |
-| `HOST` | `string` | `0.0.0.0` | Interface réseau d'écoute. |
+| `KATO_ADAPTER` | `string` | `mock` | Active monitoring provider (`mock` or `uptimerobot`). |
+| `KATO_MOCK_COUNT` | `number` | `50` | Total number of simulated probes in mock mode. |
+| `KATO_AUTH_ENABLED` | `boolean` | `false` | Enable password protection for dashboard access. |
+| `KATO_AUTH_PASSWORD` | `string` | `changeme` | Required password if authentication is enabled. |
+| `KATO_DEFAULT_LOCALE` | `string` | `en` | Default UI language (`en` or `fr`). |
+| `KATO_DEFAULT_THEME` | `string` | `dark` | Initial color theme (`dark`, `light`, `amoled`, `auto`). |
+| `KATO_DEFAULT_TIME_FORMAT` | `string` | `24h` | Clock display format (`24h` or `12h`). |
+| `KATO_DEFAULT_TIME_ZONE` | `string` | `local` | Clock timezone (`local` or IANA like `UTC`, `Europe/Paris`). |
+| `KATO_DEFAULT_SHOW_SECONDS` | `boolean` | `true` | Show or hide seconds in header clock. |
+| `KATO_DEFAULT_SOUND_ENABLED`| `boolean` | `false` | Enable sound chime alerts for state transitions. |
+| `KATO_DEFAULT_MARQUEE_SPEED`| `string` | `slow` | Ticker speed preset (`slow`, `normal`, `fast`). |
+| `KATO_DEFAULT_SORT_MODE` | `string` | `smart` | Grid sort order (`smart`, `status`, `alpha`, `latency`, `group`). |
+| `UPTIMEROBOT_API_KEY` | `string` | `""` | UptimeRobot v3 API read-only token. |
+| `UPTIMEROBOT_POLL_INTERVAL` | `number` | `30000` | Background server polling interval in milliseconds. |
+| `PORT` | `number` | `3000` | Production HTTP listening port. |
+| `HOST` | `string` | `0.0.0.0` | Production network binding interface. |
 
 ---
 
-## 📱 Modes d'utilisation
+## 📱 Display Modes
 
-### 1. Mode Desktop (Wallboard standard)
-Accédez à l'URL racine `http://localhost:3000/`.
-- Adaptation géométrique instantanée de la grille au conteneur avec ResizeObserver debouncé.
-- Clic sur une sonde pour afficher le volet latéral d'informations détaillées (latence, disponibilité 24h/7j, criticité, métadonnées).
-- Sélecteur de thème (Sombre, Clair, AMOLED, Auto) et bouton de contrôle des alertes audio.
+### 1. Standard Desktop Dashboard
+Navigate to `http://localhost:3000/`.
+- Dynamically adapts grid geometry on viewport resize via debounced `ResizeObserver`.
+- Click or press `Enter`/`Space` on any cell to open the side panel inspection view (latency, 24h & 7d availability, 24-hour hourly timeline, incident history).
+- Switch themes, toggle sound alerts, or configure clock and speed preferences in the settings modal.
 
-### 2. Mode TV / Écran mural 24/7 (`?tv=1`)
-Ajoutez `?tv=1` à l'URL : `http://localhost:3000/?tv=1`
-- **Plein écran** automatique (`requestFullscreen`) avec déblocage au premier geste utilisateur si requis par la politique du navigateur.
-- **Curseur masqué** automatiquement après 5 secondes d'inactivité.
-- **Protection anti marquage (Burn-in)** : Dérive lente et imperceptible de ±3px toutes les 10 minutes (`animate-kato-drift`).
-- **Incidents défilants** : En mode TV, la barre d'incidents défile horizontalement en boucle continue (*marquee*).
-- **Maintien actif de l'écran** : Screen Wake Lock API active empêchant la mise en veille.
-- Sortie du mode TV via la touche `Escape`.
+### 2. TV & NOC Wallboard (`?tv=1`)
+Append `?tv=1` to the URL: `http://localhost:3000/?tv=1`
+- **Automatic Fullscreen**: Requests native fullscreen mode on initial user interaction.
+- **Cursor Auto-Hide**: Mouse cursor fades out after 5 seconds of inactivity.
+- **Anti Burn-In Drift**: Subtle, periodic ±3px position shifts (`animate-kato-drift`) protect OLED, AMOLED, and plasma panels.
+- **Screen Wake Lock**: Prevents TVs and monitors from entering sleep or screensaver modes.
+- **Continuous Marquee**: Active incident ticker loops smoothly across the footer.
+- Exit anytime using `Escape`.
 
-### 3. Mode Mobile / Tactile
-Ouvrez le dashboard sur un appareil mobile (`viewport < 768px`) :
-- Grille responsive avec défilement vertical fluide (`overflow-y-auto`).
-- **Cible tactile minimale garantie de 44px** pour chaque sonde (respect des directives Apple HIG et Google Material).
-- Tap sur une sonde pour ouvrir la modale plein écran.
-- **Geste tactile Pull-to-Refresh** : tirez vers le bas pour forcer l'actualisation instantanée du parc.
+### 3. Mobile & Tablet
+Open on mobile devices (`viewport < 768px`):
+- Responsive touch-friendly layout with smooth vertical scrolling (`overflow-y-auto`).
+- **44px minimum touch targets** compliant with Apple HIG and Google Material guidelines.
+- Tap a probe to open a full-screen bottom sheet with detailed metrics.
+- **Pull-to-Refresh**: Native touch pull-down gesture to trigger a manual refresh.
 
 ---
 
-## 🏗️ Architecture Simplifiée
+## 🏗️ Architecture Overview
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│                    FOURNISSEURS TIERS                       │
-│       UptimeRobot API v3   /   Autres services de ping      │
+│                    EXTERNAL PROVIDERS                       │
+│        UptimeRobot API v3   /   Other monitoring APIs       │
 └─────────────────────────────┬───────────────────────────────┘
-                              │ Polling HTTP serveur (BFF)
+                              │ HTTP Polling (Node.js Server)
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      SERVEUR SVELTEKIT                      │
+│                    SVELTEKIT BFF SERVER                     │
 │                                                             │
 │   src/lib/server/adapters/                                  │
 │   ├── mock.adapter.ts                                       │
 │   └── uptime-robot.adapter.ts                               │
 │                                                             │
-│   src/lib/server/poller.ts (boucle récurrente)              │
+│   src/lib/server/poller.ts (Background polling loop)        │
 │                │                                            │
 │                ▼                                            │
-│   src/lib/server/store.ts (Singleton RAM)                   │
+│   src/lib/server/store.ts (In-Memory Singleton RAM)         │
 │   ├── Map<string, NormalizedProbe>                          │
-│   ├── Map<string, NormalizedIncident> (fenêtre 24h)         │
-│   └── Calcul différentiel (DashboardDelta)                  │
+│   ├── Map<string, NormalizedIncident> (24h sliding window)  │
+│   └── Diffing & Delta Generator (DashboardDelta)            │
 │                │                                            │
 │                ▼                                            │
 │   src/routes/api/events/+server.ts                          │
-│   └── Flux SSE : init (snapshot), update (deltas), heartbeat│
+│   └── SSE Stream: init (snapshot), update (deltas), heartbeat│
 └─────────────────────────────┬───────────────────────────────┘
-                              │ Flux text/event-stream (SSE)
+                              │ text/event-stream (SSE)
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                     CLIENT NAVIGATEUR                       │
+│                      BROWSER CLIENT                         │
 │                                                             │
 │   src/lib/utils/sse-client.ts (EventSource + auto-reconnect)│
-│   src/lib/utils/grid-calculator.ts (Géométrie zéro scroll)  │
-│   src/routes/+page.svelte (Orchestration Svelte 5 Runes)    │
+│   src/lib/utils/grid-calculator.ts (Zero-scroll geometry)   │
+│   src/routes/+page.svelte (Svelte 5 Runes Orchestration)    │
 │                                                             │
 │   src/lib/components/                                       │
-│   ├── Header.svelte (Score, badges ARIA, fraîcheur, thème)  │
-│   ├── ProbeGrid.svelte (CSS Grid dynamique + FLIP animate)  │
+│   ├── Header.svelte (Score, ARIA badges, freshness, clock)  │
+│   ├── ProbeGrid.svelte (Dynamic CSS Grid + FLIP animations) │
 │   ├── ProbeCell.svelte / ProbeDot.svelte                    │
-│   ├── IncidentBar.svelte (aria-live="polite", marquee TV)   │
-│   └── DetailModal.svelte (Volet détaillé)                   │
+│   ├── IncidentBar.svelte (aria-live, TV marquee ticker)     │
+│   └── DetailModal.svelte (Side-panel metrics & history)     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔌 Comment ajouter un nouvel adaptateur
+## 🔌 Adding a Custom Monitoring Adapter
 
-Le projet utilise l'Adapter Pattern pour découpler les sources de supervision du reste de l'application. Pour intégrer un nouveau service (ex: Pingdom, BetterUptime, Datadog, Prometheus) :
+Kato uses the **Adapter Pattern** to isolate external monitoring providers. To add a new provider (e.g. Pingdom, Better Uptime, Datadog, or internal Prometheus):
 
-### Étape 1 : Créer le fichier d'adaptateur
-Créez un nouveau fichier `src/lib/server/adapters/mon-service.adapter.ts` implémentant l'interface `MonitoringAdapter` :
+### Step 1: Implement `MonitoringAdapter`
+Create `src/lib/server/adapters/my-service.adapter.ts`:
 
 ```typescript
 import type {
@@ -203,8 +212,8 @@ import type {
     NormalizedIncident
 } from '$lib/types';
 
-export class MonServiceAdapter implements MonitoringAdapter {
-    readonly name = 'monservice';
+export class MyServiceAdapter implements MonitoringAdapter {
+    readonly name = 'myservice';
     private apiKey = '';
     private pollIntervalMs = 30000;
 
@@ -214,20 +223,18 @@ export class MonServiceAdapter implements MonitoringAdapter {
     }
 
     async fetchProbes(): Promise<NormalizedProbe[]> {
-        // 1. Appel HTTP vers l'API de votre fournisseur
-        const res = await fetch('https://api.monservice.com/v1/checks', {
+        const response = await fetch('https://api.myservice.com/v1/monitors', {
             headers: { Authorization: `Bearer ${this.apiKey}` }
         });
-        const data = await res.json();
+        const data = await response.json();
 
-        // 2. Transformation vers le format normalisé NormalizedProbe
-        return data.checks.map((item: any) => ({
+        return data.monitors.map((item: any) => ({
             id: String(item.id),
             name: item.name,
-            url: item.target_url ?? null,
-            status: item.is_up ? 'up' : 'down', // 'up' | 'down' | 'degraded' | 'paused' | 'pending' | 'maintenance'
-            responseTime: item.last_latency_ms ?? null,
-            uptime24h: item.uptime_1d ?? 100,
+            url: item.url ?? null,
+            status: item.is_up ? 'up' : 'down',
+            responseTime: item.latency_ms ?? null,
+            uptime24h: item.uptime_24h ?? 100,
             uptime7d: item.uptime_7d ?? 100,
             criticality: 'critical',
             lastCheck: new Date().toISOString(),
@@ -237,7 +244,7 @@ export class MonServiceAdapter implements MonitoringAdapter {
     }
 
     async fetchIncidents(since: Date): Promise<NormalizedIncident[]> {
-        return []; // Optionnel : retournez les incidents si supportés par l'API
+        return []; // Optional: return incidents if supported by provider
     }
 
     getPollingInterval(): number {
@@ -246,17 +253,16 @@ export class MonServiceAdapter implements MonitoringAdapter {
 }
 ```
 
-### Étape 2 : Enregistrer l'adaptateur dans `src/hooks.server.ts`
-Ajoutez la prise en charge de votre adaptateur dans la fonction `bootstrap()` :
+### Step 2: Register the Adapter in `src/hooks.server.ts`
 
 ```typescript
 if (adapterType === 'uptimerobot') {
     adapter = new UptimeRobotAdapter();
     // ...
-} else if (adapterType === 'monservice') {
-    adapter = new MonServiceAdapter();
+} else if (adapterType === 'myservice') {
+    adapter = new MyServiceAdapter();
     await adapter.initialize({
-        apiKey: process.env.MON_SERVICE_API_KEY,
+        apiKey: process.env.MY_SERVICE_API_KEY,
         pollInterval: 30000
     });
 } else {
@@ -265,33 +271,33 @@ if (adapterType === 'uptimerobot') {
 }
 ```
 
-### Étape 3 : Configurer l'environnement
-Définissez dans votre `.env` :
+### Step 3: Configure `.env`
+
 ```env
-KATO_ADAPTER=monservice
-MON_SERVICE_API_KEY=votre_cle_api_secrete
+KATO_ADAPTER=myservice
+MY_SERVICE_API_KEY=your_secret_api_key
 ```
 
 ---
 
-## 🧪 Tests & Qualité
+## 🧪 Testing & Verification
 
 ```bash
-# Vérification des types TypeScript
-npx tsc --noEmit
-
-# Vérification des composants Svelte
-npm run check
-
-# Exécution de la suite de tests unitaires (Node test runner)
+# Run unit tests (Node.js test runner)
 npm test
 
-# Build de production complet
+# SvelteKit type checking
+npm run check
+
+# Code linting
+npm run lint
+
+# Production build
 npm run build
 ```
 
 ---
 
-## 📄 Licence
+## 📄 License
 
-MIT © Jeremy — Projet Kato Dashboard.
+This project is licensed under the [MIT License](LICENSE) © 2026 Jeremy.

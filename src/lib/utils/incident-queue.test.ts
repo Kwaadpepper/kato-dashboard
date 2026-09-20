@@ -46,8 +46,9 @@ describe('incident-queue utility module', () => {
 
 		it('should format days and hours correctly', () => {
 			const now = 200_000_000;
-			const startedAt = new Date(now - (86400 * 2 + 3600 * 3 + 60 * 10) * 1000).toISOString(); // 2j 3h 10m
-			assert.equal(formatIncidentDuration(startedAt, now), '2j 3h 10m');
+			const startedAt = new Date(now - (86400 * 2 + 3600 * 3 + 60 * 10) * 1000).toISOString();
+			assert.equal(formatIncidentDuration(startedAt, now), '2d 3h 10m');
+			assert.equal(formatIncidentDuration(startedAt, now, 'fr'), '2j 3h 10m');
 		});
 	});
 
@@ -84,15 +85,15 @@ describe('incident-queue utility module', () => {
 			const inc1 = createMockIncident('1', 'Auth Service');
 			queue.setIncidents([inc1], true);
 
-			// Un second incident survient pendant le défilement
+			// A second incident occurs during scrolling
 			const inc2 = createMockIncident('2', 'Database Primary');
 			queue.setIncidents([inc1, inc2], true);
 
 			const state = queue.getState();
-			// Les éléments affichés ne sont PAS modifiés (ils continuent jusqu'au bout !)
+			// Displayed items are preserved until current scroll cycle completes
 			assert.equal(state.displayed.length, 1);
 			assert.equal(state.displayed[0]?.id, '1');
-			// La file en attente compte 2 incidents prêts pour le prochain cycle
+			// Pending queue now contains both incidents ready for the next cycle
 			assert.equal(state.activeCount, 2);
 			assert.equal(state.pendingCount, 2);
 			assert.equal(state.cycleCount, 1);
@@ -105,11 +106,11 @@ describe('incident-queue utility module', () => {
 			const inc2 = createMockIncident('2', 'Database Primary');
 			queue.setIncidents([inc1, inc2], true);
 
-			// L'animation termine son cycle (l'élément 1 a fini de traverser l'écran)
+			// Animation completes its scroll cycle
 			queue.onCycleComplete();
 
 			const state = queue.getState();
-			// Le nouveau cycle démarre avec les 2 incidents
+			// New cycle begins with both incidents
 			assert.equal(state.displayed.length, 2);
 			assert.equal(state.displayed[0]?.id, '1');
 			assert.equal(state.displayed[1]?.id, '2');
@@ -122,17 +123,17 @@ describe('incident-queue utility module', () => {
 			const inc2 = createMockIncident('2', 'Database Primary');
 			queue.setIncidents([inc1, inc2], true);
 
-			// Résolution de l'incident 1 pendant le défilement
+			// Incident 1 resolves while scrolling
 			const inc1Resolved = { ...inc1, resolvedAt: new Date().toISOString() };
 			queue.setIncidents([inc1Resolved, inc2], true);
 
-			// Pendant le défilement, l'incident 1 reste à l'écran pour aller jusqu'au bout
+			// During scrolling, incident 1 stays visible until scroll completes
 			let state = queue.getState();
 			assert.equal(state.displayed.length, 2);
 			assert.equal(state.activeCount, 1);
 			assert.equal(state.pendingCount, 1);
 
-			// Le cycle se termine : la file est dépilée, incident 1 disparaît pour le nouveau cycle
+			// Cycle completes: queue is flushed, incident 1 removed in the next cycle
 			queue.onCycleComplete();
 
 			state = queue.getState();
@@ -145,18 +146,18 @@ describe('incident-queue utility module', () => {
 			const inc1 = createMockIncident('1', 'Auth Service');
 			queue.setIncidents([inc1], true);
 
-			// Tous les incidents sont résolus pendant le défilement
+			// All incidents resolve during scrolling
 			const inc1Resolved = { ...inc1, resolvedAt: new Date().toISOString() };
 			queue.setIncidents([inc1Resolved], true);
 
-			// L'élément 1 défile toujours jusqu'au bout
+			// Item 1 continues scrolling to the end
 			let state = queue.getState();
 			assert.equal(state.displayed.length, 1);
 			assert.equal(state.activeCount, 0);
 			assert.equal(state.pendingCount, 0);
 			assert.equal(state.isScrolling, true);
 
-			// Fin du cycle d'animation : transition vers l'état nominal (aucun incident)
+			// End of animation cycle: transition to idle empty state
 			queue.onCycleComplete();
 
 			state = queue.getState();
@@ -171,7 +172,7 @@ describe('incident-queue utility module', () => {
 			const initialDuration = queue.getState().displayed[0]?.formattedDuration;
 			assert.ok(initialDuration);
 
-			// Cycle terminé sans nouveaux événements
+			// Cycle completed without new events
 			queue.onCycleComplete();
 
 			const state = queue.getState();
@@ -202,7 +203,7 @@ describe('incident-queue utility module', () => {
 			const inc2 = createMockIncident('2', 'Database Primary');
 			queue.setIncidents([inc1, inc2], true);
 
-			// Flush immédiat
+			// Immediate flush
 			queue.flush();
 
 			const state = queue.getState();

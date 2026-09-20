@@ -2,7 +2,20 @@
 	"name": "kato-dashboard",
 	"private": true,
 	"version": "0.0.1",
+	"description": "High-density wallboard monitoring dashboard for desktop and TV screens with zero scroll",
+	"license": "MIT",
 	"type": "module",
+	"keywords": [
+		"monitoring",
+		"dashboard",
+		"wallboard",
+		"svelte",
+		"sveltekit",
+		"high-density",
+		"realtime",
+		"sse",
+		"uptime"
+	],
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -34,6 +47,7 @@
 	},
 	"dependencies": {
 		"dotenv": "^18.0.1",
-		"lucide-svelte": "^1.0.1"
+		"lucide-svelte": "^1.0.1",
+		"marked": "^18.0.13"
 	}
 }

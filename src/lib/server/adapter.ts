@@ -3,14 +3,14 @@ import type { MonitoringAdapter } from '$lib/types';
 let activeAdapter: MonitoringAdapter | null = null;
 
 /**
- * Enregistre l'adaptateur de monitoring actif pour l'instance du serveur.
+ * Registers active monitoring adapter for the server instance.
  */
 export function setActiveAdapter(adapter: MonitoringAdapter): void {
 	activeAdapter = adapter;
 }
 
 /**
- * Récupère l'adaptateur de monitoring actif courant.
+ * Retrieves current active monitoring adapter.
  */
 export function getActiveAdapter(): MonitoringAdapter | null {
 	return activeAdapter;

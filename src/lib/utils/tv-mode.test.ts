@@ -288,7 +288,7 @@ describe('tv-mode module', () => {
 		await tvMode.enterTvMode();
 		assert.equal(tvMode.isTvModeActive(), true);
 
-		// Simulation de l'événement keydown avec Escape
+		// Simulate keydown event with Escape
 		mockWindow.dispatchEvent('keydown', { key: 'Escape' });
 		assert.equal(tvMode.isTvModeActive(), false);
 	});
@@ -296,11 +296,11 @@ describe('tv-mode module', () => {
 	it('should auto-enter TV mode after inactivity timeout', async () => {
 		const tvMode = await import('./tv-mode.ts');
 
-		// Démarre l'inactivité avec 50ms pour le test
+		// Start inactivity detection with 50ms for test
 		const cleanup = tvMode.startInactivityDetection(50);
 		assert.equal(tvMode.isTvModeActive(), false);
 
-		// Attente du déclenchement
+		// Await timeout trigger
 		await new Promise((r) => setTimeout(r, 70));
 		assert.equal(tvMode.isTvModeActive(), true);
 
@@ -314,15 +314,15 @@ describe('tv-mode module', () => {
 		const cleanup = tvMode.startInactivityDetection(60);
 		assert.equal(tvMode.isTvModeActive(), false);
 
-		// Activité utilisateur après 30ms (doit réinitialiser le timer de 60ms)
+		// User activity after 30ms (should reset the 60ms timer)
 		await new Promise((r) => setTimeout(r, 30));
 		mockWindow.dispatchEvent('mousemove', {});
 
-		// Après 40ms supplémentaires (total 70ms depuis le départ, mais seulement 40ms depuis le reset)
+		// After 40ms more (total 70ms from start, but only 40ms since reset)
 		await new Promise((r) => setTimeout(r, 40));
 		assert.equal(tvMode.isTvModeActive(), false);
 
-		// Après encore 35ms (total 75ms depuis le reset) : le mode TV doit s'activer
+		// After another 35ms (total 75ms since reset): TV mode should activate
 		await new Promise((r) => setTimeout(r, 35));
 		assert.equal(tvMode.isTvModeActive(), true);
 
@@ -348,7 +348,7 @@ describe('tv-mode module', () => {
 		assert.equal(tvMode.isTvModeActive(), true);
 		assert.equal(mockDocument.fullscreenElement, mockDocument.documentElement);
 
-		// Simulation de sortie plein écran externe par le navigateur
+		// Simulate external exit from fullscreen by the browser
 		mockDocument.fullscreenElement = null;
 		mockDocument.dispatchEvent('fullscreenchange', {});
 
