@@ -196,8 +196,19 @@ function handleEscapeKey(e: KeyboardEvent): void {
 }
 
 // Réessai du plein écran au premier geste utilisateur si le navigateur l'avait bloqué au mount
-function handleUserGestureForFullscreen(): void {
+function handleUserGestureForFullscreen(e?: Event): void {
 	if (typeof document === 'undefined') return;
+
+	// Si le clic provient de l'en-tête (ex: réglages, roue crantée, son), on ne déclenche pas le plein écran
+	const target = e?.target as HTMLElement | null;
+	if (target?.closest?.('header')) {
+		return;
+	}
+
+	if (typeof window !== 'undefined') {
+		window.removeEventListener('click', handleUserGestureForFullscreen, { capture: true });
+	}
+
 	if (isTvActive && !document.fullscreenElement && document.documentElement.requestFullscreen) {
 		try {
 			const req = document.documentElement.requestFullscreen();
@@ -283,7 +294,7 @@ export async function enterTvMode(
 	if (typeof window !== 'undefined') {
 		window.addEventListener('keydown', handleEscapeKey);
 		window.addEventListener('keypress', handleEscapeKey);
-		window.addEventListener('click', handleUserGestureForFullscreen, { capture: true, once: true });
+		window.addEventListener('click', handleUserGestureForFullscreen, { capture: true });
 		document.addEventListener('fullscreenchange', handleFullscreenChange);
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 	}

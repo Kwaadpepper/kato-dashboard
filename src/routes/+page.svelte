@@ -361,10 +361,13 @@
 			}
 		});
 
-		// Détection d'inactivité : si pas de mousemove/keypress pendant 30s → auto-enter
-		const cleanupInactivity = startInactivityDetection(30_000, () => {
-			void enterTvMode(gridContainer);
-		});
+		// Détection d'inactivité : réactive le mode TV après 30s d'inactivité uniquement si le mode TV a été explicitement demandé (?tv=1)
+		let cleanupInactivity = () => {};
+		if ($page.url.searchParams.get('tv') === '1') {
+			cleanupInactivity = startInactivityDetection(30_000, () => {
+				void enterTvMode(gridContainer);
+			});
+		}
 
 		// Écoute de l'événement personnalisé 'probe-detail' propagé par bullage
 		const handleCustomProbeDetail = (e: Event) => {
