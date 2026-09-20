@@ -134,7 +134,11 @@ export interface NormalizedIncident {
    - Polls UptimeRobot REST API v3 using Bearer authentication (`GET /monitors`).
    - Translates status codes into normalized `ProbeStatus`.
    - Normalizes tags, target URLs, and groups.
-2. **[`mock.adapter.ts`](file:///var/www-jeremy/projets/kato-dashboard/src/lib/server/adapters/mock.adapter.ts)**:
+2. **[`uptime-kuma.adapter.ts`](file:///var/www-jeremy/projets/kato-dashboard/src/lib/server/adapters/uptime-kuma.adapter.ts)**:
+   - Polls the UptimeKuma Prometheus `/metrics` endpoint using HTTP Basic Auth (empty username, API key as password).
+   - Parses `monitor_status` and `monitor_response_time` Prometheus metrics without regex backtracking.
+   - Derives probe ID from URL-encoded `monitor_name` label for stable cross-restart identity.
+3. **[`mock.adapter.ts`](file:///var/www-jeremy/projets/kato-dashboard/src/lib/server/adapters/mock.adapter.ts)**:
    - High-performance deterministic generator simulating 1 to 300+ monitors across categorized services (`Websites`, `APIs`, `Databases`, `Infrastructure`).
    - Introduces realistic latency fluctuations and configurable intermittent failure cycles for testing transitions, alerts, and high-density rendering.
 
@@ -332,7 +336,8 @@ kato-dashboard/
 │   │   │   ├── adapters/
 │   │   │   │   ├── adapter.interface.ts # MonitoringAdapter interface
 │   │   │   │   ├── mock.adapter.ts    # Deterministic high-density mock generator
-│   │   │   │   └── uptime-robot.adapter.ts # UptimeRobot v3 REST client
+│   │   │   │   ├── uptime-robot.adapter.ts # UptimeRobot v3 REST client
+│   │   │   │   └── uptime-kuma.adapter.ts  # UptimeKuma Prometheus /metrics client
 │   │   │   ├── auth.ts                # Session authentication logic
 │   │   │   ├── config.ts              # Environment configuration and fallbacks
 │   │   │   ├── poller.ts              # Autonomous polling scheduler

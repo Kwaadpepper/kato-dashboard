@@ -1,6 +1,6 @@
 # Kato — High-Density Monitoring Wallboard
 
-> **Kato** is a real-time, high-density monitoring dashboard engineered to visualize anywhere from 1 to 200+ probes on a single screen with **zero scrolling** on desktop and TV wallboards. It aggregates third-party monitoring services (such as UptimeRobot) through a lightweight SvelteKit BFF (Backend-For-Frontend) and pushes differential updates to client browsers using native Server-Sent Events (SSE).
+> **Kato** is a real-time, high-density monitoring dashboard engineered to visualize anywhere from 1 to 200+ probes on a single screen with **zero scrolling** on desktop and TV wallboards. It aggregates third-party monitoring services (such as UptimeRobot and UptimeKuma) through a lightweight SvelteKit BFF (Backend-For-Frontend) and pushes differential updates to client browsers using native Server-Sent Events (SSE).
 
 ---
 
@@ -122,7 +122,7 @@ Configure your installation using environment variables:
 
 | Variable                     |   Type    |  Default   | Description                                                       |
 | :--------------------------- | :-------: | :--------: | :---------------------------------------------------------------- |
-| `KATO_ADAPTER`               | `string`  |   `mock`   | Active monitoring provider (`mock` or `uptimerobot`).             |
+| `KATO_ADAPTER`               | `string`  |   `mock`   | Active monitoring provider (`mock`, `uptimerobot`, or `uptimekuma`). |
 | `KATO_MOCK_COUNT`            | `number`  |    `50`    | Total number of simulated probes in mock mode.                    |
 | `KATO_AUTH_ENABLED`          | `boolean` |  `false`   | Enable password protection for dashboard access.                  |
 | `KATO_AUTH_PASSWORD`         | `string`  | `changeme` | Required password if authentication is enabled.                   |
@@ -135,7 +135,10 @@ Configure your installation using environment variables:
 | `KATO_DEFAULT_MARQUEE_SPEED` | `string`  |   `slow`   | Ticker speed preset (`slow`, `normal`, `fast`).                   |
 | `KATO_DEFAULT_SORT_MODE`     | `string`  |  `smart`   | Grid sort order (`smart`, `status`, `alpha`, `latency`, `group`). |
 | `UPTIMEROBOT_API_KEY`        | `string`  |    `""`    | UptimeRobot v3 API read-only token.                               |
-| `UPTIMEROBOT_POLL_INTERVAL`  | `number`  |  `30000`   | Background server polling interval in milliseconds.               |
+| `UPTIMEROBOT_POLL_INTERVAL`  | `number`  |  `30000`   | UptimeRobot polling interval in milliseconds.                     |
+| `UPTIME_KUMA_URL`            | `string`  |    `""`    | Base URL of your UptimeKuma instance (e.g. `https://kuma.example.com`). |
+| `UPTIME_KUMA_API_KEY`        | `string`  |    `""`    | UptimeKuma API key (Basic Auth password for `/metrics`). Required once an API key is created. |
+| `UPTIME_KUMA_POLL_INTERVAL`  | `number`  |  `60000`   | UptimeKuma polling interval in milliseconds.                      |
 | `PORT`                       | `number`  |   `3000`   | Production HTTP listening port.                                   |
 | `HOST`                       | `string`  | `0.0.0.0`  | Production network binding interface.                             |
 
@@ -172,7 +175,7 @@ Open on mobile devices (`viewport < 768px`):
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    EXTERNAL PROVIDERS                       │
-│        UptimeRobot API v3   /   Other monitoring APIs       │
+│   UptimeRobot API v3 / UptimeKuma /metrics / Other APIs     │
 └─────────────────────────────┬───────────────────────────────┘
                               │ HTTP Polling (Node.js Server)
                               ▼
@@ -181,7 +184,8 @@ Open on mobile devices (`viewport < 768px`):
 │                                                             │
 │   src/lib/server/adapters/                                  │
 │   ├── mock.adapter.ts                                       │
-│   └── uptime-robot.adapter.ts                               │
+│   ├── uptime-robot.adapter.ts                               │
+│   └── uptime-kuma.adapter.ts                                │
 │                                                             │
 │   src/lib/server/poller.ts (Background polling loop)        │
 │                │                                            │
@@ -276,6 +280,9 @@ export class MyServiceAdapter implements MonitoringAdapter {
 ```typescript
 if (adapterType === 'uptimerobot') {
     adapter = new UptimeRobotAdapter();
+    // ...
+} else if (adapterType === 'uptimekuma') {
+    adapter = new UptimeKumaAdapter();
     // ...
 } else if (adapterType === 'myservice') {
     adapter = new MyServiceAdapter();
