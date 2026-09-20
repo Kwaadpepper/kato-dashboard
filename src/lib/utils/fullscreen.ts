@@ -1,8 +1,8 @@
 /**
  * fullscreen.ts
  *
- * Utilitaire de gestion du plein écran (Fullscreen API) pour Kato Dashboard.
- * Permet de basculer, activer ou quitter le plein écran de façon réactive et sécurisée.
+ * Fullscreen API utility module for Kato Dashboard.
+ * Enables reactive toggling, entering, and exiting of fullscreen mode.
  */
 
 type FullscreenListener = (isFullscreen: boolean) => void;
@@ -21,7 +21,7 @@ function notifyListeners(): void {
 }
 
 /**
- * Retourne vrai si le document est actuellement en plein écran.
+ * Returns true if document is currently in fullscreen mode.
  */
 export function isFullscreen(): boolean {
 	if (typeof document === 'undefined') return false;
@@ -29,7 +29,7 @@ export function isFullscreen(): boolean {
 }
 
 /**
- * Bascule l'état plein écran (entre ou quitte).
+ * Toggles fullscreen state (enters or exits).
  */
 export async function toggleFullscreen(element?: HTMLElement): Promise<boolean> {
 	if (typeof document === 'undefined') return false;
@@ -48,7 +48,7 @@ export async function toggleFullscreen(element?: HTMLElement): Promise<boolean> 
 			isFullscreenState = true;
 		}
 	} catch (err) {
-		console.warn('[Fullscreen] Erreur lors du basculement plein écran:', err);
+		console.warn('[Fullscreen] Error toggling fullscreen:', err);
 		isFullscreenState = !!document.fullscreenElement;
 	}
 
@@ -57,7 +57,7 @@ export async function toggleFullscreen(element?: HTMLElement): Promise<boolean> 
 }
 
 /**
- * Entre en plein écran.
+ * Requests fullscreen on target element or document.
  */
 export async function enterFullscreen(element?: HTMLElement): Promise<boolean> {
 	if (typeof document === 'undefined') return false;
@@ -69,7 +69,7 @@ export async function enterFullscreen(element?: HTMLElement): Promise<boolean> {
 			}
 			isFullscreenState = true;
 		} catch (err) {
-			console.warn('[Fullscreen] Erreur entrée plein écran:', err);
+			console.warn('[Fullscreen] Error entering fullscreen:', err);
 		}
 	}
 	notifyListeners();
@@ -77,7 +77,7 @@ export async function enterFullscreen(element?: HTMLElement): Promise<boolean> {
 }
 
 /**
- * Quitte le plein écran.
+ * Exits fullscreen mode.
  */
 export async function exitFullscreen(): Promise<boolean> {
 	if (typeof document === 'undefined') return false;
@@ -88,7 +88,7 @@ export async function exitFullscreen(): Promise<boolean> {
 			}
 			isFullscreenState = false;
 		} catch (err) {
-			console.warn('[Fullscreen] Erreur sortie plein écran:', err);
+			console.warn('[Fullscreen] Error exiting fullscreen:', err);
 		}
 	}
 	notifyListeners();
@@ -96,7 +96,7 @@ export async function exitFullscreen(): Promise<boolean> {
 }
 
 /**
- * S'abonne aux changements d'état du plein écran.
+ * Subscribes to fullscreen state changes.
  */
 export function onFullscreenChange(listener: FullscreenListener): () => void {
 	listeners.add(listener);

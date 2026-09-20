@@ -1,0 +1,11 @@
+node_modules
+build
+.svelte-kit
+.env
+.env.*
+!.env.example
+*.md
+docs/
+tools/
+public/
+static/robots.txt

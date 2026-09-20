@@ -9,7 +9,9 @@ export const fr: TranslationSchema = {
 		operational: 'Opérationnel',
 		close: 'Fermer',
 		recent: 'récent',
-		pageTitle: 'Kato Dashboard ({count} sondes)'
+		pageTitle: 'Kato Dashboard ({count} sondes)',
+		probeGridAria: 'Grille de supervision des sondes',
+		opensInNewTab: '(ouvre dans un nouvel onglet)'
 	},
 	status: {
 		up: 'Opérationnel',
@@ -93,7 +95,16 @@ export const fr: TranslationSchema = {
 		secondsHideAria: 'Masquer les secondes',
 		secondsShowAria: 'Afficher les secondes',
 		clockTimezone: 'Fuseau horaire :',
-		timezoneSelectAria: 'Sélectionner le fuseau horaire'
+		timezoneSelectAria: 'Sélectionner le fuseau horaire',
+		sectionHelp: 'Aide',
+		openHelp: 'Documentation & Raccourcis'
+	},
+	helpModal: {
+		title: 'Aide & Documentation KATO',
+		subtitle: 'Guide utilisateur et liste complète des raccourcis clavier',
+		closeAria: "Fermer la fenêtre d'aide",
+		closeBtn: 'Fermer',
+		tip: 'Astuce : appuyez sur {key} ou cliquez en dehors pour fermer'
 	},
 	incidentBar: {
 		noIncidents: '✓ Aucun incident actif',
@@ -101,7 +112,9 @@ export const fr: TranslationSchema = {
 		inQueue: '+{count} en file',
 		inQueueTooltip: 'Événements en attente dans la file (défileront au prochain cycle)',
 		expandAria: 'Déplier les incidents',
-		collapseAria: 'Réduire les incidents'
+		collapseAria: 'Replier les incidents',
+		pauseMarquee: 'Mettre en pause le défilement des incidents (P)',
+		resumeMarquee: 'Reprendre le défilement des incidents (P)'
 	},
 	detailModal: {
 		closeAria: 'Fermer la vue détail',
@@ -155,7 +168,30 @@ export const fr: TranslationSchema = {
 		passwordLabel: 'Mot de passe',
 		passwordPlaceholder: '••••••••••••',
 		unlock: 'Déverrouiller',
-		invalidPassword: 'Mot de passe incorrect'
+		invalidPassword: 'Mot de passe incorrect',
+		securityBadge: ' — Connexion de sécurité'
+	},
+	skipLink: {
+		navAria: "Liens d'accès rapide",
+		mainContent: 'Passer au contenu principal (Grille de sondes)',
+		incidentBar: "Passer à la barre d'incidents"
+	},
+	keyboardHelp: {
+		title: 'Raccourcis Clavier & Accessibilité',
+		subtitle: "Contrôlez l'ensemble du dashboard sans toucher la souris",
+		closeAria: "Fermer l'aide des raccourcis clavier",
+		closeBtn: 'Fermer',
+		tip: 'Astuce : appuyez sur {key} pour fermer à tout moment',
+		navigateGrid: 'Naviguer dans la grille de sondes (navigation 2D)',
+		jumpFirstLast: 'Aller à la première sonde (DOWN) ou à la dernière',
+		openDetail: 'Ouvrir la fiche détaillée de la sonde sélectionnée',
+		closeOrExit: 'Fermer la vue détail / menu / quitter le plein écran',
+		toggleFullscreen: 'Basculer en plein écran',
+		toggleMute: 'Activer / couper le son des alertes',
+		cycleTheme: 'Changer de thème (Sombre, Clair, AMOLED, Auto)',
+		toggleMarquee: 'Mettre en pause / reprendre le défilement des incidents',
+		navigateRegions: 'Naviguer séquentiellement entre les zones',
+		toggleHelp: 'Ouvrir ou fermer cette aide clavier'
 	},
 	time: {
 		secondShort: 's',

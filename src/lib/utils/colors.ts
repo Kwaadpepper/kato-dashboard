@@ -2,30 +2,30 @@ import type { ProbeStatus, SupportedLocale } from '$lib/types';
 import { t } from '../i18n/index.ts';
 
 /**
- * Configuration chromatique et utilitaires Tailwind pour un statut de sonde donné.
+ * Visual styling and Tailwind class configuration for a given probe status.
  */
 export interface StatusColorConfig {
-	/** Classe d'arrière-plan Tailwind plein (ex: 'bg-emerald-500') */
+	/** Solid Tailwind background class (e.g. 'bg-emerald-500') */
 	bgClass: string;
-	/** Classe de texte Tailwind (ex: 'text-emerald-400') */
+	/** Tailwind text class (e.g. 'text-emerald-400') */
 	textClass: string;
-	/** Classe d'arrière-plan pour carte thème sombre (ex: 'bg-emerald-900/30') */
+	/** Dark theme card background class (e.g. 'bg-emerald-900/30') */
 	cardBgClass: string;
-	/** Classe de bordure Tailwind (ex: 'border-emerald-700/50') */
+	/** Tailwind border class (e.g. 'border-emerald-700/50') */
 	borderClass: string;
-	/** Classe de fond pour badge/pastille condensé */
+	/** Condensed badge background class */
 	badgeBgClass: string;
-	/** Classe de texte pour badge/pastille condensé */
+	/** Condensed badge text class */
 	badgeTextClass: string;
-	/** Code hexadécimal canonique */
+	/** Canonical hexadecimal color */
 	hex: string;
-	/** Libellé en français */
+	/** Default English label */
 	label: string;
 }
 
 /**
- * Mapping officiel des couleurs par statut de sonde pour le dashboard Kato.
- * Conforme à docs/COLORS_AND_THEME.md et docs/UX_COMPONENTS.md.
+ * Official status-to-color mapping for Kato Dashboard.
+ * Complies with docs/COLORS_AND_THEME.md and docs/UX_COMPONENTS.md.
  */
 export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 	up: {
@@ -36,7 +36,7 @@ export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 		badgeBgClass: 'bg-emerald-950/60',
 		badgeTextClass: 'text-emerald-300',
 		hex: '#10B981',
-		label: 'Opérationnel'
+		label: 'Operational'
 	},
 	down: {
 		bgClass: 'bg-red-500',
@@ -46,7 +46,7 @@ export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 		badgeBgClass: 'bg-red-950/60',
 		badgeTextClass: 'text-red-300',
 		hex: '#EF4444',
-		label: 'En panne'
+		label: 'Down'
 	},
 	degraded: {
 		bgClass: 'bg-amber-500',
@@ -56,7 +56,7 @@ export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 		badgeBgClass: 'bg-amber-950/60',
 		badgeTextClass: 'text-amber-300',
 		hex: '#F59E0B',
-		label: 'Dégradé'
+		label: 'Degraded'
 	},
 	paused: {
 		bgClass: 'bg-slate-500',
@@ -66,7 +66,7 @@ export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 		badgeBgClass: 'bg-slate-800/50',
 		badgeTextClass: 'text-slate-300',
 		hex: '#6B7280',
-		label: 'En pause'
+		label: 'Paused'
 	},
 	pending: {
 		bgClass: 'bg-blue-500',
@@ -76,7 +76,7 @@ export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 		badgeBgClass: 'bg-blue-950/60',
 		badgeTextClass: 'text-blue-300',
 		hex: '#3B82F6',
-		label: 'En attente'
+		label: 'Pending'
 	},
 	maintenance: {
 		bgClass: 'bg-violet-500',
@@ -91,10 +91,10 @@ export const STATUS_COLORS: Record<ProbeStatus, StatusColorConfig> = {
 };
 
 /**
- * Retourne le nom du composant d'icône Lucide correspondant au statut.
+ * Returns the Lucide icon component name corresponding to a status.
  *
- * @param status Le statut opérationnel de la sonde
- * @returns Le nom du composant Lucide ('CircleCheck', 'CircleX', 'TriangleAlert', etc.)
+ * @param status Operational status of the probe
+ * @returns Lucide icon component name ('CircleCheck', 'CircleX', 'TriangleAlert', etc.)
  */
 export function getStatusIcon(status: ProbeStatus): string {
 	switch (status) {
@@ -114,9 +114,8 @@ export function getStatusIcon(status: ProbeStatus): string {
 }
 
 /**
- * Retourne le libellé traduit du statut selon la langue active ou la locale passée.
+ * Returns the translated status label based on current active locale or an explicit locale.
  */
 export function getStatusLabel(status: ProbeStatus, locale?: SupportedLocale): string {
 	return t(`status.${status}`, undefined, locale);
 }
-

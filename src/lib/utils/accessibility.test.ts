@@ -1,15 +1,15 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { calculateNextGridIndex } from './keyboard-grid.ts';
-import { fr } from '../i18n/locales/fr.ts';
+import { describe, it } from 'node:test';
 import { en } from '../i18n/locales/en.ts';
+import { fr } from '../i18n/locales/fr.ts';
+import { calculateNextGridIndex } from './keyboard-grid.ts';
 
 describe('RGAA and Keyboard Accessibility Conformance', () => {
-	it('should verify app.html sets default lang to fr and syncs with localStorage', () => {
+	it('should verify app.html sets default lang to en and syncs with localStorage', () => {
 		const appHtml = readFileSync(resolve(process.cwd(), 'src/app.html'), 'utf-8');
-		assert.match(appHtml, /<html\s+lang="fr"/, 'app.html must have lang="fr" default');
+		assert.match(appHtml, /<html\s+lang="en"/, 'app.html must have lang="en" default');
 		assert.match(appHtml, /localStorage\.getItem\('kato-locale'\)/, 'app.html must read saved locale');
 		assert.match(appHtml, /document\.documentElement\.lang\s*=\s*savedLocale/, 'app.html must sync lang attribute');
 	});

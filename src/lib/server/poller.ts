@@ -2,22 +2,22 @@ import type { MonitoringAdapter } from '$lib/types';
 import type { DashboardStore } from './store';
 
 /**
- * Fonction retournée par startPolling pour arrêter proprement le poller.
+ * Cleanup function returned by startPolling to stop polling gracefully.
  */
 export type StopPolling = () => void;
 
 /**
- * Démarre le service de polling pour un adaptateur donné.
+ * Starts the polling service for a given monitoring adapter.
  *
- * Comportement :
- * - Premier appel immédiat dès l'invocation (pas d'attente du premier intervalle).
- * - Verrou d'exécution pour éviter les appels concurrents si l'adaptateur répond lentement.
- * - En cas d'erreur API : log de l'erreur + conservation de l'état précédent (pas de crash).
- * - Log à chaque cycle : nombre de sondes polled et nombre de changements.
+ * Behavior:
+ * - Executes immediately upon invocation (no waiting for the first tick).
+ * - Concurrency lock prevents overlapping runs if the adapter takes longer than the interval.
+ * - Non-fatal error handling: logs errors and preserves last known state (no crash).
+ * - Logs per-cycle stats: probed count and change count.
  *
- * @param adapter L'adaptateur de monitoring à interroger.
- * @param store   Le store in-memory à mettre à jour.
- * @returns       Une fonction stop() pour interrompre le polling.
+ * @param adapter Monitoring adapter to poll.
+ * @param store   In-memory store to update.
+ * @returns       A stop() function to terminate polling.
  */
 export function startPolling(adapter: MonitoringAdapter, store: DashboardStore): StopPolling {
 	const intervalMs = adapter.getPollingInterval();
@@ -26,12 +26,12 @@ export function startPolling(adapter: MonitoringAdapter, store: DashboardStore):
 	let stopped = false;
 
 	/**
-	 * Exécute un cycle de polling : fetch des sondes + mise à jour du store.
+	 * Executes a polling cycle: fetches probes and updates store.
 	 */
 	async function poll(): Promise<void> {
-		// Verrou : on ignore le cycle si le précédent n'est pas terminé
+		// Concurrency lock: skip if previous tick is still ongoing
 		if (isPolling) {
-			console.warn(`[Poller] Cycle ignoré (le précédent est encore en cours) — adapter: ${adapter.name}`);
+			console.warn(`[Poller] Cycle skipped (previous run still active) — adapter: ${adapter.name}`);
 			return;
 		}
 
@@ -47,42 +47,42 @@ export function startPolling(adapter: MonitoringAdapter, store: DashboardStore):
 				`[Poller] Polled ${probes.length} probes, ${changes} changes — adapter: ${adapter.name}`
 			);
 		} catch (err) {
-			// Non-bloquant : on log et on continue
-			console.error(`[Poller] Erreur lors du polling — adapter: ${adapter.name}`, err);
+			// Non-blocking: log error and preserve state
+			console.error(`[Poller] Error during polling — adapter: ${adapter.name}`, err);
 		} finally {
 			isPolling = false;
 		}
 	}
 
-	// Chargement des incidents initiaux depuis l'adaptateur (fenêtre 24h)
+	// Fetch initial incidents from adapter (24h window)
 	adapter
 		.fetchIncidents(new Date(Date.now() - 24 * 60 * 60 * 1000))
 		.then((initialIncidents) => {
 			if (initialIncidents && initialIncidents.length > 0) {
 				store.loadInitialIncidents(initialIncidents);
 				console.log(
-					`[Poller] Chargé ${initialIncidents.length} incident(s) initial(aux) — adapter: ${adapter.name}`
+					`[Poller] Loaded ${initialIncidents.length} initial incident(s) — adapter: ${adapter.name}`
 				);
 			}
 		})
 		.catch((err) => {
-			console.warn('[Poller] Avertissement lors du chargement des incidents initiaux :', err);
+			console.warn('[Poller] Warning while loading initial incidents:', err);
 		});
 
-	// Premier appel immédiat
+	// Immediate initial execution
 	poll();
 
-	// Démarrage de l'intervalle récurrent
+	// Start recurring interval
 	timer = setInterval(() => {
 		if (!stopped) {
 			poll();
 		}
 	}, intervalMs);
 
-	console.log(`[Poller] Démarré — adapter: ${adapter.name}, intervalle: ${intervalMs}ms`);
+	console.log(`[Poller] Started — adapter: ${adapter.name}, interval: ${intervalMs}ms`);
 
 	/**
-	 * Arrête le polling proprement.
+	 * Stops polling gracefully.
 	 */
 	function stop(): void {
 		stopped = true;
@@ -90,7 +90,7 @@ export function startPolling(adapter: MonitoringAdapter, store: DashboardStore):
 			clearInterval(timer);
 			timer = null;
 		}
-		console.log(`[Poller] Arrêté — adapter: ${adapter.name}`);
+		console.log(`[Poller] Stopped — adapter: ${adapter.name}`);
 	}
 
 	return stop;

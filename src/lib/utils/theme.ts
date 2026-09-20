@@ -3,10 +3,10 @@ import type { Theme } from '$lib/types';
 export type { Theme };
 export type ResolvedTheme = 'dark' | 'light' | 'amoled';
 
-/** Clé de persistance dans le LocalStorage du navigateur */
+/** LocalStorage persistence key */
 export const THEME_STORAGE_KEY = 'kato-theme';
 
-/** Liste exhaustive des valeurs de thème valides */
+/** Exhaustive list of valid theme values */
 const VALID_THEMES: readonly Theme[] = ['dark', 'light', 'amoled', 'auto'] as const;
 
 type ThemeListener = (theme: Theme, resolved: ResolvedTheme) => void;
@@ -18,8 +18,8 @@ let mediaQueryList: MediaQueryList | null = null;
 let mediaQueryHandler: ((e: MediaQueryListEvent) => void) | null = null;
 
 /**
- * Résout le thème effectif (dark, light ou amoled).
- * Si le thème est 'auto', utilise prefers-color-scheme du navigateur.
+ * Resolves effective visual theme ('dark', 'light', or 'amoled').
+ * When theme is 'auto', queries the browser's prefers-color-scheme media query.
  */
 export function resolveTheme(theme: Theme): ResolvedTheme {
 	if (theme === 'auto') {
@@ -32,10 +32,10 @@ export function resolveTheme(theme: Theme): ResolvedTheme {
 }
 
 /**
- * Récupère le thème initialement configuré :
- * 1. Lit depuis localStorage('kato-theme')
- * 2. Si non trouvé, utilise bffDefault si fourni et valide
- * 3. Sinon, retourne le thème de repli 'dark'
+ * Retrieves the initially configured theme:
+ * 1. Read from localStorage('kato-theme')
+ * 2. If not found, use bffDefault if valid
+ * 3. Fallback to 'dark'
  */
 export function getInitialTheme(bffDefault?: Theme): Theme {
 	if (typeof window !== 'undefined') {
@@ -45,7 +45,7 @@ export function getInitialTheme(bffDefault?: Theme): Theme {
 				return saved;
 			}
 		} catch (err) {
-			console.warn('[Theme] Erreur lors de la lecture de localStorage:', err);
+			console.warn('[Theme] Error reading localStorage:', err);
 		}
 	}
 	if (bffDefault && VALID_THEMES.includes(bffDefault)) {
@@ -55,26 +55,26 @@ export function getInitialTheme(bffDefault?: Theme): Theme {
 }
 
 /**
- * Retourne le thème actuellement configuré (y compris 'auto').
+ * Returns currently configured theme preference (including 'auto').
  */
 export function getCurrentTheme(): Theme {
 	return currentTheme;
 }
 
 /**
- * Retourne le thème effectif actuellement appliqué ('dark', 'light' ou 'amoled').
+ * Returns currently active resolved theme ('dark', 'light', or 'amoled').
  */
 export function getResolvedTheme(): ResolvedTheme {
 	return currentResolved;
 }
 
 /**
- * Applique le thème sélectionné :
- * - Calcule la valeur résolue
- * - Met à jour l'attribut data-theme sur l'élément <html>
- * - Sauvegarde le choix dans localStorage('kato-theme')
- * - Active/désactive l'écouteur prefers-color-scheme si mode 'auto'
- * - Notifie tous les abonnés
+ * Applies the selected visual theme:
+ * - Resolves effective theme
+ * - Updates data-theme attribute on <html>
+ * - Persists preference to localStorage('kato-theme')
+ * - Attaches or detaches prefers-color-scheme listener when 'auto'
+ * - Notifies all subscribers
  */
 export function applyTheme(theme: Theme): void {
 	currentTheme = theme;
@@ -85,7 +85,7 @@ export function applyTheme(theme: Theme): void {
 		try {
 			localStorage.setItem(THEME_STORAGE_KEY, theme);
 		} catch (err) {
-			console.warn('[Theme] Erreur lors de la sauvegarde dans localStorage:', err);
+			console.warn('[Theme] Error writing to localStorage:', err);
 		}
 
 		if (typeof document !== 'undefined') {
@@ -101,13 +101,13 @@ export function applyTheme(theme: Theme): void {
 		try {
 			listener(theme, resolved);
 		} catch (e) {
-			console.error('[Theme] Erreur dans le listener de thème:', e);
+			console.error('[Theme] Error in theme listener:', e);
 		}
 	}
 }
 
 /**
- * Configure ou retire l'écouteur d'événements matchMedia quand le mode 'auto' est actif.
+ * Configures or removes matchMedia event listener when 'auto' mode is active.
  */
 function setupAutoListener(isAuto: boolean): void {
 	if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -126,7 +126,6 @@ function setupAutoListener(isAuto: boolean): void {
 			if (mediaQueryList.addEventListener) {
 				mediaQueryList.addEventListener('change', mediaQueryHandler);
 			} else {
-				// Fallback pour anciens navigateurs
 				mediaQueryList.addListener?.(mediaQueryHandler);
 			}
 		}
@@ -143,8 +142,8 @@ function setupAutoListener(isAuto: boolean): void {
 }
 
 /**
- * Permet à un composant de s'abonner aux changements de thème.
- * Retourne une fonction de désabonnement.
+ * Subscribes to theme changes.
+ * Returns an unsubscribe callback.
  */
 export function onThemeChange(listener: ThemeListener): () => void {
 	listeners.add(listener);

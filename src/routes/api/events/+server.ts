@@ -3,7 +3,7 @@ import { store } from '$lib/server/store';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = ({ cookies, request }) => {
-	// Vérification de la session si l'authentification est activée
+	// Verify session if authentication is enabled
 	if (isAuthEnabled()) {
 		const token = cookies.get(SESSION_COOKIE_NAME);
 		if (!isValidSession(token)) {
@@ -25,14 +25,14 @@ export const GET: RequestHandler = ({ cookies, request }) => {
 		try {
 			request.signal.removeEventListener('abort', cleanup);
 		} catch {
-			// Ignorer si déjà retiré
+			// Ignore if already removed
 		}
 
 		if (unsubscribe) {
 			try {
 				unsubscribe();
 			} catch (err) {
-				console.error('[SSE] Erreur lors du désabonnement:', err);
+				console.error('[SSE] Error during unsubscription:', err);
 			}
 			unsubscribe = null;
 		}
@@ -46,15 +46,15 @@ export const GET: RequestHandler = ({ cookies, request }) => {
 			try {
 				streamController.close();
 			} catch {
-				// Controller déjà fermé ou annulé
+				// Controller already closed or cancelled
 			}
 			streamController = null;
 		}
 
-		console.log('[SSE] Client déconnecté, nettoyage effectué.');
+		console.log('[SSE] Client disconnected, cleanup completed.');
 	};
 
-	// Écoute de l'interruption réseau du client (ex: fermeture d'onglet ou coupure TCP)
+	// Listen for client abort (e.g. closed tab or dropped TCP connection)
 	if (request.signal.aborted) {
 		cleanup();
 	} else {
@@ -78,26 +78,26 @@ export const GET: RequestHandler = ({ cookies, request }) => {
 					const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 					controller.enqueue(encoder.encode(payload));
 				} catch (err) {
-					console.error('[SSE] Erreur lors de l\'envoi des données, fermeture de la connexion:', err);
+					console.error('[SSE] Error sending data, closing connection:', err);
 					cleanup();
 				}
 			};
 
-			// 1. Envoi immédiat du snapshot initial (DashboardState)
+			// 1. Immediate initial snapshot delivery (DashboardState)
 			sendEvent('init', store.getState());
 
-			// 2. Abonnement au store pour recevoir les deltas
+			// 2. Subscribe to store for delta updates
 			unsubscribe = store.subscribe((delta) => {
 				sendEvent('update', delta);
 			});
 
-			// 3. Heartbeat périodique pour garder la connexion TCP vivante (évite les timeouts)
+			// 3. Periodic heartbeat to keep TCP connection alive (avoids gateway timeouts)
 			heartbeatInterval = setInterval(() => {
 				sendEvent('heartbeat', { timestamp: new Date().toISOString() });
 			}, 15_000);
 		},
 		cancel() {
-			// Nettoyage impératif lors de la déconnexion du client pour éviter les memory leaks
+			// Mandatory cleanup on client disconnect to prevent memory leaks
 			cleanup();
 		}
 	});
@@ -107,7 +107,7 @@ export const GET: RequestHandler = ({ cookies, request }) => {
 			'Content-Type': 'text/event-stream',
 			'Cache-Control': 'no-cache',
 			'Connection': 'keep-alive',
-			// Prévient la mise en cache par les reverse proxies (ex: Nginx, Traefik)
+			// Prevent proxy buffering (e.g. Nginx, Traefik)
 			'X-Accel-Buffering': 'no'
 		}
 	});

@@ -1,17 +1,17 @@
+import {
+    createSession,
+    isAuthEnabled,
+    isValidSession,
+    SESSION_COOKIE_NAME,
+    verifyConfiguredPassword
+} from '$lib/server/auth';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import {
-	createSession,
-	isAuthEnabled,
-	isValidSession,
-	SESSION_COOKIE_NAME,
-	verifyConfiguredPassword
-} from '$lib/server/auth';
 
 /**
- * Garde d'accès au chargement de la page /login.
- * Redirige vers la racine si l'authentification n'est pas activée ou
- * si l'utilisateur possède déjà une session active valide.
+ * Access guard for /login page load.
+ * Redirects to dashboard root if auth is not enabled or if
+ * the user already holds a valid active session.
  */
 export const load: PageServerLoad = ({ cookies }) => {
 	if (!isAuthEnabled()) {
@@ -27,7 +27,7 @@ export const load: PageServerLoad = ({ cookies }) => {
 };
 
 /**
- * Action de formulaire SvelteKit traitant la soumission du mot de passe.
+ * SvelteKit form action processing password login submission.
  */
 export const actions: Actions = {
 	default: async ({ request, cookies }) => {
@@ -43,16 +43,16 @@ export const actions: Actions = {
 			return fail(400, { error: true });
 		}
 
-		// Création du jeton de session aléatoire stocké en mémoire
+		// Create random session token in memory
 		const token = createSession();
 
-		// Pose du cookie HTTP-Only sécurisé (SameSite=Strict, maxAge=30j)
+		// Set secure HTTP-Only session cookie (SameSite=Strict, maxAge=30d)
 		cookies.set(SESSION_COOKIE_NAME, token, {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'strict',
 			secure: process.env.NODE_ENV === 'production',
-			maxAge: 30 * 24 * 60 * 60 // 30 jours en secondes
+			maxAge: 30 * 24 * 60 * 60 // 30 days in seconds
 		});
 
 		throw redirect(303, '/');

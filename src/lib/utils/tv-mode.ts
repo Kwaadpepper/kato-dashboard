@@ -1,23 +1,23 @@
 /**
  * tv-mode.ts
  *
- * Gestionnaire du mode TV pour le tableau de bord Kato (affichage mural 24/7).
- * - Plein écran automatique (requestFullscreen) avec repli gracieux
- * - Masquage automatique du curseur après 5s d'inactivité
- * - Protection anti-marquage d'écran (drift CSS ±3px toutes les 10 min)
- * - Maintien de l'écran allumé via Screen Wake Lock API
- * - Détection d'inactivité globale (30s) avec passage automatique en mode TV
- * - Sortie du mode TV via la touche 'Escape'
+ * TV Mode manager for Kato Dashboard (24/7 wallboard display).
+ * - Automatic fullscreen (requestFullscreen) with graceful fallback
+ * - Automatic cursor hiding after 5s of inactivity
+ * - Anti burn-in screen protection (CSS drift ±3px every 10 min)
+ * - Keeps screen awake via Screen Wake Lock API
+ * - Global inactivity detection (30s) for automatic TV mode transition
+ * - TV mode exit via 'Escape' key
  */
 
 export interface TvModeOptions {
-	/** Élément conteneur sur lequel appliquer le drift anti burn-in (défaut : #tv-container ou body) */
+	/** Container element to apply anti burn-in drift to (default: #tv-container or body) */
 	container?: HTMLElement | null;
-	/** Délai en ms avant de masquer le curseur (défaut : 5000ms) */
+	/** Inactivity timeout in ms before hiding cursor (default: 5000ms) */
 	cursorTimeoutMs?: number;
 }
 
-// État interne du mode TV
+// Internal TV mode state
 let isTvActive = false;
 let activeContainer: HTMLElement | null = null;
 let cursorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -25,7 +25,7 @@ let cursorTimeout = 5000;
 let wakeLockSentinel: WakeLockSentinel | null = null;
 let wasInFullscreen = false;
 
-// Auditeurs de changement d'état
+// State change listeners
 type TvModeListener = (active: boolean) => void;
 const listeners = new Set<TvModeListener>();
 
@@ -40,15 +40,15 @@ function notifyListeners(active: boolean): void {
 }
 
 /**
- * Retourne vrai si le mode TV est actuellement actif.
+ * Returns true if TV mode is currently active.
  */
 export function isTvModeActive(): boolean {
 	return isTvActive;
 }
 
 /**
- * S'abonne aux changements d'état du mode TV.
- * Retourne une fonction de désabonnement.
+ * Subscribes to TV mode state transitions.
+ * Returns an unsubscribe callback.
  */
 export function onTvModeChange(listener: TvModeListener): () => void {
 	listeners.add(listener);
@@ -59,7 +59,7 @@ export function onTvModeChange(listener: TvModeListener): () => void {
 }
 
 /* ============================================================================
- * 1. GESTION DU CURSEUR (cache après 5s d'inactivité)
+ * 1. CURSOR MANAGEMENT (Hide after 5s of inactivity)
  * ============================================================================ */
 
 function hideCursor(): void {
@@ -89,7 +89,7 @@ function startCursorTimer(timeoutMs = 5000): void {
 	window.addEventListener('mousemove', handleMouseMove, { passive: true });
 	window.addEventListener('pointermove', handleMouseMove, { passive: true });
 
-	// Masquage initial après le délai configuré
+	// Initial hide after configured delay
 	cursorTimer = setTimeout(hideCursor, cursorTimeout);
 }
 
@@ -105,7 +105,7 @@ function stopCursorTimer(): void {
 }
 
 /* ============================================================================
- * 2. PROTECTION ANTI BURN-IN (Drift ±3px / 10min via animate-kato-drift)
+ * 2. ANTI BURN-IN PROTECTION (Drift ±3px / 10min via animate-kato-drift)
  * ============================================================================ */
 
 function resolveDriftContainer(container?: HTMLElement | null): HTMLElement | null {
@@ -135,7 +135,7 @@ function stopDrift(): void {
 }
 
 /* ============================================================================
- * 3. SCREEN WAKE LOCK API (maintien de l'écran allumé)
+ * 3. SCREEN WAKE LOCK API (Keep screen turned on)
  * ============================================================================ */
 
 async function acquireWakeLock(): Promise<void> {
@@ -174,7 +174,7 @@ function handleVisibilityChange(): void {
 }
 
 /* ============================================================================
- * 4. PLEIN ÉCRAN & ÉVÉNEMENTS GLOBAUX
+ * 4. FULLSCREEN & GLOBAL EVENT LISTENERS
  * ============================================================================ */
 
 function handleFullscreenChange(): void {
@@ -195,11 +195,10 @@ function handleEscapeKey(e: KeyboardEvent): void {
 	}
 }
 
-// Réessai du plein écran au premier geste utilisateur si le navigateur l'avait bloqué au mount
+// Fullscreen gesture retry if browser initially blocked automatic request on load
 function handleUserGestureForFullscreen(e?: Event): void {
 	if (typeof document === 'undefined') return;
 
-	// Si le clic provient de l'en-tête (ex: réglages, roue crantée, son), on ne déclenche pas le plein écran
 	const target = e?.target as HTMLElement | null;
 	if (target?.closest?.('header')) {
 		return;
@@ -216,21 +215,21 @@ function handleUserGestureForFullscreen(e?: Event): void {
 				req.catch(() => {});
 			}
 		} catch {
-			// Ignorer les erreurs d'activation différée
+			// Silently ignore user gesture rejection
 		}
 	}
 }
 
 /* ============================================================================
- * 5. FONCTIONS PRINCIPALES D'ACTIVATION / SORTIE
+ * 5. CORE ACTIVATION & DEACTIVATION FUNCTIONS
  * ============================================================================ */
 
 /**
- * Active le mode TV pour l'affichage permanent :
- * - Active le plein écran (requestFullscreen) avec capture d'erreur
- * - Démarre le timer curseur (masquage après 5s d'inactivité)
- * - Active le drift anti burn-in (±3px toutes les 10min via animate-kato-drift)
- * - Maintient l'écran allumé via Wake Lock API
+ * Activates TV mode for continuous unattended display:
+ * - Requests fullscreen with error fallback
+ * - Starts inactivity cursor timer (hides after 5s)
+ * - Enables anti burn-in drift (±3px every 10min via animate-kato-drift)
+ * - Keeps screen awake via Screen Wake Lock API
  */
 export async function enterTvMode(
 	optionsOrContainer?: TvModeOptions | HTMLElement | null
@@ -249,7 +248,7 @@ export async function enterTvMode(
 		}
 	}
 
-	// Évite les doubles activations redondantes
+	// Avoid redundant activations
 	if (isTvActive) {
 		if (container && activeContainer !== container) {
 			stopDrift();
@@ -261,7 +260,7 @@ export async function enterTvMode(
 	isTvActive = true;
 	notifyListeners(true);
 
-	// 1. Plein écran
+	// 1. Fullscreen
 	if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
 		try {
 			const req = document.documentElement.requestFullscreen();
@@ -281,16 +280,16 @@ export async function enterTvMode(
 		wasInFullscreen = true;
 	}
 
-	// 2. Timer curseur (masquage après 5s d'inactivité)
+	// 2. Cursor timer
 	startCursorTimer(cursorMs);
 
-	// 3. Drift anti burn-in
+	// 3. Anti burn-in drift
 	startDrift(container);
 
 	// 4. Wake Lock API
 	void acquireWakeLock();
 
-	// 5. Enregistrement des écouteurs globaux
+	// 5. Global event listeners
 	if (typeof window !== 'undefined') {
 		window.addEventListener('keydown', handleEscapeKey);
 		window.addEventListener('keypress', handleEscapeKey);
@@ -301,11 +300,11 @@ export async function enterTvMode(
 }
 
 /**
- * Désactive le mode TV :
- * - Quitte le plein écran si actif
- * - Restaure le curseur immédiatement
- * - Arrête le drift anti burn-in
- * - Libère le Screen Wake Lock
+ * Deactivates TV mode:
+ * - Exits fullscreen if active
+ * - Restores mouse cursor immediately
+ * - Stops anti burn-in drift
+ * - Releases Screen Wake Lock
  */
 export async function exitTvMode(): Promise<void> {
 	if (typeof document === 'undefined') return;
@@ -314,7 +313,7 @@ export async function exitTvMode(): Promise<void> {
 	isTvActive = false;
 	notifyListeners(false);
 
-	// 1. Quitter le plein écran
+	// 1. Exit fullscreen
 	if (document.fullscreenElement && document.exitFullscreen) {
 		try {
 			const exit = document.exitFullscreen();
@@ -329,16 +328,16 @@ export async function exitTvMode(): Promise<void> {
 	}
 	wasInFullscreen = false;
 
-	// 2. Restaurer le curseur
+	// 2. Restore cursor
 	stopCursorTimer();
 
-	// 3. Arrêter le drift
+	// 3. Stop drift
 	stopDrift();
 
-	// 4. Libérer le wake lock
+	// 4. Release wake lock
 	await releaseWakeLock();
 
-	// 5. Nettoyer les écouteurs globaux
+	// 5. Clean up event listeners
 	if (typeof window !== 'undefined') {
 		window.removeEventListener('keydown', handleEscapeKey);
 		window.removeEventListener('keypress', handleEscapeKey);
@@ -347,14 +346,14 @@ export async function exitTvMode(): Promise<void> {
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 	}
 
-	// 6. Réarmer immédiatement la détection d'inactivité si elle est active
+	// 6. Rearm inactivity timer if active
 	if (inactivityResetFn) {
 		inactivityResetFn();
 	}
 }
 
 /**
- * Bascule l'état du mode TV (actif / inactif).
+ * Toggles TV mode state.
  */
 export async function toggleTvMode(
 	optionsOrContainer?: TvModeOptions | HTMLElement | null
@@ -367,7 +366,7 @@ export async function toggleTvMode(
 }
 
 /* ============================================================================
- * 6. DÉTECTION D'INACTIVITÉ (si pas de mousemove/keypress pendant 30s → auto-enter)
+ * 6. INACTIVITY DETECTION (Auto-enter TV mode after 30s of inactivity)
  * ============================================================================ */
 
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
@@ -375,12 +374,12 @@ let inactivityCleanup: (() => void) | null = null;
 let inactivityResetFn: (() => void) | null = null;
 
 /**
- * Surveille l'inactivité de l'utilisateur (30s par défaut sans mousemove/keypress).
- * Active automatiquement le mode TV en l'absence d'activité.
+ * Monitors user inactivity (default: 30s without mousemove/keypress).
+ * Automatically transitions to TV mode when inactive.
  *
- * @param timeoutMs Délai d'inactivité avant auto-enter (défaut : 30 000 ms)
- * @param onInactive Action à exécuter à l'expiration (défaut : enterTvMode)
- * @returns Fonction de nettoyage désactivant la surveillance
+ * @param timeoutMs Inactivity timeout in ms (default: 30,000ms)
+ * @param onInactive Callback executed on timeout (default: enterTvMode)
+ * @returns Cleanup function to stop monitoring
  */
 export function startInactivityDetection(
 	timeoutMs = 30_000,
@@ -397,7 +396,6 @@ export function startInactivityDetection(
 			clearTimeout(inactivityTimer);
 			inactivityTimer = null;
 		}
-		// Ne déclenche l'auto-enter que si le mode TV n'est pas déjà actif
 		if (!isTvActive) {
 			inactivityTimer = setTimeout(() => {
 				if (!isTvActive) {
@@ -416,7 +414,6 @@ export function startInactivityDetection(
 		window.addEventListener(event, resetTimer, eventOptions);
 	}
 
-	// Déclenche le compte à rebours initial
 	resetTimer();
 
 	inactivityCleanup = () => {
@@ -435,7 +432,7 @@ export function startInactivityDetection(
 }
 
 /**
- * Arrête la détection d'inactivité active.
+ * Stops active inactivity detection.
  */
 export function stopInactivityDetection(): void {
 	if (inactivityCleanup) {

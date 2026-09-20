@@ -1,12 +1,13 @@
 import type {
-	NormalizedIncident,
-	NormalizedProbe,
-	ProbeStatusEvent,
-	UptimeBarSlot
+    NormalizedIncident,
+    NormalizedProbe,
+    ProbeStatusEvent,
+    SupportedLocale,
+    UptimeBarSlot
 } from '$lib/types';
 
 /**
- * Statistiques synthétiques de l'historique sur la fenêtre glissante de 24 heures.
+ * Summary statistics for probe availability history over a sliding 24-hour window.
  */
 export interface ProbeHistoryStats {
 	totalIncidents: number;
@@ -16,26 +17,23 @@ export interface ProbeHistoryStats {
 	currentStreakSeconds: number;
 }
 
-/** Durée d'une journée en millisecondes */
+/** One day in milliseconds */
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Durée d'une heure en millisecondes */
+/** One hour in milliseconds */
 const HOUR_MS = 60 * 60 * 1000;
 
-import type { SupportedLocale } from '$lib/types';
-
 /**
- * Construit les 24 créneaux horaires représentant les 24 dernières heures
- * (de H-24 jusqu'à maintenant).
+ * Builds 24 hourly slots representing the past 24 hours (from H-24 to now).
  *
- * @param incidents  Liste des incidents affectant la sonde.
- * @param nowInput   Date de référence (défaut : Date.now()).
- * @param locale     Langue pour les libellés (défaut : 'fr').
- * @returns          Tableau de 24 UptimeBarSlot ordonnés chronologiquement (slot 0 = H-24).
+ * @param incidents  List of probe incidents
+ * @param nowInput   Reference timestamp (default: Date.now())
+ * @param locale     Language for labels (default: 'en')
+ * @returns          Array of 24 chronologically ordered UptimeBarSlot items (slot 0 = H-24)
  */
 export function build24hSlots(
 	incidents: NormalizedIncident[],
 	nowInput: Date | number = Date.now(),
-	locale: SupportedLocale = 'fr'
+	locale: SupportedLocale = 'en'
 ): UptimeBarSlot[] {
 	const nowMs = typeof nowInput === 'number' ? nowInput : nowInput.getTime();
 	const windowStartMs = nowMs - DAY_MS;
@@ -57,7 +55,7 @@ export function build24hSlots(
 			const incStart = new Date(inc.startedAt).getTime();
 			const incEnd = inc.resolvedAt ? new Date(inc.resolvedAt).getTime() : nowMs;
 
-			// Vérification du chevauchement avec le créneau horaire
+			// Check overlap with the current hourly slot
 			if (incStart < slotEndMs && incEnd > slotStartMs) {
 				incidentCount++;
 				if (inc.type === 'down') {
@@ -73,7 +71,7 @@ export function build24hSlots(
 			}
 		}
 
-		// Statut dominant du créneau
+		// Dominant status for this slot
 		let status: 'up' | 'down' | 'degraded' | 'paused' | 'empty' = 'up';
 		if (hasDown) {
 			status = 'down';
@@ -81,7 +79,7 @@ export function build24hSlots(
 			status = 'degraded';
 		}
 
-		// Formatage du libellé pour infobulle
+		// Tooltip label formatting
 		const timeFormat: Intl.DateTimeFormatOptions = {
 			hour: '2-digit',
 			minute: '2-digit',
@@ -117,8 +115,8 @@ export function build24hSlots(
 }
 
 /**
- * Construit la liste chronologique des événements d'incident (DOWN, DEGRADED, UP)
- * pour une sonde donnée, triés antéchronologiquement (le plus récent en tête).
+ * Builds chronological list of incident events for a probe over 24h,
+ * ordered in reverse chronological order (newest first).
  */
 export function buildProbeHistoryEvents(
 	probe: NormalizedProbe,
@@ -128,7 +126,6 @@ export function buildProbeHistoryEvents(
 	const nowMs = typeof nowInput === 'number' ? nowInput : nowInput.getTime();
 	const windowStartMs = nowMs - DAY_MS;
 
-	// Filtrer les incidents appartenant à cette sonde et chevauchant les 24h
 	const probeIncidents = incidents.filter((inc) => {
 		if (inc.probeId !== probe.id) return false;
 		const incEnd = inc.resolvedAt ? new Date(inc.resolvedAt).getTime() : nowMs;
@@ -142,7 +139,6 @@ export function buildProbeHistoryEvents(
 
 		let duration = inc.duration;
 		if (duration === null || duration === undefined) {
-			// Incident actif en cours : calculer la durée jusqu'à maintenant
 			duration = Math.max(1, Math.round((nowMs - startedMs) / 1000));
 		}
 
@@ -152,16 +148,15 @@ export function buildProbeHistoryEvents(
 			timestamp: inc.startedAt,
 			resolvedAt: inc.resolvedAt,
 			duration,
-			cause: inc.cause || (inc.type === 'down' ? 'Interruption de service' : 'Instabilité / latence')
+			cause: inc.cause || (inc.type === 'down' ? 'Service outage' : 'Instability / high latency')
 		});
 	}
 
-	// Tri antéchronologique (les plus récents en premier)
 	return events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 /**
- * Calcule les métriques synthétiques de disponibilité et de fiabilité sur 24h.
+ * Computes availability and reliability summary metrics over 24 hours.
  */
 export function computeProbeHistoryStats(
 	probe: NormalizedProbe,
@@ -202,7 +197,7 @@ export function computeProbeHistoryStats(
 		}
 	}
 
-	// Disponibilité en pourcentage
+	// Availability percentage calculation
 	let availabilityPercentage = 100;
 	if (probe.uptime24h !== null && probe.uptime24h !== undefined) {
 		availabilityPercentage = probe.uptime24h;
@@ -212,7 +207,7 @@ export function computeProbeHistoryStats(
 		availabilityPercentage = Math.round(ratio * 10000) / 100;
 	}
 
-	// Durée de la séquence continue actuelle
+	// Continuous streak duration calculation
 	let currentStreakSeconds: number;
 	if (probe.status === 'down') {
 		const startMs = probe.downSince
@@ -224,7 +219,6 @@ export function computeProbeHistoryStats(
 	} else if (lastResolvedMs > 0) {
 		currentStreakSeconds = Math.max(0, Math.round((nowMs - lastResolvedMs) / 1000));
 	} else {
-		// Aucune panne récente : au moins 24h
 		currentStreakSeconds = 86400;
 	}
 
@@ -238,10 +232,10 @@ export function computeProbeHistoryStats(
 }
 
 /**
- * Formate une durée en secondes sous une forme compacte et lisible.
- * Exemples : "45s", "3m 12s", "2h 15m", "1j 4h" (FR) ou "1d 4h" (EN).
+ * Formats a duration in seconds compactly.
+ * Examples: "45s", "3m 12s", "2h 15m", "1d 4h" (EN) or "1j 4h" (FR).
  */
-export function formatDurationCompact(seconds: number, locale: SupportedLocale = 'fr'): string {
+export function formatDurationCompact(seconds: number, locale: SupportedLocale = 'en'): string {
 	if (!seconds || seconds <= 0) return '0s';
 
 	const sec = Math.floor(seconds);
@@ -263,19 +257,19 @@ export function formatDurationCompact(seconds: number, locale: SupportedLocale =
 
 	const days = Math.floor(hours / 24);
 	const remainingHours = hours % 24;
-	const dayUnit = locale === 'en' ? 'd' : 'j';
+	const dayUnit = locale === 'fr' ? 'j' : 'd';
 	return remainingHours > 0 ? `${days}${dayUnit} ${remainingHours}h` : `${days}${dayUnit}`;
 }
 
 /**
- * Formate une date ISO en heure et jour relatifs lisibles.
- * Exemples : "Aujourd'hui à 14:30", "Hier à 22:15", "19/09 à 14:30" (FR)
- * ou "Today at 14:30", "Yesterday at 22:15", "09/19 at 14:30" (EN).
+ * Formats an ISO date into relative readable time and day.
+ * Examples: "Today at 14:30", "Yesterday at 22:15", "09/19 at 14:30" (EN)
+ * or "Aujourd'hui à 14:30", "Hier à 22:15", "19/09 à 14:30" (FR).
  */
 export function formatEventDateTime(
 	isoString: string,
 	nowInput: Date | number = Date.now(),
-	locale: SupportedLocale = 'fr'
+	locale: SupportedLocale = 'en'
 ): string {
 	if (!isoString) return '—';
 
@@ -301,22 +295,17 @@ export function formatEventDateTime(
 		hour12: false
 	});
 
-	if (locale === 'en') {
-		if (isToday) return `Today at ${timeStr}`;
-		if (isYesterday) return `Yesterday at ${timeStr}`;
+	if (locale === 'fr') {
+		if (isToday) return `Aujourd'hui à ${timeStr}`;
+		if (isYesterday) return `Hier à ${timeStr}`;
 		const day = String(date.getDate()).padStart(2, '0');
 		const month = String(date.getMonth() + 1).padStart(2, '0');
-		return `${month}/${day} at ${timeStr}`;
+		return `${day}/${month} à ${timeStr}`;
 	}
 
-	if (isToday) {
-		return `Aujourd'hui à ${timeStr}`;
-	}
-	if (isYesterday) {
-		return `Hier à ${timeStr}`;
-	}
-
+	if (isToday) return `Today at ${timeStr}`;
+	if (isYesterday) return `Yesterday at ${timeStr}`;
 	const day = String(date.getDate()).padStart(2, '0');
 	const month = String(date.getMonth() + 1).padStart(2, '0');
-	return `${day}/${month} à ${timeStr}`;
+	return `${month}/${day} at ${timeStr}`;
 }

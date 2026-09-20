@@ -1,18 +1,20 @@
 /**
  * clock.ts
  *
- * Utilitaire de gestion de l'horloge pour Kato Dashboard.
- * Permet de configurer et persister :
- * - Le format d'affichage de l'heure : 24h ou 12h (AM/PM)
- * - Le fuseau horaire : Local, UTC, ou fuseau IANA personnalisé
- * - L'affichage ou masquage des secondes (showSeconds)
+ * Clock utility module for Kato Dashboard.
+ * Manages configuration and persistence for:
+ * - Time format: 24h or 12h (AM/PM)
+ * - Timezone: Local, UTC, or custom IANA timezone
+ * - Seconds display toggle (showSeconds)
  */
+
+import type { SupportedLocale } from '$lib/types';
 
 export type TimeFormat = '24h' | '12h';
 
 export interface ClockConfig {
 	format: TimeFormat;
-	timeZone: string; // 'local' ou identifiant IANA (ex: 'UTC', 'Europe/Paris')
+	timeZone: string; // 'local' or IANA identifier (e.g. 'UTC', 'America/New_York')
 	showSeconds: boolean;
 }
 
@@ -27,14 +29,14 @@ export interface TimeZonePreset {
 }
 
 export const TIME_ZONE_PRESETS: readonly TimeZonePreset[] = [
-	{ id: 'local', label: 'Local (Système)', short: 'LOC' },
-	{ id: 'UTC', label: 'UTC (Temps Universel)', short: 'UTC' },
+	{ id: 'local', label: 'Local (System)', short: 'LOC' },
+	{ id: 'UTC', label: 'UTC (Coordinated Universal Time)', short: 'UTC' },
+	{ id: 'Europe/London', label: 'London (GMT/BST)', short: 'LON' },
 	{ id: 'Europe/Paris', label: 'Paris (CET/CEST)', short: 'PAR' },
-	{ id: 'Europe/London', label: 'Londres (GMT/BST)', short: 'LON' },
 	{ id: 'America/New_York', label: 'New York (EST/EDT)', short: 'NYC' },
 	{ id: 'America/Los_Angeles', label: 'Los Angeles (PST/PDT)', short: 'LAX' },
 	{ id: 'Asia/Tokyo', label: 'Tokyo (JST)', short: 'TYO' },
-	{ id: 'Asia/Singapore', label: 'Singapour (SGT)', short: 'SIN' },
+	{ id: 'Asia/Singapore', label: 'Singapore (SGT)', short: 'SIN' },
 	{ id: 'Australia/Sydney', label: 'Sydney (AEST)', short: 'SYD' }
 ] as const;
 
@@ -61,7 +63,7 @@ function notifyListeners(): void {
 }
 
 /**
- * Récupère le format initial depuis le localStorage ou les réglages BFF (défaut : '24h').
+ * Retrieves the initial time format from localStorage or BFF settings (default: '24h').
  */
 export function getInitialTimeFormat(bffDefault?: TimeFormat): TimeFormat {
 	if (typeof window !== 'undefined') {
@@ -71,7 +73,7 @@ export function getInitialTimeFormat(bffDefault?: TimeFormat): TimeFormat {
 				return saved;
 			}
 		} catch (err) {
-			console.warn('[Clock] Erreur lecture format horloge:', err);
+			console.warn('[Clock] Error reading time format:', err);
 		}
 	}
 	if (bffDefault === '12h' || bffDefault === '24h') {
@@ -81,7 +83,7 @@ export function getInitialTimeFormat(bffDefault?: TimeFormat): TimeFormat {
 }
 
 /**
- * Récupère le fuseau horaire initial depuis le localStorage ou les réglages BFF (défaut : 'local').
+ * Retrieves the initial timezone from localStorage or BFF settings (default: 'local').
  */
 export function getInitialTimeZone(bffDefault?: string): string {
 	if (typeof window !== 'undefined') {
@@ -91,7 +93,7 @@ export function getInitialTimeZone(bffDefault?: string): string {
 				return saved;
 			}
 		} catch (err) {
-			console.warn('[Clock] Erreur lecture fuseau horaire:', err);
+			console.warn('[Clock] Error reading timezone:', err);
 		}
 	}
 	if (bffDefault && typeof bffDefault === 'string' && bffDefault.length > 0) {
@@ -101,7 +103,7 @@ export function getInitialTimeZone(bffDefault?: string): string {
 }
 
 /**
- * Récupère la préférence d'affichage des secondes depuis le localStorage ou BFF (défaut : true).
+ * Retrieves the seconds display preference from localStorage or BFF settings (default: true).
  */
 export function getInitialShowSeconds(bffDefault?: boolean): boolean {
 	if (typeof window !== 'undefined') {
@@ -111,7 +113,7 @@ export function getInitialShowSeconds(bffDefault?: boolean): boolean {
 				return saved === 'true';
 			}
 		} catch (err) {
-			console.warn('[Clock] Erreur lecture affichage secondes:', err);
+			console.warn('[Clock] Error reading show seconds preference:', err);
 		}
 	}
 	if (typeof bffDefault === 'boolean') {
@@ -121,7 +123,7 @@ export function getInitialShowSeconds(bffDefault?: boolean): boolean {
 }
 
 /**
- * Initialise l'état de l'horloge depuis le stockage local et les réglages BFF.
+ * Initializes clock state from local storage and BFF defaults.
  */
 export function initClockConfig(bffDefaults?: Partial<ClockConfig>): ClockConfig {
 	currentFormat = getInitialTimeFormat(bffDefaults?.format);
@@ -135,7 +137,7 @@ export function initClockConfig(bffDefaults?: Partial<ClockConfig>): ClockConfig
 }
 
 /**
- * Définit le format d'affichage (24h ou 12h) et persiste dans le localStorage.
+ * Sets the clock display format (24h or 12h) and persists to localStorage.
  */
 export function setTimeFormat(format: TimeFormat): void {
 	if (format !== '24h' && format !== '12h') return;
@@ -145,7 +147,7 @@ export function setTimeFormat(format: TimeFormat): void {
 		try {
 			localStorage.setItem(CLOCK_FORMAT_STORAGE_KEY, format);
 		} catch (err) {
-			console.warn('[Clock] Erreur écriture format horloge:', err);
+			console.warn('[Clock] Error writing time format:', err);
 		}
 	}
 
@@ -153,7 +155,7 @@ export function setTimeFormat(format: TimeFormat): void {
 }
 
 /**
- * Définit le fuseau horaire et persiste dans le localStorage.
+ * Sets the active timezone and persists to localStorage.
  */
 export function setTimeZone(timeZone: string): void {
 	currentTimeZone = timeZone;
@@ -162,7 +164,7 @@ export function setTimeZone(timeZone: string): void {
 		try {
 			localStorage.setItem(CLOCK_TIMEZONE_STORAGE_KEY, timeZone);
 		} catch (err) {
-			console.warn('[Clock] Erreur écriture fuseau horaire:', err);
+			console.warn('[Clock] Error writing timezone:', err);
 		}
 	}
 
@@ -170,7 +172,7 @@ export function setTimeZone(timeZone: string): void {
 }
 
 /**
- * Active ou désactive l'affichage des secondes et persiste dans le localStorage.
+ * Toggles seconds display and persists to localStorage.
  */
 export function setShowSeconds(show: boolean): void {
 	currentShowSeconds = show;
@@ -179,7 +181,7 @@ export function setShowSeconds(show: boolean): void {
 		try {
 			localStorage.setItem(CLOCK_SHOW_SECONDS_STORAGE_KEY, show.toString());
 		} catch (err) {
-			console.warn('[Clock] Erreur écriture affichage secondes:', err);
+			console.warn('[Clock] Error writing show seconds preference:', err);
 		}
 	}
 
@@ -187,7 +189,7 @@ export function setShowSeconds(show: boolean): void {
 }
 
 /**
- * Retourne la configuration courante de l'horloge.
+ * Returns the current clock configuration.
  */
 export function getClockConfig(): ClockConfig {
 	return {
@@ -198,7 +200,7 @@ export function getClockConfig(): ClockConfig {
 }
 
 /**
- * S'abonne aux changements de configuration de l'horloge.
+ * Subscribes to clock configuration changes.
  */
 export function onClockConfigChange(listener: ClockListener): () => void {
 	listeners.add(listener);
@@ -212,14 +214,12 @@ export function onClockConfigChange(listener: ClockListener): () => void {
 	};
 }
 
-import type { SupportedLocale } from '$lib/types';
-
 /**
- * Formate une date selon la configuration d'horloge spécifiée.
+ * Formats a date according to the given clock configuration.
  *
- * @param date Objet Date à formater
- * @param config Configuration (format 12h/24h, timeZone et showSeconds)
- * @param options Options complémentaires (ex: forceNoSeconds, includeZoneSuffix, locale)
+ * @param date Date object to format
+ * @param config Clock configuration
+ * @param options Supplementary formatting options
  */
 export function formatClock(
 	date: Date,
@@ -230,7 +230,7 @@ export function formatClock(
 	const is12h = config.format === '12h';
 	const ianaTimeZone = config.timeZone === 'local' ? undefined : config.timeZone;
 	const shouldIncludeSeconds = config.showSeconds && !forceNoSeconds;
-	const localeCode = locale ? (locale === 'fr' ? 'fr-FR' : 'en-US') : (is12h ? 'en-US' : 'fr-FR');
+	const localeCode = locale ? (locale === 'fr' ? 'fr-FR' : 'en-US') : 'en-US';
 
 	try {
 		const timeString = date.toLocaleTimeString(localeCode, {
@@ -249,7 +249,7 @@ export function formatClock(
 
 		return timeString;
 	} catch {
-		// Repli de secours en cas d'identifiant de fuseau invalide
+		// Fallback formatting on invalid timezone identifier
 		return date.toLocaleTimeString(localeCode, {
 			hour: '2-digit',
 			minute: '2-digit',
@@ -260,7 +260,7 @@ export function formatClock(
 }
 
 /**
- * Retourne le libellé court du fuseau horaire pour affichage condensé.
+ * Returns a short label for a timezone preset.
  */
 export function getTimeZoneShortLabel(timeZone: string): string {
 	const preset = TIME_ZONE_PRESETS.find((p) => p.id === timeZone);

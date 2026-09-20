@@ -1,21 +1,21 @@
 import type { GridDensity, GridInput, GridLayout } from '$lib/types';
 
 /**
- * Hauteur par défaut du bandeau d'en-tête (Header) en pixels.
+ * Default Header bar height in pixels.
  */
 export const HEADER_HEIGHT = 48;
 
 /**
- * Hauteur par défaut du bandeau d'alertes d'incidents (IncidentBar) en pixels.
+ * Default IncidentBar height in pixels.
  */
 export const INCIDENT_BAR_HEIGHT = 40;
 
 /**
- * Détermine l'espacement inter-cellules (gap) optimal en pixels selon la taille de cellule.
- * - ≥ 200px : 12px
- * - ≥ 100px : 8px
- * - ≥ 50px  : 6px
- * - < 50px  : 4px
+ * Determines the optimal inter-cell gap in pixels based on cell size.
+ * - >= 200px : 12px
+ * - >= 100px : 8px
+ * - >= 50px  : 6px
+ * - < 50px   : 4px
  */
 export function getGapForCellSize(cellSize: number): number {
 	if (cellSize >= 200) return 12;
@@ -114,18 +114,15 @@ function rebalanceColumnsToFit(
 }
 
 /**
- * Calcule la géométrie optimale de la grille (colonnes, lignes, taille de cellule, gap, densité)
- * pour afficher l'ensemble des sondes sans aucun scroll vertical ni horizontal (zéro scroll).
+ * Calculates the optimal grid geometry (columns, rows, cell size, gap, density)
+ * to display all probes without vertical or horizontal scroll (zero scroll).
  *
- * Étapes algorithmiques :
- * 1. Calcul de l'aire disponible (viewport - header - incident bar)
- * 2. Estimation de la taille idéale de cellule : sqrt(aire / nbSondes)
- * 3. Ajustement du gap selon la taille (12px, 8px, 6px, 4px)
- * 4. Calcul du nombre de colonnes : floor(largeur / (cellSize + gap))
- * 5. Calcul du nombre de lignes : ceil(nbSondes / colonnes)
- * 6. Boucle de convergence : réduction progressive de cellSize si tout ne tient pas en hauteur
- * 7. Qualification de la densité : large (≥200px), medium (≥100px), compact (≥60px), micro (≥30px), pixel (<30px)
- *    avec bascule automatique en haute densité (>120 sondes) pour préserver la lisibilité.
+ * Algorithm steps:
+ * 1. Calculate usable available area (viewport - header - incident bar - padding)
+ * 2. Search for the optimal grid geometry maximizing cell size across candidate columns
+ * 3. Adapt gap based on cell size (12px, 8px, 6px, 4px)
+ * 4. Check boundaries and rebalance if necessary
+ * 5. Determine display density: large (>=180px), medium (>=90px), compact (>=60px), micro (>=25px), pixel (<25px)
  */
 export function calculateGrid(input: GridInput): GridLayout {
 	const {
@@ -137,7 +134,7 @@ export function calculateGrid(input: GridInput): GridLayout {
 		isMobile = false
 	} = input;
 
-	// Cas limite : aucune sonde à afficher
+	// Edge case: no probes to display
 	if (probeCount <= 0) {
 		return {
 			density: 'large',
@@ -149,8 +146,8 @@ export function calculateGrid(input: GridInput): GridLayout {
 		};
 	}
 
-	// 1. Calcul de l'espace utile disponible
-	// On soustrait 16px (padding ProbeGrid p-2 = 8px × 2 côtés) pour éviter le dépassement.
+	// 1. Calculate usable space
+	// Subtract 16px (ProbeGrid p-2 padding = 8px x 2 sides) to prevent overflow
 	const PROBEGRID_PADDING = 16;
 	const availableWidth = Math.max(1, viewportWidth - PROBEGRID_PADDING);
 	const availableHeight = Math.max(
@@ -158,9 +155,7 @@ export function calculateGrid(input: GridInput): GridLayout {
 		viewportHeight - headerHeight - incidentBarHeight - PROBEGRID_PADDING
 	);
 
-	// 2. Recherche de la meilleure géométrie de grille pour remplir le viewport sans scroll.
-	// On maximise la taille de cellule en testant plusieurs nombres de colonnes, puis on garde
-	// celle qui donne la plus grande cellule tout en restant dans la largeur et la hauteur disponibles.
+	// 2. Find best grid geometry to fill viewport without scrolling
 	const absoluteMinCellSize = 2; // Allow small cells for pixel density on all devices
 	let { columns, rows, cellSize, gap } = findBestGridGeometry(
 		probeCount,
@@ -189,7 +184,7 @@ export function calculateGrid(input: GridInput): GridLayout {
 		));
 	}
 
-	// 7. Détermination de la densité d'affichage
+	// 3. Determine display density
 	let density: GridDensity;
 	if (cellSize >= 180) density = 'large';
 	else if (cellSize >= 90) density = 'medium';
@@ -198,7 +193,7 @@ export function calculateGrid(input: GridInput): GridLayout {
 	else if (cellSize >= 25) density = 'micro';
 	else density = 'pixel';
 
-	// Si la grille déborde hors mobile, on bascule en pixel.
+	// If grid overflows outside mobile, fall back to pixel density
 	if (!isMobile && !overflows) {
 		overflows = hasGridOverflow(columns, rows, cellSize, gap, availableWidth, availableHeight);
 		if (overflows || cellSize <= 24) {
@@ -206,7 +201,7 @@ export function calculateGrid(input: GridInput): GridLayout {
 		}
 	}
 
-	// Gap minimal en mode pixel pour des pixels collés continus.
+	// Minimal gap in pixel mode for contiguous pixel look
 	if (density === 'pixel') {
 		gap = cellSize <= 8 ? 0 : 1;
 		if (!isMobile || input.forceZeroScroll) {
@@ -224,28 +219,5 @@ export function calculateGrid(input: GridInput): GridLayout {
 	};
 }
 
-// Re-exporte les types associés pour commodité d'importation
+// Re-export associated types for convenience
 export type { GridDensity, GridInput, GridLayout };
-
-// ============================================================================
-// TESTS DE VALIDATION & SCÉNARIOS TYPES (Conformité docs/GRID_ALGORITHM.md)
-// ============================================================================
-/*
-  Exemples vérifiés sur résolution standard 1920×1080 (header=48px, incidentBar=40px) :
-  Espace utile = 1920 × 992 px
-
-  1. Test 4 sondes :
-     calculateGrid({ viewportWidth: 1920, viewportHeight: 1080, probeCount: 4, headerHeight: 48, incidentBarHeight: 40 })
-     → cellSize ~484px (≥ 200px)
-     → density: 'large' (colonnes: 3, lignes: 2, gap: 12)
-
-  2. Test 50 sondes :
-     calculateGrid({ viewportWidth: 1920, viewportHeight: 1080, probeCount: 50, headerHeight: 48, incidentBarHeight: 40 })
-     → cellSize ~183px (≥ 100px)
-     → density: 'medium' (colonnes: 10, lignes: 5, gap: 8)
-
-  3. Test 200 sondes :
-     calculateGrid({ viewportWidth: 1920, viewportHeight: 1080, probeCount: 200, headerHeight: 48, incidentBarHeight: 40 })
-     → cellSize ~89px
-     → density: 'micro' (mode haute densité pastilles ProbeDot, 200 sondes > 120)
-*/

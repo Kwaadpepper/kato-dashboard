@@ -1,17 +1,17 @@
 import type {
-	ClientDefaultSettings,
-	MarqueeSpeed,
-	SortMode,
-	SupportedLocale,
-	Theme,
-	TimeFormat
+    ClientDefaultSettings,
+    MarqueeSpeed,
+    SortMode,
+    SupportedLocale,
+    Theme,
+    TimeFormat
 } from '$lib/types';
 
 /**
- * Valeurs de repli strictes si les variables d'environnement ne sont pas spécifiées.
+ * Strict fallback defaults applied when corresponding environment variables are absent.
  */
 export const FALLBACK_SETTINGS: ClientDefaultSettings = {
-	locale: 'fr',
+	locale: 'en',
 	theme: 'dark',
 	timeFormat: '24h',
 	timeZone: 'local',
@@ -21,7 +21,7 @@ export const FALLBACK_SETTINGS: ClientDefaultSettings = {
 	sortMode: 'smart'
 };
 
-const VALID_LOCALES: ReadonlySet<string> = new Set<SupportedLocale>(['fr', 'en']);
+const VALID_LOCALES: ReadonlySet<string> = new Set<SupportedLocale>(['en', 'fr']);
 const VALID_THEMES: ReadonlySet<string> = new Set<Theme>(['dark', 'light', 'amoled', 'auto']);
 const VALID_TIME_FORMATS: ReadonlySet<string> = new Set<TimeFormat>(['24h', '12h']);
 const VALID_MARQUEE_SPEEDS: ReadonlySet<string> = new Set<MarqueeSpeed>(['slow', 'normal', 'fast']);
@@ -36,11 +36,11 @@ function parseBoolean(value: string | undefined, defaultValue: boolean): boolean
 }
 
 /**
- * Extrait et valide les réglages par défaut configurés côté serveur (BFF).
- * Lit par défaut `process.env` ou le dictionnaire injecté (utile pour les tests).
+ * Extracts and validates server-configured default client settings.
+ * Defaults to reading `process.env` or an injected environment map (useful in tests).
  *
- * @param env Dictionnaire optionnel de variables d'environnement
- * @returns Objet typé des réglages par défaut sécurisés pour le client
+ * @param env Optional environment variables dictionary
+ * @returns Strongly-typed safe client settings object
  */
 export function getDefaultClientSettings(
 	env: Record<string, string | undefined> = process.env
@@ -50,36 +50,36 @@ export function getDefaultClientSettings(
 	const locale: SupportedLocale =
 		rawLocale && VALID_LOCALES.has(rawLocale) ? (rawLocale as SupportedLocale) : FALLBACK_SETTINGS.locale;
 
-	// 2. Thème
+	// 2. Theme
 	const rawTheme = env.KATO_DEFAULT_THEME?.trim().toLowerCase();
 	const theme: Theme =
 		rawTheme && VALID_THEMES.has(rawTheme) ? (rawTheme as Theme) : FALLBACK_SETTINGS.theme;
 
-	// 3. Format horaire
+	// 3. Time format
 	const rawFormat = env.KATO_DEFAULT_TIME_FORMAT?.trim().toLowerCase();
 	const timeFormat: TimeFormat =
 		rawFormat && VALID_TIME_FORMATS.has(rawFormat)
 			? (rawFormat as TimeFormat)
 			: FALLBACK_SETTINGS.timeFormat;
 
-	// 4. Fuseau horaire
+	// 4. Timezone
 	const rawTimeZone = env.KATO_DEFAULT_TIME_ZONE?.trim();
 	const timeZone = rawTimeZone && rawTimeZone.length > 0 ? rawTimeZone : FALLBACK_SETTINGS.timeZone;
 
-	// 5. Affichage des secondes
+	// 5. Show seconds
 	const showSeconds = parseBoolean(env.KATO_DEFAULT_SHOW_SECONDS, FALLBACK_SETTINGS.showSeconds);
 
-	// 6. Alertes sonores
+	// 6. Sound alerts
 	const soundEnabled = parseBoolean(env.KATO_DEFAULT_SOUND_ENABLED, FALLBACK_SETTINGS.soundEnabled);
 
-	// 7. Vitesse de défilement
+	// 7. Marquee speed
 	const rawSpeed = env.KATO_DEFAULT_MARQUEE_SPEED?.trim().toLowerCase();
 	const marqueeSpeed: MarqueeSpeed =
 		rawSpeed && VALID_MARQUEE_SPEEDS.has(rawSpeed)
 			? (rawSpeed as MarqueeSpeed)
 			: FALLBACK_SETTINGS.marqueeSpeed;
 
-	// 8. Mode de tri
+	// 8. Sort mode
 	const rawSort = env.KATO_DEFAULT_SORT_MODE?.trim().toLowerCase();
 	const sortMode: SortMode =
 		rawSort && VALID_SORT_MODES.has(rawSort)

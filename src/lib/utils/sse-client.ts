@@ -8,15 +8,15 @@ type OnHeartbeatCallback = (data: { timestamp: string }) => void;
 type OnStatusCallback = (status: ConnectionStatus) => void;
 
 /**
- * Connecte le client au flux Server-Sent Events (SSE) du backend.
- * Gère la détection de coupure, la reconnexion automatique avec repli
- * et la notification d'état de connexion pour l'affichage utilisateur ("Connexion perdue").
+ * Connects the client to the backend Server-Sent Events (SSE) stream.
+ * Handles disconnection detection, automatic reconnection with fallback timer,
+ * and notifies network status changes ("Connection lost" banner).
  *
- * @param onInit Fonction appelée à la connexion initiale avec l'état complet
- * @param onUpdate Fonction appelée lors d'un changement d'état avec le delta
- * @param onHeartbeat (Optionnel) Fonction appelée lors de la réception d'un heartbeat
- * @param onStatusChange (Optionnel) Fonction appelée lors d'un changement d'état réseau
- * @returns Une fonction pour fermer manuellement la connexion et annuler les reconnexions
+ * @param onInit Function called on initial handshake with complete state snapshot
+ * @param onUpdate Function called on state change with received delta
+ * @param onHeartbeat Optional function called when a heartbeat frame is received
+ * @param onStatusChange Optional function called when connection status transitions
+ * @returns Disconnect function to close connection and cancel reconnection timers
  */
 export function connectSSE(
 	onInit: OnInitCallback,
@@ -44,7 +44,7 @@ export function connectSSE(
 					onStatusChange?.('connected');
 					onInit(data);
 				} catch (err) {
-					console.error('[SSE Client] Erreur lors du parsing de l\'événement init:', err);
+					console.error('[SSE Client] Error parsing init event:', err);
 				}
 			});
 
@@ -54,7 +54,7 @@ export function connectSSE(
 					onStatusChange?.('connected');
 					onUpdate(data);
 				} catch (err) {
-					console.error('[SSE Client] Erreur lors du parsing de l\'événement update:', err);
+					console.error('[SSE Client] Error parsing update event:', err);
 				}
 			});
 
@@ -66,19 +66,19 @@ export function connectSSE(
 						onHeartbeat(data);
 					}
 				} catch (err) {
-					console.error('[SSE Client] Erreur lors du parsing de l\'événement heartbeat:', err);
+					console.error('[SSE Client] Error parsing heartbeat event:', err);
 				}
 			});
 
 			eventSource.onerror = (error) => {
-				console.warn('[SSE Client] Connexion perdue avec le serveur SSE:', error);
+				console.warn('[SSE Client] Connection lost with SSE server:', error);
 				onStatusChange?.('disconnected');
 
-				// Force une reconnexion de repli quand le navigateur ne se reconnecte pas seul.
+				// Force fallback reconnection when browser doesn't recover automatically
 				scheduleReconnect();
 			};
 		} catch (err) {
-			console.error('[SSE Client] Erreur lors de l\'instanciation EventSource:', err);
+			console.error('[SSE Client] Error instantiating EventSource:', err);
 			onStatusChange?.('disconnected');
 			scheduleReconnect();
 		}
@@ -101,7 +101,6 @@ export function connectSSE(
 
 	setupEventSource();
 
-	// Retourne la fonction permettant de se désabonner proprement
 	return function disconnect() {
 		isClosedByUser = true;
 		if (reconnectTimer) {
@@ -112,6 +111,6 @@ export function connectSSE(
 			eventSource.close();
 			eventSource = null;
 		}
-		console.log('[SSE Client] Connexion fermée par le client.');
+		console.log('[SSE Client] Connection closed by client.');
 	};
 }

@@ -1,580 +1,607 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /* ============================================================================
- * KEYFRAMES OFFICIELS KATO (docs/COLORS_AND_THEME.md)
+ * KATO OFFICIAL KEYFRAMES (docs/COLORS_AND_THEME.md)
  * ============================================================================ */
 
-/* 1. Pulse Alert (Sondes DOWN) */
+/* 1. Pulse Alert (DOWN probes) */
 @keyframes kato-pulse {
-	0%, 100% { transform: scale(1); opacity: 1; }
-	50% { transform: scale(1.04); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.8;
+  }
 }
 
-/* 2. Border Flash (Transition UP → DOWN) */
+/* 2. Border Flash (UP -> DOWN transition) */
 @keyframes kato-border-flash {
-	0%, 100% { box-shadow: inset 0 0 0 2px transparent; }
-	25%, 75% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.6); }
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 2px transparent;
+  }
+  25%,
+  75% {
+    box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.6);
+  }
 }
 
-/* 3. Incident Marquee (Mode TV - Défilement continu infini fluide 60fps) */
+/* 3. Incident Marquee (TV Mode - continuous infinite 60fps marquee) */
 @keyframes kato-marquee {
-	0% {
-		transform: translate3d(0, 0, 0);
-	}
-	100% {
-		transform: translate3d(-50%, 0, 0);
-	}
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
-/* 4. Anti Burn-In Drift (Mode TV - Déplacement lent sur 10 min) */
+/* 4. Anti Burn-In Drift (TV Mode - subtle 10-minute drift) */
 @keyframes kato-drift {
-	0%, 100% { transform: translate(0, 0); }
-	25% { transform: translate(3px, 1px); }
-	50% { transform: translate(-2px, 3px); }
-	75% { transform: translate(1px, -2px); }
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(3px, 1px);
+  }
+  50% {
+    transform: translate(-2px, 3px);
+  }
+  75% {
+    transform: translate(1px, -2px);
+  }
 }
 
 /* ============================================================================
- * EXTENSION DU THÈME TAILWIND CSS v4
+ * TAILWIND CSS v4 THEME EXTENSION
  * ============================================================================ */
 @theme {
-	--animate-kato-pulse: kato-pulse 2s ease-in-out infinite;
-	--animate-kato-border-flash: kato-border-flash 0.5s ease-in-out 3;
-	--animate-kato-marquee: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
-	--animate-kato-drift: kato-drift 600s ease-in-out infinite;
+  --animate-kato-pulse: kato-pulse 2s ease-in-out infinite;
+  --animate-kato-border-flash: kato-border-flash 0.5s ease-in-out 3;
+  --animate-kato-marquee: kato-marquee var(--kato-marquee-duration, 60s) linear
+    infinite;
+  --animate-kato-drift: kato-drift 600s ease-in-out infinite;
 
-	--color-kato-bg-primary: var(--kato-bg-primary);
-	--color-kato-bg-secondary: var(--kato-bg-secondary);
-	--color-kato-text-primary: var(--kato-text-primary);
-	--color-kato-text-secondary: var(--kato-text-secondary);
-	--color-kato-border: var(--kato-border);
+  --color-kato-bg-primary: var(--kato-bg-primary);
+  --color-kato-bg-secondary: var(--kato-bg-secondary);
+  --color-kato-text-primary: var(--kato-text-primary);
+  --color-kato-text-secondary: var(--kato-text-secondary);
+  --color-kato-border: var(--kato-border);
 }
 
 /* ============================================================================
- * SYSTÈME DE THÈMES (docs/COLORS_AND_THEME.md)
+ * THEME SYSTEM (docs/COLORS_AND_THEME.md)
  * ============================================================================ */
 
-/* 1. Thème Sombre (Par défaut) : Fond #0F172A */
-:root, [data-theme='dark'] {
-	--kato-bg-primary: #0F172A;
-	--kato-bg-secondary: #1E293B;
-	--kato-text-primary: #F8FAFC;
-	--kato-text-secondary: #94A3B8;
-	--kato-border: #334155;
-	--kato-focus-ring: #38BDF8;
-	color-scheme: dark;
+/* 1. Dark Theme (Default): Background #0F172A */
+:root,
+[data-theme="dark"] {
+  --kato-bg-primary: #0f172a;
+  --kato-bg-secondary: #1e293b;
+  --kato-text-primary: #f8fafc;
+  --kato-text-secondary: #94a3b8;
+  --kato-border: #334155;
+  --kato-focus-ring: #38bdf8;
+  color-scheme: dark;
 
-	/* Tokens de cartes de sondes (Dark) */
-	--probe-up-bg: rgba(6, 78, 59, 0.3);
-	--probe-up-border: rgba(4, 120, 87, 0.5);
-	--probe-up-text: #6EE7B7;
+  /* Probe card tokens (Dark) */
+  --probe-up-bg: rgba(6, 78, 59, 0.3);
+  --probe-up-border: rgba(4, 120, 87, 0.5);
+  --probe-up-text: #6ee7b7;
 
-	--probe-down-bg: rgba(127, 29, 29, 0.4);
-	--probe-down-border: rgba(239, 68, 68, 0.6);
-	--probe-down-text: #FCA5A5;
+  --probe-down-bg: rgba(127, 29, 29, 0.4);
+  --probe-down-border: rgba(239, 68, 68, 0.6);
+  --probe-down-text: #fca5a5;
 
-	--probe-degraded-bg: rgba(120, 53, 15, 0.3);
-	--probe-degraded-border: rgba(217, 119, 6, 0.5);
-	--probe-degraded-text: #FCD34D;
+  --probe-degraded-bg: rgba(120, 53, 15, 0.3);
+  --probe-degraded-border: rgba(217, 119, 6, 0.5);
+  --probe-degraded-text: #fcd34d;
 
-	--probe-paused-bg: rgba(30, 41, 59, 0.4);
-	--probe-paused-border: rgba(71, 85, 105, 0.3);
-	--probe-paused-text: #94A3B8;
+  --probe-paused-bg: rgba(30, 41, 59, 0.4);
+  --probe-paused-border: rgba(71, 85, 105, 0.3);
+  --probe-paused-text: #94a3b8;
 
-	--probe-pending-bg: rgba(30, 58, 138, 0.3);
-	--probe-pending-border: rgba(37, 99, 235, 0.4);
-	--probe-pending-text: #93C5FD;
+  --probe-pending-bg: rgba(30, 58, 138, 0.3);
+  --probe-pending-border: rgba(37, 99, 235, 0.4);
+  --probe-pending-text: #93c5fd;
 
-	--probe-maintenance-bg: rgba(76, 29, 149, 0.3);
-	--probe-maintenance-border: rgba(124, 58, 237, 0.4);
-	--probe-maintenance-text: #C4B5FD;
+  --probe-maintenance-bg: rgba(76, 29, 149, 0.3);
+  --probe-maintenance-border: rgba(124, 58, 237, 0.4);
+  --probe-maintenance-text: #c4b5fd;
 
-	--probe-dot-bg-up: #10B981;
-	--probe-dot-bg-down: #EF4444;
-	--probe-dot-bg-degraded: #F59E0B;
-	--probe-dot-bg-paused: #6B7280;
-	--probe-dot-bg-pending: #3B82F6;
-	--probe-dot-bg-maintenance: #8B5CF6;
+  --probe-dot-bg-up: #10b981;
+  --probe-dot-bg-down: #ef4444;
+  --probe-dot-bg-degraded: #f59e0b;
+  --probe-dot-bg-paused: #6b7280;
+  --probe-dot-bg-pending: #3b82f6;
+  --probe-dot-bg-maintenance: #8b5cf6;
 
-	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 6:1 sur #0F172A) */
-	--status-up-text: #34D399;
-	--status-down-text: #F87171;
-	--status-degraded-text: #FBBF24;
-	--status-paused-text: #94A3B8;
-	--status-pending-text: #60A5FA;
-	--status-maintenance-text: #A78BFA;
+  /* Semantic status text tokens (WCAG AA - Contrast >= 6:1 on #0F172A) */
+  --status-up-text: #34d399;
+  --status-down-text: #f87171;
+  --status-degraded-text: #fbbf24;
+  --status-paused-text: #94a3b8;
+  --status-pending-text: #60a5fa;
+  --status-maintenance-text: #a78bfa;
 
-	/* Badges d'en-tête (Dark) */
-	--badge-up-bg: rgba(6, 78, 59, 0.6);
-	--badge-up-border: rgba(4, 120, 87, 0.6);
-	--badge-up-text: #6EE7B7;
+  /* Header badges (Dark) */
+  --badge-up-bg: rgba(6, 78, 59, 0.6);
+  --badge-up-border: rgba(4, 120, 87, 0.6);
+  --badge-up-text: #6ee7b7;
 
-	--badge-down-bg: rgba(127, 29, 29, 0.6);
-	--badge-down-border: rgba(239, 68, 68, 0.6);
-	--badge-down-text: #FCA5A5;
+  --badge-down-bg: rgba(127, 29, 29, 0.6);
+  --badge-down-border: rgba(239, 68, 68, 0.6);
+  --badge-down-text: #fca5a5;
 
-	--badge-degraded-bg: rgba(120, 53, 15, 0.6);
-	--badge-degraded-border: rgba(217, 119, 6, 0.6);
-	--badge-degraded-text: #FCD34D;
+  --badge-degraded-bg: rgba(120, 53, 15, 0.6);
+  --badge-degraded-border: rgba(217, 119, 6, 0.6);
+  --badge-degraded-text: #fcd34d;
 
-	--badge-paused-bg: rgba(30, 41, 59, 0.5);
-	--badge-paused-border: rgba(71, 85, 105, 0.5);
-	--badge-paused-text: #CBD5E1;
+  --badge-paused-bg: rgba(30, 41, 59, 0.5);
+  --badge-paused-border: rgba(71, 85, 105, 0.5);
+  --badge-paused-text: #cbd5e1;
 
-	--badge-pending-bg: rgba(30, 58, 138, 0.6);
-	--badge-pending-border: rgba(37, 99, 235, 0.6);
-	--badge-pending-text: #93C5FD;
+  --badge-pending-bg: rgba(30, 58, 138, 0.6);
+  --badge-pending-border: rgba(37, 99, 235, 0.6);
+  --badge-pending-text: #93c5fd;
 
-	--badge-maintenance-bg: rgba(76, 29, 149, 0.6);
-	--badge-maintenance-border: rgba(124, 58, 237, 0.6);
-	--badge-maintenance-text: #C4B5FD;
+  --badge-maintenance-bg: rgba(76, 29, 149, 0.6);
+  --badge-maintenance-border: rgba(124, 58, 237, 0.6);
+  --badge-maintenance-text: #c4b5fd;
 
-	/* Indicateur de fraîcheur (Dark) */
-	--freshness-green-bg: rgba(6, 78, 59, 0.3);
-	--freshness-green-border: rgba(4, 120, 87, 0.5);
-	--freshness-green-text: #34D399;
+  /* Freshness indicator (Dark) */
+  --freshness-green-bg: rgba(6, 78, 59, 0.3);
+  --freshness-green-border: rgba(4, 120, 87, 0.5);
+  --freshness-green-text: #34d399;
 
-	--freshness-amber-bg: rgba(120, 53, 15, 0.3);
-	--freshness-amber-border: rgba(217, 119, 6, 0.5);
-	--freshness-amber-text: #FBBF24;
+  --freshness-amber-bg: rgba(120, 53, 15, 0.3);
+  --freshness-amber-border: rgba(217, 119, 6, 0.5);
+  --freshness-amber-text: #fbbf24;
 
-	--freshness-red-bg: rgba(127, 29, 29, 0.4);
-	--freshness-red-border: rgba(239, 68, 68, 0.6);
-	--freshness-red-text: #F87171;
+  --freshness-red-bg: rgba(127, 29, 29, 0.4);
+  --freshness-red-border: rgba(239, 68, 68, 0.6);
+  --freshness-red-text: #f87171;
 
-	/* Hover & Mini-pills (Dark) */
-	--probe-card-hover-border: rgba(255, 255, 255, 0.28);
-	--kato-pill-bg: rgba(15, 23, 42, 0.6);
-	--kato-pill-border: rgba(255, 255, 255, 0.09);
-	--kato-pill-label: #94A3B8;
+  /* Hover & Mini-pills (Dark) */
+  --probe-card-hover-border: rgba(255, 255, 255, 0.28);
+  --kato-pill-bg: rgba(15, 23, 42, 0.6);
+  --kato-pill-border: rgba(255, 255, 255, 0.09);
+  --kato-pill-label: #94a3b8;
 }
 
-/* 2. Thème Clair : Fond #F8FAFC */
-[data-theme='light'] {
-	--kato-bg-primary: #F8FAFC;
-	--kato-bg-secondary: #FFFFFF;
-	--kato-text-primary: #0F172A;
-	--kato-text-secondary: #64748B;
-	--kato-border: #E2E8F0;
-	--kato-focus-ring: #0284C7;
-	color-scheme: light;
+/* 2. Light Theme: Background #F8FAFC */
+[data-theme="light"] {
+  --kato-bg-primary: #f8fafc;
+  --kato-bg-secondary: #ffffff;
+  --kato-text-primary: #0f172a;
+  --kato-text-secondary: #64748b;
+  --kato-border: #e2e8f0;
+  --kato-focus-ring: #0284c7;
+  color-scheme: light;
 
-	/* Tokens de cartes de sondes (Light) */
-	--probe-up-bg: #ECFDF5;
-	--probe-up-border: #A7F3D0;
-	--probe-up-text: #065F46;
+  /* Probe card tokens (Light) */
+  --probe-up-bg: #ecfdf5;
+  --probe-up-border: #a7f3d0;
+  --probe-up-text: #065f46;
 
-	--probe-down-bg: #FEF2F2;
-	--probe-down-border: #FECACA;
-	--probe-down-text: #991B1B;
+  --probe-down-bg: #fef2f2;
+  --probe-down-border: #fecaca;
+  --probe-down-text: #991b1b;
 
-	--probe-degraded-bg: #FFFBEB;
-	--probe-degraded-border: #FDE68A;
-	--probe-degraded-text: #92400E;
+  --probe-degraded-bg: #fffbeb;
+  --probe-degraded-border: #fde68a;
+  --probe-degraded-text: #92400e;
 
-	--probe-paused-bg: #F1F5F9;
-	--probe-paused-border: #CBD5E1;
-	--probe-paused-text: #334155;
+  --probe-paused-bg: #f1f5f9;
+  --probe-paused-border: #cbd5e1;
+  --probe-paused-text: #334155;
 
-	--probe-pending-bg: #EFF6FF;
-	--probe-pending-border: #BFDBFE;
-	--probe-pending-text: #1E40AF;
+  --probe-pending-bg: #eff6ff;
+  --probe-pending-border: #bfdbfe;
+  --probe-pending-text: #1e40af;
 
-	--probe-maintenance-bg: #F5F3FF;
-	--probe-maintenance-border: #DDD6FE;
-	--probe-maintenance-text: #5B21B6;
+  --probe-maintenance-bg: #f5f3ff;
+  --probe-maintenance-border: #ddd6fe;
+  --probe-maintenance-text: #5b21b6;
 
-	--probe-dot-bg-up: #10B981;
-	--probe-dot-bg-down: #EF4444;
-	--probe-dot-bg-degraded: #F59E0B;
-	--probe-dot-bg-paused: #6B7280;
-	--probe-dot-bg-pending: #3B82F6;
-	--probe-dot-bg-maintenance: #8B5CF6;
+  --probe-dot-bg-up: #10b981;
+  --probe-dot-bg-down: #ef4444;
+  --probe-dot-bg-degraded: #f59e0b;
+  --probe-dot-bg-paused: #6b7280;
+  --probe-dot-bg-pending: #3b82f6;
+  --probe-dot-bg-maintenance: #8b5cf6;
 
-	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 4.5:1 sur fond blanc/clair) */
-	--status-up-text: #047857;
-	--status-down-text: #B91C1C;
-	--status-degraded-text: #B45309;
-	--status-paused-text: #475569;
-	--status-pending-text: #1D4ED8;
-	--status-maintenance-text: #6D28D9;
+  /* Semantic status text tokens (WCAG AA - Contrast >= 4.5:1 on light background) */
+  --status-up-text: #047857;
+  --status-down-text: #b91c1c;
+  --status-degraded-text: #b45309;
+  --status-paused-text: #475569;
+  --status-pending-text: #1d4ed8;
+  --status-maintenance-text: #6d28d9;
 
-	/* Badges d'en-tête (Light) */
-	--badge-up-bg: #ECFDF5;
-	--badge-up-border: #A7F3D0;
-	--badge-up-text: #065F46;
+  /* Header badges (Light) */
+  --badge-up-bg: #ecfdf5;
+  --badge-up-border: #a7f3d0;
+  --badge-up-text: #065f46;
 
-	--badge-down-bg: #FEF2F2;
-	--badge-down-border: #FECACA;
-	--badge-down-text: #991B1B;
+  --badge-down-bg: #fef2f2;
+  --badge-down-border: #fecaca;
+  --badge-down-text: #991b1b;
 
-	--badge-degraded-bg: #FFFBEB;
-	--badge-degraded-border: #FDE68A;
-	--badge-degraded-text: #92400E;
+  --badge-degraded-bg: #fffbeb;
+  --badge-degraded-border: #fde68a;
+  --badge-degraded-text: #92400e;
 
-	--badge-paused-bg: #F1F5F9;
-	--badge-paused-border: #CBD5E1;
-	--badge-paused-text: #334155;
+  --badge-paused-bg: #f1f5f9;
+  --badge-paused-border: #cbd5e1;
+  --badge-paused-text: #334155;
 
-	--badge-pending-bg: #EFF6FF;
-	--badge-pending-border: #BFDBFE;
-	--badge-pending-text: #1E40AF;
+  --badge-pending-bg: #eff6ff;
+  --badge-pending-border: #bfdbfe;
+  --badge-pending-text: #1e40af;
 
-	--badge-maintenance-bg: #F5F3FF;
-	--badge-maintenance-border: #DDD6FE;
-	--badge-maintenance-text: #5B21B6;
+  --badge-maintenance-bg: #f5f3ff;
+  --badge-maintenance-border: #ddd6fe;
+  --badge-maintenance-text: #5b21b6;
 
-	/* Indicateur de fraîcheur (Light) */
-	--freshness-green-bg: #ECFDF5;
-	--freshness-green-border: #A7F3D0;
-	--freshness-green-text: #065F46;
+  /* Freshness indicator (Light) */
+  --freshness-green-bg: #ecfdf5;
+  --freshness-green-border: #a7f3d0;
+  --freshness-green-text: #065f46;
 
-	--freshness-amber-bg: #FFFBEB;
-	--freshness-amber-border: #FDE68A;
-	--freshness-amber-text: #92400E;
+  --freshness-amber-bg: #fffbeb;
+  --freshness-amber-border: #fde68a;
+  --freshness-amber-text: #92400e;
 
-	--freshness-red-bg: #FEF2F2;
-	--freshness-red-border: #FECACA;
-	--freshness-red-text: #991B1B;
+  --freshness-red-bg: #fef2f2;
+  --freshness-red-border: #fecaca;
+  --freshness-red-text: #991b1b;
 
-	/* Hover & Mini-pills (Light) */
-	--probe-card-hover-border: rgba(15, 23, 42, 0.25);
-	--kato-pill-bg: rgba(241, 245, 249, 0.9);
-	--kato-pill-border: rgba(203, 213, 225, 0.8);
-	--kato-pill-label: #64748B;
+  /* Hover & Mini-pills (Light) */
+  --probe-card-hover-border: rgba(15, 23, 42, 0.25);
+  --kato-pill-bg: rgba(241, 245, 249, 0.9);
+  --kato-pill-border: rgba(203, 213, 225, 0.8);
+  --kato-pill-label: #64748b;
 }
 
-/* 3. Thème AMOLED : Fond #000000 (Noir pur pour OLED / TV) */
-[data-theme='amoled'] {
-	--kato-bg-primary: #000000;
-	--kato-bg-secondary: #0A0A0A;
-	--kato-text-primary: #F8FAFC;
-	--kato-text-secondary: #A1A1AA;
-	--kato-border: #27272A;
-	--kato-focus-ring: #38BDF8;
-	color-scheme: dark;
+/* 3. AMOLED Theme: Background #000000 (Pure black for OLED / TV) */
+[data-theme="amoled"] {
+  --kato-bg-primary: #000000;
+  --kato-bg-secondary: #0a0a0a;
+  --kato-text-primary: #f8fafc;
+  --kato-text-secondary: #a1a1aa;
+  --kato-border: #27272a;
+  --kato-focus-ring: #38bdf8;
+  color-scheme: dark;
 
-	/* Tokens de cartes de sondes (AMOLED: fond noir pur avec bordure contrastée) */
-	--probe-up-bg: #000000;
-	--probe-up-border: #047857;
-	--probe-up-text: #34D399;
+  /* Probe card tokens (AMOLED: pure black background with high contrast border) */
+  --probe-up-bg: #000000;
+  --probe-up-border: #047857;
+  --probe-up-text: #34d399;
 
-	--probe-down-bg: #000000;
-	--probe-down-border: #DC2626;
-	--probe-down-text: #F87171;
+  --probe-down-bg: #000000;
+  --probe-down-border: #dc2626;
+  --probe-down-text: #f87171;
 
-	--probe-degraded-bg: #000000;
-	--probe-degraded-border: #D97706;
-	--probe-degraded-text: #FBBF24;
+  --probe-degraded-bg: #000000;
+  --probe-degraded-border: #d97706;
+  --probe-degraded-text: #fbbf24;
 
-	--probe-paused-bg: #000000;
-	--probe-paused-border: #3F3F46;
-	--probe-paused-text: #A1A1AA;
+  --probe-paused-bg: #000000;
+  --probe-paused-border: #3f3f46;
+  --probe-paused-text: #a1a1aa;
 
-	--probe-pending-bg: #000000;
-	--probe-pending-border: #2563EB;
-	--probe-pending-text: #60A5FA;
+  --probe-pending-bg: #000000;
+  --probe-pending-border: #2563eb;
+  --probe-pending-text: #60a5fa;
 
-	--probe-maintenance-bg: #000000;
-	--probe-maintenance-border: #7C3AED;
-	--probe-maintenance-text: #A78BFA;
+  --probe-maintenance-bg: #000000;
+  --probe-maintenance-border: #7c3aed;
+  --probe-maintenance-text: #a78bfa;
 
-	--probe-dot-bg-up: #000000;
-	--probe-dot-bg-down: #000000;
-	--probe-dot-bg-degraded: #000000;
-	--probe-dot-bg-paused: #000000;
-	--probe-dot-bg-pending: #000000;
-	--probe-dot-bg-maintenance: #000000;
+  --probe-dot-bg-up: #000000;
+  --probe-dot-bg-down: #000000;
+  --probe-dot-bg-degraded: #000000;
+  --probe-dot-bg-paused: #000000;
+  --probe-dot-bg-pending: #000000;
+  --probe-dot-bg-maintenance: #000000;
 
-	/* Tokens sémantiques de texte statut (WCAG AA - Contraste ≥ 6:1 sur noir) */
-	--status-up-text: #34D399;
-	--status-down-text: #F87171;
-	--status-degraded-text: #FBBF24;
-	--status-paused-text: #A1A1AA;
-	--status-pending-text: #60A5FA;
-	--status-maintenance-text: #A78BFA;
+  /* Semantic status text tokens (WCAG AA - Contrast >= 6:1 on black) */
+  --status-up-text: #34d399;
+  --status-down-text: #f87171;
+  --status-degraded-text: #fbbf24;
+  --status-paused-text: #a1a1aa;
+  --status-pending-text: #60a5fa;
+  --status-maintenance-text: #a78bfa;
 
-	/* Badges d'en-tête (AMOLED) */
-	--badge-up-bg: #000000;
-	--badge-up-border: #047857;
-	--badge-up-text: #34D399;
+  /* Header badges (AMOLED) */
+  --badge-up-bg: #000000;
+  --badge-up-border: #047857;
+  --badge-up-text: #34d399;
 
-	--badge-down-bg: #000000;
-	--badge-down-border: #DC2626;
-	--badge-down-text: #F87171;
+  --badge-down-bg: #000000;
+  --badge-down-border: #dc2626;
+  --badge-down-text: #f87171;
 
-	--badge-degraded-bg: #000000;
-	--badge-degraded-border: #D97706;
-	--badge-degraded-text: #FBBF24;
+  --badge-degraded-bg: #000000;
+  --badge-degraded-border: #d97706;
+  --badge-degraded-text: #fbbf24;
 
-	--badge-paused-bg: #000000;
-	--badge-paused-border: #3F3F46;
-	--badge-paused-text: #A1A1AA;
+  --badge-paused-bg: #000000;
+  --badge-paused-border: #3f3f46;
+  --badge-paused-text: #a1a1aa;
 
-	--badge-pending-bg: #000000;
-	--badge-pending-border: #2563EB;
-	--badge-pending-text: #60A5FA;
+  --badge-pending-bg: #000000;
+  --badge-pending-border: #2563eb;
+  --badge-pending-text: #60a5fa;
 
-	--badge-maintenance-bg: #000000;
-	--badge-maintenance-border: #7C3AED;
-	--badge-maintenance-text: #A78BFA;
+  --badge-maintenance-bg: #000000;
+  --badge-maintenance-border: #7c3aed;
+  --badge-maintenance-text: #a78bfa;
 
-	/* Indicateur de fraîcheur (AMOLED) */
-	--freshness-green-bg: #000000;
-	--freshness-green-border: #047857;
-	--freshness-green-text: #34D399;
+  /* Freshness indicator (AMOLED) */
+  --freshness-green-bg: #000000;
+  --freshness-green-border: #047857;
+  --freshness-green-text: #34d399;
 
-	--freshness-amber-bg: #000000;
-	--freshness-amber-border: #D97706;
-	--freshness-amber-text: #FBBF24;
+  --freshness-amber-bg: #000000;
+  --freshness-amber-border: #d97706;
+  --freshness-amber-text: #fbbf24;
 
-	--freshness-red-bg: #000000;
-	--freshness-red-border: #DC2626;
-	--freshness-red-text: #F87171;
+  --freshness-red-bg: #000000;
+  --freshness-red-border: #dc2626;
+  --freshness-red-text: #f87171;
 
-	/* Hover & Mini-pills (AMOLED) */
-	--probe-card-hover-border: rgba(255, 255, 255, 0.35);
-	--kato-pill-bg: #0a0a0a;
-	--kato-pill-border: #27272a;
-	--kato-pill-label: #A1A1AA;
+  /* Hover & Mini-pills (AMOLED) */
+  --probe-card-hover-border: rgba(255, 255, 255, 0.35);
+  --kato-pill-bg: #0a0a0a;
+  --kato-pill-border: #27272a;
+  --kato-pill-label: #a1a1aa;
 }
 
-/* Application globale sur body */
+/* Global body application */
 body {
-	background-color: var(--kato-bg-primary);
-	color: var(--kato-text-primary);
-	border-color: var(--kato-border);
+  background-color: var(--kato-bg-primary);
+  color: var(--kato-text-primary);
+  border-color: var(--kato-border);
 }
 
-/* Classes utilitaires pour les cellules de sondes adaptées au thème actif */
+/* Utility classes for probe cells adapted to active theme */
 .probe-card {
-	width: 100%;
-	height: 100%;
-	container-type: inline-size;
-	background-color: var(--probe-card-bg);
-	border-color: var(--probe-card-border);
-	color: var(--probe-card-text);
-	transition: border-color 0.15s ease, background-color 0.15s ease;
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+  background-color: var(--probe-card-bg);
+  border-color: var(--probe-card-border);
+  color: var(--probe-card-text);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .probe-card:hover {
-	border-color: var(--probe-card-hover-border);
+  border-color: var(--probe-card-hover-border);
 }
 
-/* Capsules / mini-pills pour les métriques Uptime & Latence */
+/* Mini-pills for Uptime & Latency metrics */
 .kato-pill {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-	background-color: var(--kato-pill-bg);
-	border: 1px solid var(--kato-pill-border);
-	border-radius: 0.375rem;
-	padding: 0.15rem 0.4rem;
-	backdrop-filter: blur(4px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background-color: var(--kato-pill-bg);
+  border: 1px solid var(--kato-pill-border);
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.4rem;
+  backdrop-filter: blur(4px);
 }
 
 .kato-pill-label {
-	color: var(--kato-pill-label);
-	font-size: 0.625rem;
-	text-transform: uppercase;
-	letter-spacing: 0.06em;
-	font-weight: 600;
-	line-height: 1;
+  color: var(--kato-pill-label);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .kato-pill-value {
-	color: var(--kato-text-primary);
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-	font-weight: 700;
-	line-height: 1;
+  color: var(--kato-text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .probe-card-up {
-	--probe-card-bg: var(--probe-up-bg);
-	--probe-card-border: var(--probe-up-border);
-	--probe-card-text: var(--probe-up-text);
+  --probe-card-bg: var(--probe-up-bg);
+  --probe-card-border: var(--probe-up-border);
+  --probe-card-text: var(--probe-up-text);
 }
 
 .probe-card-down {
-	--probe-card-bg: var(--probe-down-bg);
-	--probe-card-border: var(--probe-down-border);
-	--probe-card-text: var(--probe-down-text);
+  --probe-card-bg: var(--probe-down-bg);
+  --probe-card-border: var(--probe-down-border);
+  --probe-card-text: var(--probe-down-text);
 }
 
 .probe-card-degraded {
-	--probe-card-bg: var(--probe-degraded-bg);
-	--probe-card-border: var(--probe-degraded-border);
-	--probe-card-text: var(--probe-degraded-text);
+  --probe-card-bg: var(--probe-degraded-bg);
+  --probe-card-border: var(--probe-degraded-border);
+  --probe-card-text: var(--probe-degraded-text);
 }
 
 .probe-card-paused {
-	--probe-card-bg: var(--probe-paused-bg);
-	--probe-card-border: var(--probe-paused-border);
-	--probe-card-text: var(--probe-paused-text);
+  --probe-card-bg: var(--probe-paused-bg);
+  --probe-card-border: var(--probe-paused-border);
+  --probe-card-text: var(--probe-paused-text);
 }
 
 .probe-card-pending {
-	--probe-card-bg: var(--probe-pending-bg);
-	--probe-card-border: var(--probe-pending-border);
-	--probe-card-text: var(--probe-pending-text);
+  --probe-card-bg: var(--probe-pending-bg);
+  --probe-card-border: var(--probe-pending-border);
+  --probe-card-text: var(--probe-pending-text);
 }
 
 .probe-card-maintenance {
-	--probe-card-bg: var(--probe-maintenance-bg);
-	--probe-card-border: var(--probe-maintenance-border);
-	--probe-card-text: var(--probe-maintenance-text);
+  --probe-card-bg: var(--probe-maintenance-bg);
+  --probe-card-border: var(--probe-maintenance-border);
+  --probe-card-text: var(--probe-maintenance-text);
 }
 
-/* En mode AMOLED : pastilles ProbeDot en fond noir pur avec bordure colorée */
-[data-theme='amoled'] .probe-dot-up {
-	background-color: #000000 !important;
-	border: 2px solid #10B981 !important;
+/* In AMOLED mode: ProbeDot dots with pure black background and colored border */
+[data-theme="amoled"] .probe-dot-up {
+  background-color: #000000 !important;
+  border: 2px solid #10b981 !important;
 }
-[data-theme='amoled'] .probe-dot-down {
-	background-color: #000000 !important;
-	border: 2px solid #EF4444 !important;
+[data-theme="amoled"] .probe-dot-down {
+  background-color: #000000 !important;
+  border: 2px solid #ef4444 !important;
 }
-[data-theme='amoled'] .probe-dot-degraded {
-	background-color: #000000 !important;
-	border: 2px solid #F59E0B !important;
+[data-theme="amoled"] .probe-dot-degraded {
+  background-color: #000000 !important;
+  border: 2px solid #f59e0b !important;
 }
-[data-theme='amoled'] .probe-dot-paused {
-	background-color: #000000 !important;
-	border: 2px solid #6B7280 !important;
+[data-theme="amoled"] .probe-dot-paused {
+  background-color: #000000 !important;
+  border: 2px solid #6b7280 !important;
 }
-[data-theme='amoled'] .probe-dot-pending {
-	background-color: #000000 !important;
-	border: 2px solid #3B82F6 !important;
+[data-theme="amoled"] .probe-dot-pending {
+  background-color: #000000 !important;
+  border: 2px solid #3b82f6 !important;
 }
-[data-theme='amoled'] .probe-dot-maintenance {
-	background-color: #000000 !important;
-	border: 2px solid #8B5CF6 !important;
+[data-theme="amoled"] .probe-dot-maintenance {
+  background-color: #000000 !important;
+  border: 2px solid #8b5cf6 !important;
 }
 
 /* ============================================================================
- * BADGES DE COMPTEURS D'EN-TÊTE & FRAÎCHEUR (WCAG AA SUR TOUS LES THÈMES)
+ * HEADER COUNTER BADGES & FRESHNESS (WCAG AA ON ALL THEMES)
  * ============================================================================ */
 
 .status-badge-up {
-	background-color: var(--badge-up-bg);
-	border: 1px solid var(--badge-up-border);
-	color: var(--badge-up-text);
+  background-color: var(--badge-up-bg);
+  border: 1px solid var(--badge-up-border);
+  color: var(--badge-up-text);
 }
 .status-badge-down {
-	background-color: var(--badge-down-bg);
-	border: 1px solid var(--badge-down-border);
-	color: var(--badge-down-text);
+  background-color: var(--badge-down-bg);
+  border: 1px solid var(--badge-down-border);
+  color: var(--badge-down-text);
 }
 .status-badge-degraded {
-	background-color: var(--badge-degraded-bg);
-	border: 1px solid var(--badge-degraded-border);
-	color: var(--badge-degraded-text);
+  background-color: var(--badge-degraded-bg);
+  border: 1px solid var(--badge-degraded-border);
+  color: var(--badge-degraded-text);
 }
 .status-badge-paused {
-	background-color: var(--badge-paused-bg);
-	border: 1px solid var(--badge-paused-border);
-	color: var(--badge-paused-text);
+  background-color: var(--badge-paused-bg);
+  border: 1px solid var(--badge-paused-border);
+  color: var(--badge-paused-text);
 }
 .status-badge-pending {
-	background-color: var(--badge-pending-bg);
-	border: 1px solid var(--badge-pending-border);
-	color: var(--badge-pending-text);
+  background-color: var(--badge-pending-bg);
+  border: 1px solid var(--badge-pending-border);
+  color: var(--badge-pending-text);
 }
 .status-badge-maintenance {
-	background-color: var(--badge-maintenance-bg);
-	border: 1px solid var(--badge-maintenance-border);
-	color: var(--badge-maintenance-text);
+  background-color: var(--badge-maintenance-bg);
+  border: 1px solid var(--badge-maintenance-border);
+  color: var(--badge-maintenance-text);
 }
 
 .freshness-indicator-green {
-	background-color: var(--freshness-green-bg);
-	border: 1px solid var(--freshness-green-border);
-	color: var(--freshness-green-text);
+  background-color: var(--freshness-green-bg);
+  border: 1px solid var(--freshness-green-border);
+  color: var(--freshness-green-text);
 }
 .freshness-indicator-amber {
-	background-color: var(--freshness-amber-bg);
-	border: 1px solid var(--freshness-amber-border);
-	color: var(--freshness-amber-text);
+  background-color: var(--freshness-amber-bg);
+  border: 1px solid var(--freshness-amber-border);
+  color: var(--freshness-amber-text);
 }
 .freshness-indicator-red {
-	background-color: var(--freshness-red-bg);
-	border: 1px solid var(--freshness-red-border);
-	color: var(--freshness-red-text);
+  background-color: var(--freshness-red-bg);
+  border: 1px solid var(--freshness-red-border);
+  color: var(--freshness-red-text);
 }
 
 /* ============================================================================
- * CLASSES UTILITAIRES D'ANIMATION ET EFFETS VISUELS
+ * ANIMATION UTILITY CLASSES & VISUAL EFFECTS
  * ============================================================================ */
 
 .animate-kato-pulse {
-	animation: kato-pulse 2s ease-in-out infinite;
+  animation: kato-pulse 2s ease-in-out infinite;
 }
 
 .animate-kato-border-flash {
-	animation: kato-border-flash 0.5s ease-in-out 3;
+  animation: kato-border-flash 0.5s ease-in-out 3;
 }
 
 .animate-kato-marquee {
-	display: flex;
-	width: max-content;
-	animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
-	will-change: transform;
-	transform: translate3d(0, 0, 0);
-	backface-visibility: hidden;
+  display: flex;
+  width: max-content;
+  animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 .animate-kato-marquee:hover {
-	animation-play-state: paused;
+  animation-play-state: paused;
 }
 
-/* Rétrocompatibilité avec animate-marquee */
+/* Backward compatibility with animate-marquee */
 .animate-marquee {
-	display: flex;
-	width: max-content;
-	animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
-	will-change: transform;
-	transform: translate3d(0, 0, 0);
-	backface-visibility: hidden;
+  display: flex;
+  width: max-content;
+  animation: kato-marquee var(--kato-marquee-duration, 60s) linear infinite;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 .animate-kato-marquee:hover,
 .animate-marquee:hover {
-	animation-play-state: paused;
+  animation-play-state: paused;
 }
 
 .animate-kato-drift {
-	animation: kato-drift 600s ease-in-out infinite;
+  animation: kato-drift 600s ease-in-out infinite;
 }
 
-/* Glow d'alerte pour les pannes prolongées (DOWN > 1 min) */
+/* Alert glow for prolonged outages (DOWN > 1 min) */
 .kato-glow-red {
-	box-shadow: 0 0 15px 2px rgba(239, 68, 68, 0.3),
-	            0 0 30px 4px rgba(239, 68, 68, 0.1);
+  box-shadow:
+    0 0 15px 2px rgba(239, 68, 68, 0.3),
+    0 0 30px 4px rgba(239, 68, 68, 0.1);
 }
 
-/* Masquage de barre de défilement */
+/* Scrollbar hiding */
 .no-scrollbar::-webkit-scrollbar {
-	display: none;
+  display: none;
 }
 
 .no-scrollbar {
-	-ms-overflow-style: none;
-	scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ============================================================================
- * MODE TV : NEUTRALISATION DU CURSEUR ET MASQUAGE D'INACTIVITÉ
+ * TV MODE: CURSOR NEUTRALIZATION & INACTIVITY HIDING
  * ============================================================================ */
 
-/* En mode TV (curseur actif), neutralise l'apparence pointeur des éléments cliquables */
+/* In TV mode (active cursor), neutralize pointer appearance of clickable elements */
 .tv-mode a,
 .tv-mode button,
 .tv-mode [role="button"],
 .tv-mode .cursor-pointer {
-	cursor: default;
+  cursor: default;
 }
 
-/* Masquage absolu du curseur après 5s d'inactivité - priorité absolue sur tout élément */
+/* Absolute cursor hiding after 5s inactivity - highest priority over all elements */
 html.tv-cursor-hidden,
 html.tv-cursor-hidden *,
 body.tv-cursor-hidden,
@@ -583,69 +610,79 @@ body.tv-cursor-hidden *,
 .tv-cursor-hidden *,
 body.cursor-hidden,
 body.cursor-hidden * {
-	cursor: none !important;
+  cursor: none !important;
 }
 
 /* ============================================================================
- * ACCESSIBILITÉ : PREFERS-REDUCED-MOTION & FOCUS-VISIBLE (RGAA 10.7, 12.7, 13.8)
+ * ACCESSIBILITY: PREFERS-REDUCED-MOTION & FOCUS-VISIBLE (WCAG 2.1)
  * ============================================================================ */
 @media (prefers-reduced-motion: reduce) {
-	.animate-kato-pulse,
-	.animate-kato-border-flash,
-	.animate-kato-marquee,
-	.animate-kato-drift,
-	.animate-marquee {
-		animation: none !important;
-	}
+  .animate-kato-pulse,
+  .animate-kato-border-flash,
+  .animate-kato-marquee,
+  .animate-kato-drift,
+  .animate-marquee {
+    animation: none !important;
+  }
 }
 
-/* 1. Indicateurs de Focus Universels (:focus-visible) - RGAA 10.7 */
-:where(a, button, input, select, textarea, [tabindex="0"], [role="button"]):focus-visible {
-	outline: 2px solid var(--kato-focus-ring) !important;
-	outline-offset: 2px !important;
+/* 1. Universal Focus Indicators (:focus-visible) - WCAG 2.4.7 */
+:where(
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [tabindex="0"],
+  [role="button"]
+):focus-visible {
+  outline: 2px solid var(--kato-focus-ring) !important;
+  outline-offset: 2px !important;
 }
 
-/* 2. Pause automatique du défilement lors de la prise de focus (RGAA 13.8) */
+/* 2. Automatic pause on focus (WCAG 2.2.2) */
 .animate-kato-marquee:focus-within,
 .animate-marquee:focus-within,
 .marquee-paused {
-	animation-play-state: paused !important;
+  animation-play-state: paused !important;
 }
 
-/* 3. Liens d'évitement (Skip links) et textes pour lecteurs d'écran (RGAA 12.7) */
+/* 3. Skip links & screen reader texts (WCAG 2.4.1) */
 .sr-only {
-	position: absolute !important;
-	width: 1px !important;
-	height: 1px !important;
-	padding: 0 !important;
-	margin: -1px !important;
-	overflow: hidden !important;
-	clip: rect(0, 0, 0, 0) !important;
-	white-space: nowrap !important;
-	border: 0 !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 .sr-only.focus\:not-sr-only:focus,
 .sr-only.focus\:not-sr-only:focus-visible,
 .skip-link:focus,
 .skip-link:focus-visible {
-	position: fixed !important;
-	top: 12px !important;
-	left: 12px !important;
-	z-index: 1000 !important;
-	width: auto !important;
-	height: auto !important;
-	padding: 8px 16px !important;
-	margin: 0 !important;
-	overflow: visible !important;
-	clip: auto !important;
-	white-space: normal !important;
-	background-color: var(--kato-bg-secondary) !important;
-	color: var(--kato-text-primary) !important;
-	border: 2px solid var(--kato-focus-ring) !important;
-	border-radius: 8px !important;
-	box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
-	font-weight: 600 !important;
-	font-size: 13px !important;
-	text-decoration: none !important;
+  position: fixed !important;
+  top: 12px !important;
+  left: 12px !important;
+  z-index: 1000 !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 8px 16px !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+  background-color: var(--kato-bg-secondary) !important;
+  color: var(--kato-text-primary) !important;
+  border: 2px solid var(--kato-focus-ring) !important;
+  border-radius: 8px !important;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.6),
+    0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-decoration: none !important;
 }

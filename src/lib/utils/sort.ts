@@ -1,8 +1,8 @@
 import type { Criticality, NormalizedProbe, ProbeStatus } from '$lib/types';
 
 /**
- * Poids de tri par statut opérationnel.
- * Ordre de priorité : DOWN en premier (0), puis DEGRADED (1), UP (2), PAUSED (3), etc.
+ * Operational status sort weights.
+ * Priority order: DOWN first (0), then DEGRADED (1), UP (2), PAUSED (3), PENDING (4), MAINTENANCE (5).
  */
 const STATUS_PRIORITY: Record<ProbeStatus, number> = {
 	down: 0,
@@ -14,8 +14,8 @@ const STATUS_PRIORITY: Record<ProbeStatus, number> = {
 };
 
 /**
- * Poids de tri par niveau de criticité.
- * Ordre de priorité : critical (0), high (1), medium (2), low (3).
+ * Criticality level sort weights.
+ * Priority order: critical (0), high (1), medium (2), low (3).
  */
 const CRITICALITY_PRIORITY: Record<Criticality, number> = {
 	critical: 0,
@@ -25,25 +25,25 @@ const CRITICALITY_PRIORITY: Record<Criticality, number> = {
 };
 
 /**
- * Trie les sondes selon l'algorithme de tri intelligent (Smart Sort) de Kato :
- * 1. Les sondes DOWN sont systématiquement promues en haut à gauche de la grille
- * 2. Les sondes DEGRADED suivent immédiatement les DOWN
- * 3. Les sondes UP sont ordonnées par niveau de criticité décroissante
- * 4. Les sondes PAUSED, PENDING et MAINTENANCE ferment la marche
- * 5. En cas d'égalité, tri alphabétique naturel par nom
+ * Sorts probes according to Kato's smart sort algorithm:
+ * 1. DOWN probes are systematically promoted to the top-left of the grid
+ * 2. DEGRADED probes follow immediately after DOWN probes
+ * 3. UP probes are ordered by descending operational criticality
+ * 4. PAUSED, PENDING, and MAINTENANCE probes appear at the end
+ * 5. Ties are resolved by natural alphabetical order by probe name
  *
- * @param probes Liste des sondes à ordonner
- * @returns Nouvelle liste triée
+ * @param probes List of probes to order
+ * @returns Newly sorted probe array
  */
 export function sortProbesSmart(probes: NormalizedProbe[]): NormalizedProbe[] {
 	return [...probes].sort((a, b) => {
-		// 1. Tri par statut
+		// 1. Sort by operational status
 		const statusDiff = (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99);
 		if (statusDiff !== 0) {
 			return statusDiff;
 		}
 
-		// 2. Si les deux sont UP : tri par niveau de criticité
+		// 2. When both are UP: sort by criticality
 		if (a.status === 'up' && b.status === 'up') {
 			const critDiff =
 				(CRITICALITY_PRIORITY[a.criticality] ?? 99) -
@@ -53,7 +53,7 @@ export function sortProbesSmart(probes: NormalizedProbe[]): NormalizedProbe[] {
 			}
 		}
 
-		// 3. Si les deux sont DOWN : priorité à l'incident le plus récent
+		// 3. When both are DOWN: prioritize most recent outage
 		if (a.status === 'down' && b.status === 'down' && a.downSince && b.downSince) {
 			const timeDiff = new Date(b.downSince).getTime() - new Date(a.downSince).getTime();
 			if (timeDiff !== 0) {
@@ -61,7 +61,7 @@ export function sortProbesSmart(probes: NormalizedProbe[]): NormalizedProbe[] {
 			}
 		}
 
-		// 4. Tri alphabétique de repli
-		return a.name.localeCompare(b.name, 'fr', { numeric: true });
+		// 4. Natural alphabetical fallback
+		return a.name.localeCompare(b.name, undefined, { numeric: true });
 	});
 }

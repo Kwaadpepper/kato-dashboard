@@ -1,21 +1,21 @@
 import crypto from 'node:crypto';
 
 /**
- * Nom standardisé du cookie de session d'authentification.
+ * Standardized session cookie name.
  */
 export const SESSION_COOKIE_NAME = 'kato-session';
 
-/** Longueur du sel cryptographique (16 octets) */
+/** Cryptographic salt length (16 bytes) */
 const SALT_LEN = 16;
-/** Longueur de la clé dérivée scrypt (64 octets) */
+/** Scrypt derived key length (64 bytes) */
 const KEY_LEN = 64;
 
 /**
- * Hache un mot de passe en utilisant l'algorithme natif et sécurisé crypto.scryptSync.
- * Format de sortie : `<sel_hex>:<hash_hex>`
+ * Hashes a plaintext password using crypto.scryptSync.
+ * Output format: `<salt_hex>:<hash_hex>`
  *
- * @param password Mot de passe en clair à hacher
- * @returns Chaîne contenant le sel et l'empreinte hachée
+ * @param password Plaintext password to hash
+ * @returns String containing salt and derived hash
  */
 export function hashPassword(password: string): string {
 	const salt = crypto.randomBytes(SALT_LEN).toString('hex');
@@ -24,12 +24,12 @@ export function hashPassword(password: string): string {
 }
 
 /**
- * Vérifie un mot de passe soumis contre une empreinte hachée existante
- * en temps constant (timingSafeEqual) pour prévenir les attaques temporelles.
+ * Verifies a submitted password against a stored `<salt_hex>:<hash_hex>` fingerprint
+ * in constant time (timingSafeEqual) to prevent timing attacks.
  *
- * @param input Mot de passe en clair soumis
- * @param hash  Empreinte `<sel_hex>:<hash_hex>` stockée
- * @returns true si le mot de passe correspond, false sinon
+ * @param input Submitted plaintext password
+ * @param hash  Stored `<salt_hex>:<hash_hex>` fingerprint
+ * @returns true if password matches, false otherwise
  */
 export function verifyPassword(input: string, hash: string): boolean {
 	try {
@@ -50,38 +50,38 @@ export function verifyPassword(input: string, hash: string): boolean {
 }
 
 // ============================================================================
-// GESTION DU MOT DE PASSE CONFIGURÉ AU BOOT DU SERVEUR
+// SERVER BOOT PASSWORD MANAGEMENT
 // ============================================================================
 
-/** Empreinte hachée unique du mot de passe maître KATO_AUTH_PASSWORD */
+/** In-memory cached hash of KATO_AUTH_PASSWORD */
 let configuredPasswordHash: string | null = null;
 
 /**
- * Initialise le hachage du mot de passe configuré dans l'environnement.
- * Exécuté une seule fois au démarrage du serveur.
+ * Initializes password hashing configured in environment.
+ * Executed once during server initialization.
  */
 export function initAuth(): void {
 	const rawPassword = process.env.KATO_AUTH_PASSWORD;
 	if (rawPassword) {
 		configuredPasswordHash = hashPassword(rawPassword);
-		console.log('[Auth] Mot de passe configuré haché avec succès au démarrage.');
+		console.log('[Auth] Configured password hashed successfully on startup.');
 	} else {
 		configuredPasswordHash = null;
 	}
 }
 
-// Initialisation immédiate au chargement du module
+// Immediate initialization upon module load
 initAuth();
 
 /**
- * Indique si l'authentification par mot de passe est requise sur le serveur.
+ * Indicates whether password authentication is enabled on the server.
  */
 export function isAuthEnabled(): boolean {
 	return process.env.KATO_AUTH_ENABLED === 'true';
 }
 
 /**
- * Vérifie le mot de passe soumis contre le mot de passe maître hashé en mémoire.
+ * Verifies submitted password against configured master password hash.
  */
 export function verifyConfiguredPassword(input: string): boolean {
 	if (!configuredPasswordHash) {
@@ -93,19 +93,19 @@ export function verifyConfiguredPassword(input: string): boolean {
 }
 
 // ============================================================================
-// GESTION DES SESSIONS IN-MEMORY (RAM)
+// IN-MEMORY SESSIONS (RAM)
 // ============================================================================
 
 /**
- * Registre in-memory (RAM) des jetons de session actifs.
- * Conforme aux règles projet : restart = reset.
+ * In-memory (RAM) registry of active session tokens.
+ * Complies with project rule: restart = reset.
  */
 const activeSessions = new Set<string>();
 
 /**
- * Génère un nouveau token aléatoire sécurisé (UUID v4) et l'enregistre dans les sessions actives.
+ * Generates a new secure random session token (UUID v4) and registers it.
  *
- * @returns Le jeton de session créé
+ * @returns Created session token
  */
 export function createSession(): string {
 	const token = crypto.randomUUID();
@@ -114,10 +114,10 @@ export function createSession(): string {
 }
 
 /**
- * Vérifie si un jeton de session fourni est présent dans le Set des sessions actives.
+ * Verifies whether a given session token is active.
  *
- * @param token Jeton de session à valider
- * @returns true si la session est valide, false sinon
+ * @param token Session token to check
+ * @returns true if valid, false otherwise
  */
 export function isValidSession(token: string | undefined | null): boolean {
 	if (!token) return false;
@@ -125,7 +125,7 @@ export function isValidSession(token: string | undefined | null): boolean {
 }
 
 /**
- * Supprime une session du registre en mémoire (déconnexion).
+ * Removes a session from the in-memory registry (logout).
  */
 export function invalidateSession(token: string): void {
 	activeSessions.delete(token);
