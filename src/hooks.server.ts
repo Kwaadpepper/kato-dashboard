@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { setActiveAdapter } from '$lib/server/adapter';
 import { MockAdapter } from '$lib/server/adapters/mock.adapter';
+import { UptimeKumaAdapter } from '$lib/server/adapters/uptime-kuma.adapter';
 import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
 import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/auth';
 import { startPolling } from '$lib/server/poller';
@@ -37,6 +38,17 @@ async function bootstrap(): Promise<void> {
 			: 30000;
 
 		await adapter.initialize({ apiKey, pollInterval });
+	} else if (adapterType === 'uptimekuma') {
+		adapter = new UptimeKumaAdapter();
+		console.log(`[Kato] Selected adapter: uptimekuma`);
+
+		const baseUrl = env.UPTIME_KUMA_URL ?? '';
+		const apiKey = env.UPTIME_KUMA_API_KEY ?? '';
+		const pollInterval = env.UPTIME_KUMA_POLL_INTERVAL
+			? Number.parseInt(env.UPTIME_KUMA_POLL_INTERVAL, 10)
+			: 60000;
+
+		await adapter.initialize({ baseUrl, apiKey, pollInterval });
 	} else {
 		adapter = new MockAdapter();
 		console.log(`[Kato] Selected adapter: mock`);
