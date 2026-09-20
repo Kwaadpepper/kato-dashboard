@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { NormalizedIncident, NormalizedProbe } from '$lib/types';
-	import { STATUS_COLORS } from '$lib/utils/colors';
+	import { STATUS_COLORS, getStatusLabel } from '$lib/utils/colors';
 	import {
 		build24hSlots,
 		buildProbeHistoryEvents,
@@ -8,6 +8,13 @@
 		formatDurationCompact,
 		formatEventDateTime
 	} from '$lib/utils/probe-history';
+	import {
+		t as translate,
+		getLocale,
+		onLocaleChange,
+		type SupportedLocale,
+		type TranslationKey
+	} from '$lib/i18n';
 	import X from 'lucide-svelte/icons/x';
 	import ExternalLink from 'lucide-svelte/icons/external-link';
 	import Activity from 'lucide-svelte/icons/activity';
@@ -16,6 +23,7 @@
 	import CircleCheck from 'lucide-svelte/icons/circle-check';
 	import History from 'lucide-svelte/icons/history';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
+	import { onMount } from 'svelte';
 
 	let {
 		probe,
@@ -27,7 +35,18 @@
 		onclose: () => void;
 	} = $props();
 
+	let activeLocale = $state<SupportedLocale>(getLocale());
+	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+		translate(key, params, activeLocale);
+
+	onMount(() => {
+		return onLocaleChange((loc) => {
+			activeLocale = loc;
+		});
+	});
+
 	const color = $derived(probe ? STATUS_COLORS[probe.status] ?? STATUS_COLORS.up : STATUS_COLORS.up);
+	const statusLabel = $derived(probe ? getStatusLabel(probe.status, activeLocale) : '');
 
 	// Gestion de la touche Échap pour refermer la vue détail
 	function handleKeydown(e: KeyboardEvent) {
@@ -37,9 +56,9 @@
 	}
 
 	function formatDuration(downSince?: string): string {
-		if (!downSince) return 'récent';
+		if (!downSince) return t('detailModal.recent');
 		const diffSec = Math.max(0, Math.floor((Date.now() - new Date(downSince).getTime()) / 1000));
-		return formatDurationCompact(diffSec);
+		return formatDurationCompact(diffSec, activeLocale);
 	}
 
 	let serverIncidents = $state<NormalizedIncident[] | null>(null);
@@ -110,7 +129,7 @@
 	});
 
 	// 24 créneaux horaires d'1h pour la barre
-	const slots = $derived(build24hSlots(mergedIncidents, nowTime));
+	const slots = $derived(build24hSlots(mergedIncidents, nowTime, activeLocale));
 	// Événements d'incidents antéchronologiques
 	const historyEvents = $derived(probe ? buildProbeHistoryEvents(probe, mergedIncidents, nowTime) : []);
 	// Synthèse métrique sur 24h
@@ -188,7 +207,7 @@
 					<button
 						onclick={onclose}
 						class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
-						aria-label="Fermer la vue détail"
+						aria-label={t('detailModal.closeAria')}
 					>
 						<X class="w-5 h-5" />
 					</button>
@@ -201,20 +220,20 @@
 					<!-- Statut Actuel & Alerte -->
 					<div>
 						<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2 font-sans">
-							Statut Actuel
+							{t('detailModal.currentStatus')}
 						</span>
 						<div
 							class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold border {color.cardBgClass} {color.borderClass} {color.textClass}"
 						>
 							<span class="w-2.5 h-2.5 rounded-full {color.bgClass} shadow-xs {probe.status === 'down' ? 'animate-pulse' : ''}"></span>
-							<span>{color.label}</span>
+							<span>{statusLabel}</span>
 							<span class="text-xs opacity-75 font-mono uppercase">({probe.status})</span>
 						</div>
 
 						{#if probe.status === 'down' && probe.downSince}
 							<div class="mt-3 p-3 rounded-lg bg-red-950/40 border border-red-800/50 text-xs text-red-300 flex items-center gap-2">
 								<Clock class="w-4 h-4 text-red-400 shrink-0" />
-								<span>En panne depuis <strong>{formatDuration(probe.downSince)}</strong></span>
+								<span>{t('detailModal.downSince', { duration: formatDuration(probe.downSince) })}</span>
 							</div>
 						{/if}
 					</div>
@@ -225,7 +244,7 @@
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
 								<Activity class="w-3.5 h-3.5" />
-								<span>Latence</span>
+								<span>{t('detailModal.latency')}</span>
 							</div>
 							<p class="text-2xl font-bold font-mono text-white">
 								{probe.responseTime !== null ? `${probe.responseTime} ms` : '—'}
@@ -236,7 +255,7 @@
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
 								<Clock class="w-3.5 h-3.5" />
-								<span>Uptime 24h</span>
+								<span>{t('detailModal.uptime24h')}</span>
 							</div>
 							<p class="text-2xl font-bold font-mono text-emerald-300">
 								{probe.uptime24h !== null ? `${probe.uptime24h.toFixed(2)}%` : '—'}
@@ -249,7 +268,7 @@
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
 								<Clock class="w-3.5 h-3.5" />
-								<span>Uptime 7j</span>
+								<span>{t('detailModal.uptime7d')}</span>
 							</div>
 							<p class="text-lg font-bold font-mono text-slate-200">
 								{probe.uptime7d !== null ? `${probe.uptime7d.toFixed(2)}%` : '—'}
@@ -259,7 +278,7 @@
 						<div class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
 							<div class="flex items-center gap-1.5 text-slate-400 text-xs mb-1.5">
 								<Shield class="w-3.5 h-3.5" />
-								<span>Criticité</span>
+								<span>{t('detailModal.criticality')}</span>
 							</div>
 							<p class="text-sm font-semibold font-mono uppercase text-slate-200">
 								{probe.criticality}
@@ -274,7 +293,7 @@
 						<div class="flex items-center justify-between">
 							<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-sans">
 								<History class="w-3.5 h-3.5 text-slate-400" />
-								<span>Historique Récent (24h)</span>
+								<span>{t('detailModal.recentHistory')}</span>
 							</span>
 							<div class="flex items-center gap-2">
 								{#if isFetchingHistory}
@@ -286,8 +305,11 @@
 										: 'bg-emerald-950/50 text-emerald-300 border-emerald-800/40'}"
 								>
 									{historyStats && historyStats.totalIncidents > 0
-										? `${historyStats.totalIncidents} coupure${historyStats.totalIncidents > 1 ? 's' : ''}`
-										: '100% disponible'}
+										? t('detailModal.outagesCount', {
+												count: historyStats.totalIncidents,
+												plural: historyStats.totalIncidents > 1 ? 's' : ''
+											})
+										: t('detailModal.fullyAvailable')}
 								</span>
 							</div>
 						</div>
@@ -295,15 +317,15 @@
 						<!-- Frise temporelle horizontale de 24 créneaux (1 bloc = 1 heure) -->
 						<div class="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2.5">
 							<div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-								<span>Il y a 24h</span>
+								<span>{t('detailModal.twentyFourHoursAgo')}</span>
 								<span class="text-emerald-400 font-semibold">
-									{historyStats ? `${historyStats.availabilityPercentage.toFixed(2)}% dispo` : '—'}
+									{historyStats ? t('detailModal.availablePercent', { percent: historyStats.availabilityPercentage.toFixed(2) }) : '—'}
 								</span>
-								<span>Maintenant</span>
+								<span>{t('detailModal.now')}</span>
 							</div>
 
 							<!-- Segments horaires avec infobulles natives au survol -->
-							<div class="flex items-center gap-1 h-6 w-full py-0.5 select-none" role="img" aria-label="Disponibilité heure par heure sur 24 heures">
+							<div class="flex items-center gap-1 h-6 w-full py-0.5 select-none" role="img" aria-label={t('detailModal.hourlyAvailabilityAria')}>
 								{#each slots as slot (slot.index)}
 									<div
 										class="flex-1 h-full rounded-[1.5px] transition-transform duration-100 hover:scale-y-125 cursor-pointer {getSlotBgClass(slot.status)}"
@@ -316,15 +338,15 @@
 							<div class="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-800/80">
 								<div class="flex items-center gap-1.5">
 									<span class="w-2 h-2 rounded-xs bg-emerald-500"></span>
-									<span>Opérationnel</span>
+									<span>{t('detailModal.operational')}</span>
 								</div>
 								<div class="flex items-center gap-1.5">
 									<span class="w-2 h-2 rounded-xs bg-amber-500"></span>
-									<span>Dégradé</span>
+									<span>{t('detailModal.degraded')}</span>
 								</div>
 								<div class="flex items-center gap-1.5">
 									<span class="w-2 h-2 rounded-xs bg-rose-500"></span>
-									<span>Panne (DOWN)</span>
+									<span>{t('detailModal.down')}</span>
 								</div>
 							</div>
 						</div>
@@ -332,21 +354,21 @@
 						<!-- Mini KPIs de synthèse -->
 						<div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
 							<div class="p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40">
-								<span class="text-[10px] uppercase text-slate-400 block font-sans">Incidents</span>
+								<span class="text-[10px] uppercase text-slate-400 block font-sans">{t('detailModal.kpiIncidents')}</span>
 								<span class="font-bold text-sm {historyStats && historyStats.totalIncidents > 0 ? 'text-amber-400' : 'text-emerald-400'}">
 									{historyStats?.totalIncidents ?? 0}
 								</span>
 							</div>
 							<div class="p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40">
-								<span class="text-[10px] uppercase text-slate-400 block font-sans">Indispo</span>
+								<span class="text-[10px] uppercase text-slate-400 block font-sans">{t('detailModal.kpiDowntime')}</span>
 								<span class="font-bold text-sm text-slate-200">
-									{formatDurationCompact(historyStats?.downtimeSeconds ?? 0)}
+									{formatDurationCompact(historyStats?.downtimeSeconds ?? 0, activeLocale)}
 								</span>
 							</div>
 							<div class="p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40">
-								<span class="text-[10px] uppercase text-slate-400 block font-sans">Séquence</span>
+								<span class="text-[10px] uppercase text-slate-400 block font-sans">{t('detailModal.kpiStreak')}</span>
 								<span class="font-bold text-sm text-slate-200">
-									{formatDurationCompact(historyStats?.currentStreakSeconds ?? 0)}
+									{formatDurationCompact(historyStats?.currentStreakSeconds ?? 0, activeLocale)}
 								</span>
 							</div>
 						</div>
@@ -354,7 +376,7 @@
 						<!-- Journal chronologique des bascules UP / DOWN -->
 						<div class="rounded-xl bg-slate-800/30 border border-slate-700/50 p-3 space-y-2.5">
 							<span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block font-mono">
-								Journal des bascules
+								{t('detailModal.eventsLog')}
 							</span>
 
 							{#if historyEvents.length === 0}
@@ -364,8 +386,8 @@
 										<CircleCheck class="w-4 h-4 text-emerald-400" />
 									</div>
 									<div class="min-w-0">
-										<p class="font-semibold text-emerald-300 text-xs">Aucune interruption sur les dernières 24h</p>
-										<p class="text-[11px] text-slate-400">Le service est resté continuellement opérationnel.</p>
+										<p class="font-semibold text-emerald-300 text-xs">{t('detailModal.noInterruption')}</p>
+										<p class="text-[11px] text-slate-400">{t('detailModal.continuousOperation')}</p>
 									</div>
 								</div>
 							{:else}
@@ -385,21 +407,21 @@
 												<div class="min-w-0 flex-1">
 													<p class="font-bold {event.status === 'down' ? 'text-rose-300' : event.status === 'degraded' ? 'text-amber-300' : 'text-emerald-300'}">
 														{#if event.resolvedAt === null}
-															Panne en cours (DOWN)
+															{t('detailModal.ongoingOutage')}
 														{:else if event.status === 'down'}
-															Coupure (DOWN → UP)
+															{t('detailModal.resolvedOutage')}
 														{:else}
-															Instabilité (DEGRADED)
+															{t('detailModal.instability')}
 														{/if}
 													</p>
 
 													<p class="text-[11px] text-slate-400 mt-0.5">
-														Début : {formatEventDateTime(event.timestamp, nowTime)}
+														{t('detailModal.startedAt', { time: formatEventDateTime(event.timestamp, nowTime, activeLocale) })}
 													</p>
 
 													{#if event.resolvedAt}
 														<p class="text-[11px] text-emerald-400/90 mt-0.5">
-															Rétabli : {formatEventDateTime(event.resolvedAt, nowTime)}
+															{t('detailModal.resolvedAt', { time: formatEventDateTime(event.resolvedAt, nowTime, activeLocale) })}
 														</p>
 													{/if}
 
@@ -414,11 +436,11 @@
 											<div class="shrink-0 text-right">
 												{#if event.resolvedAt === null}
 													<span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 animate-pulse">
-														En cours ({formatDurationCompact(event.duration ?? 0)})
+														{t('detailModal.ongoingBadge', { duration: formatDurationCompact(event.duration ?? 0, activeLocale) })}
 													</span>
 												{:else if event.duration}
 													<span class="inline-block text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-														{formatDurationCompact(event.duration)}
+														{formatDurationCompact(event.duration, activeLocale)}
 													</span>
 												{/if}
 											</div>
@@ -432,16 +454,16 @@
 					<!-- Métadonnées système -->
 					<div class="p-4 rounded-xl bg-slate-800/20 border border-slate-800 text-xs font-mono space-y-2 text-slate-400">
 						<div class="flex justify-between">
-							<span>ID Sonde</span>
+							<span>{t('detailModal.probeId')}</span>
 							<span class="text-slate-300 select-all">{probe.id}</span>
 						</div>
 						<div class="flex justify-between">
-							<span>Source</span>
+							<span>{t('detailModal.source')}</span>
 							<span class="text-slate-300">{probe.source}</span>
 						</div>
 						<div class="flex justify-between">
-							<span>Dernier contrôle</span>
-							<span class="text-slate-300">{new Date(probe.lastCheck).toLocaleTimeString()}</span>
+							<span>{t('detailModal.lastCheck')}</span>
+							<span class="text-slate-300">{new Date(probe.lastCheck).toLocaleTimeString(activeLocale === 'fr' ? 'fr-FR' : 'en-US')}</span>
 						</div>
 					</div>
 				</div>
@@ -455,7 +477,7 @@
 					onclick={onclose}
 					class="w-full py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium text-sm transition-colors cursor-pointer shadow-md"
 				>
-					Fermer
+					{t('detailModal.closeBtn')}
 				</button>
 			</div>
 		</div>

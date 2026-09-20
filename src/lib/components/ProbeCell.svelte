@@ -1,12 +1,20 @@
 <script lang="ts">
 	import type { GridDensity, NormalizedProbe, ProbeStatus } from '$lib/types';
-	import { STATUS_COLORS } from '$lib/utils/colors';
+	import { STATUS_COLORS, getStatusLabel } from '$lib/utils/colors';
+	import {
+		t as translate,
+		getLocale,
+		onLocaleChange,
+		type SupportedLocale,
+		type TranslationKey
+	} from '$lib/i18n';
 	import CircleCheck from 'lucide-svelte/icons/circle-check';
 	import CircleX from 'lucide-svelte/icons/circle-x';
 	import TriangleAlert from 'lucide-svelte/icons/triangle-alert';
 	import CirclePause from 'lucide-svelte/icons/circle-pause';
 	import LoaderCircle from 'lucide-svelte/icons/loader-circle';
 	import Wrench from 'lucide-svelte/icons/wrench';
+	import { onMount } from 'svelte';
 
 	let {
 		probe,
@@ -24,7 +32,14 @@
 		onselect?: (probe: NormalizedProbe) => void;
 	} = $props();
 
+	let activeLocale = $state<SupportedLocale>(getLocale());
+	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+		translate(key, params, activeLocale);
+
+	onMount(() => onLocaleChange((loc) => activeLocale = loc));
+
 	const color = $derived(STATUS_COLORS[probe.status] ?? STATUS_COLORS.up);
+	const statusLabel = $derived(getStatusLabel(probe.status, activeLocale));
 	const isDown = $derived(probe.status === 'down');
 	const isDownOver1Min = $derived.by(() => {
 		if (!isDown) return false;
@@ -90,7 +105,7 @@
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex="0"
 		role="button"
-		aria-label="{probe.name} : {color.label}, uptime {uptimeDisplay}, latence {responseTimeDisplay}"
+		aria-label={t('probe.cellAria', { name: probe.name, status: statusLabel, uptime: uptimeDisplay, latency: responseTimeDisplay })}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
@@ -130,7 +145,7 @@
 		<div class="mt-4 flex items-end justify-between gap-2">
 			<div>
 				<span class="text-[10px] text-[var(--kato-text-secondary)] uppercase tracking-wider block font-sans">
-					Uptime 24h
+					{t('probe.uptime24h')}
 				</span>
 				<span class="text-2xl font-bold font-mono tracking-tight text-[var(--kato-text-primary)]">
 					{uptimeDisplay}
@@ -138,7 +153,7 @@
 			</div>
 			<div class="text-right">
 				<span class="text-[10px] text-[var(--kato-text-secondary)] uppercase tracking-wider block font-sans">
-					Latence
+					{t('probe.latency')}
 				</span>
 				<span class="text-sm font-mono text-[var(--kato-text-secondary)]">
 					{responseTimeDisplay}
@@ -158,7 +173,7 @@
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex="0"
 		role="button"
-		aria-label="{probe.name} : {color.label}, uptime {uptimeDisplay}, latence {responseTimeDisplay}"
+		aria-label={t('probe.cellAria', { name: probe.name, status: statusLabel, uptime: uptimeDisplay, latency: responseTimeDisplay })}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
@@ -192,7 +207,7 @@
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
 		tabindex="0"
 		role="button"
-		aria-label="{probe.name} : {color.label}, latence {responseTimeDisplay}"
+		aria-label="{probe.name} : {statusLabel}, {t('probe.latency').toLowerCase()} {responseTimeDisplay}"
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>

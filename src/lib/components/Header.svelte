@@ -12,6 +12,15 @@
 	import Maximize from 'lucide-svelte/icons/maximize';
 	import Minimize from 'lucide-svelte/icons/minimize';
 	import { toggleFullscreen, onFullscreenChange } from '$lib/utils/fullscreen';
+	import {
+		t as translate,
+		onLocaleChange,
+		setLocale,
+		getLocale,
+		LOCALE_OPTIONS,
+		type SupportedLocale,
+		type TranslationKey
+	} from '$lib/i18n';
 
 	let {
 		probes = [],
@@ -71,6 +80,9 @@
 			event.stopPropagation();
 		}
 	}
+	let activeLocale = $state<SupportedLocale>(getLocale());
+	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+		translate(key, params, activeLocale);
 	let activeTheme = $state<Theme>('dark');
 	let isSoundOn = $state(false);
 	let isFullscreenActive = $state(false);
@@ -79,16 +91,20 @@
 
 	function updateCurrentTime() {
 		const d = new Date();
-		currentTime = formatClock(d, clockConfig);
-		compactTime = formatClock(d, clockConfig, { forceNoSeconds: true });
+		currentTime = formatClock(d, clockConfig, { locale: activeLocale });
+		compactTime = formatClock(d, clockConfig, { forceNoSeconds: true, locale: activeLocale });
 		timeZoneBadge = clockConfig.timeZone !== 'local' ? getTimeZoneShortLabel(clockConfig.timeZone) : '';
 		now = Date.now();
 	}
 
-	// Abonnements aux bascules de thème, de son, de défilement, d'horloge et plein écran
+	// Abonnements aux bascules de thème, de langue, de son, de défilement, d'horloge et plein écran
 	onMount(() => {
 		const unsubscribe = onThemeChange((theme) => {
 			activeTheme = theme;
+		});
+		const unsubLocale = onLocaleChange((loc) => {
+			activeLocale = loc;
+			updateCurrentTime();
 		});
 		const unsubSound = onSoundChange((enabled) => {
 			isSoundOn = enabled;
@@ -111,6 +127,7 @@
 
 		return () => {
 			unsubscribe();
+			unsubLocale();
 			unsubSound();
 			unsubFullscreen();
 			unsubMarquee();
@@ -123,12 +140,12 @@
 		isSoundOn = toggleSound();
 	}
 
-	const themeOptions: Array<{ id: Theme; label: string; icon: string }> = [
-		{ id: 'dark', label: 'Sombre', icon: '🌙' },
-		{ id: 'light', label: 'Clair', icon: '☀️' },
-		{ id: 'amoled', label: 'AMOLED', icon: '⬛' },
-		{ id: 'auto', label: 'Auto (OS)', icon: '💻' }
-	];
+	const themeOptions = $derived<Array<{ id: Theme; label: string; icon: string }>>([
+		{ id: 'dark', label: t('settings.themeDark'), icon: '🌙' },
+		{ id: 'light', label: t('settings.themeLight'), icon: '☀️' },
+		{ id: 'amoled', label: t('settings.themeAmoled'), icon: '⬛' },
+		{ id: 'auto', label: t('settings.themeAuto'), icon: '💻' }
+	]);
 
 	const total = $derived(probes.length);
 	const countUp = $derived(probes.filter((p) => p.status === 'up').length);
@@ -195,7 +212,7 @@
 				? 'text-xs'
 				: 'text-sm sm:text-base'} {upRatio <= 80 ? 'animate-pulse' : ''}"
 			style="color: {scoreColor};"
-			aria-label="{countUp} sur {total} sondes opérationnelles"
+			aria-label={t('header.scoreAria', { countUp, total })}
 		>
 			{countUp}/{total} UP
 		</span>
@@ -204,14 +221,14 @@
 		<div
 			class="hidden min-[480px]:flex items-center gap-1 sm:gap-1.5 flex-wrap"
 			role="group"
-			aria-label="Compteurs de sondes par statut"
+			aria-label={t('header.statusCountsGroup')}
 		>
 			<!-- UP (vert) -->
 			{#if !compact || countUp > 0}
 				<span
 					class="status-badge-up flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
-					title="Sondes opérationnelles ({countUp})"
-					aria-label="{countUp} sondes opérationnelles"
+					title={t('header.badgeUpTitle', { count: countUp })}
+					aria-label={t('header.badgeUpAria', { count: countUp })}
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
 					<span>{countUp}</span>
@@ -222,8 +239,8 @@
 			{#if !compact || countDegraded > 0}
 				<span
 					class="status-badge-degraded flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
-					title="Sondes dégradées ({countDegraded})"
-					aria-label="{countDegraded} sondes dégradées"
+					title={t('header.badgeDegradedTitle', { count: countDegraded })}
+					aria-label={t('header.badgeDegradedAria', { count: countDegraded })}
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
 					<span>{countDegraded}</span>
@@ -237,8 +254,8 @@
 					0
 						? 'animate-pulse'
 						: ''}"
-					title="Sondes en panne ({countDown})"
-					aria-label="{countDown} sondes en panne"
+					title={t('header.badgeDownTitle', { count: countDown })}
+					aria-label={t('header.badgeDownAria', { count: countDown })}
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true"></span>
 					<span>{countDown}</span>
@@ -249,8 +266,8 @@
 			{#if !compact || countPaused > 0}
 				<span
 					class="status-badge-paused flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
-					title="Sondes en pause ({countPaused})"
-					aria-label="{countPaused} sondes en pause"
+					title={t('header.badgePausedTitle', { count: countPaused })}
+					aria-label={t('header.badgePausedAria', { count: countPaused })}
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-slate-400" aria-hidden="true"></span>
 					<span>{countPaused}</span>
@@ -261,8 +278,8 @@
 			{#if countPending > 0}
 				<span
 					class="status-badge-pending flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
-					title="Sondes en attente ({countPending})"
-					aria-label="{countPending} sondes en attente"
+					title={t('header.badgePendingTitle', { count: countPending })}
+					aria-label={t('header.badgePendingAria', { count: countPending })}
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span>
 					<span>{countPending}</span>
@@ -273,8 +290,8 @@
 			{#if countMaintenance > 0}
 				<span
 					class="status-badge-maintenance flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium font-mono shrink-0"
-					title="Sondes en maintenance ({countMaintenance})"
-					aria-label="{countMaintenance} sondes en maintenance"
+					title={t('header.badgeMaintenanceTitle', { count: countMaintenance })}
+					aria-label={t('header.badgeMaintenanceAria', { count: countMaintenance })}
 				>
 					<span class="w-1.5 h-1.5 rounded-full bg-violet-500" aria-hidden="true"></span>
 					<span>{countMaintenance}</span>
@@ -291,7 +308,11 @@
 		<!-- Horloge : format complet sur desktop, condensé sur mobile -->
 		<span
 			class="text-[var(--kato-text-secondary)] font-mono text-xs sm:text-sm flex items-center gap-1 shrink-0"
-			aria-label="Horloge ({clockConfig.format}, {clockConfig.timeZone}) : {currentTime}"
+			aria-label={t('header.clockAria', {
+				format: clockConfig.format,
+				timeZone: clockConfig.timeZone,
+				time: currentTime
+			})}
 		>
 			<span class="inline md:hidden">{compactTime}</span>
 			<span class="hidden md:inline">{currentTime}</span>
@@ -307,11 +328,11 @@
 			<span
 				class="{connectionStatus !== 'connected' ? 'flex' : 'hidden min-[480px]:flex'} font-mono text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-md border items-center gap-1 shrink-0 {freshnessClass}"
 				title={connectionStatus !== 'connected'
-					? 'Connexion perdue avec le serveur SSE'
-					: 'Délai depuis la dernière réception de données'}
+					? t('header.freshnessLostTitle')
+					: t('header.freshnessDelayTitle')}
 				aria-label={connectionStatus !== 'connected'
-					? `Connexion perdue. Données reçues il y a ${freshnessSeconds} secondes`
-					: `Dernière mise à jour reçue il y a ${freshnessSeconds} secondes`}
+					? t('header.freshnessLostAria', { seconds: freshnessSeconds })
+					: t('header.freshnessDelayAria', { seconds: freshnessSeconds })}
 			>
 				{#if connectionStatus !== 'connected'}
 					<span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" aria-hidden="true"></span>
@@ -329,11 +350,11 @@
 					? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40'
 					: 'text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30'}"
 				title={forceZeroScroll
-					? 'Mode Zéro-scroll actif (Pixels collés). Cliquer pour passer en mode tactile (44px, défilement)'
-					: 'Mode tactile actif (44px, défilement). Cliquer pour passer en mode zéro-scroll (pixels collés)'}
+					? t('header.zeroScrollActiveTitle')
+					: t('header.touchActiveTitle')}
 				aria-label={forceZeroScroll
-					? 'Passer en mode tactile avec défilement'
-					: 'Passer en mode zéro-scroll avec pixels collés'}
+					? t('header.zeroScrollActiveAria')
+					: t('header.touchActiveAria')}
 			>
 				{#if forceZeroScroll}
 					<Grid2x2 class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -350,8 +371,8 @@
 			class="p-1 rounded-md transition-colors cursor-pointer {isSoundOn
 				? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40'
 				: 'text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30'}"
-			title={isSoundOn ? 'Désactiver les alertes sonores (Actif)' : 'Activer les alertes sonores (Coupé)'}
-			aria-label={isSoundOn ? 'Désactiver les alertes sonores' : 'Activer les alertes sonores'}
+			title={isSoundOn ? t('header.soundDisableTitle') : t('header.soundEnableTitle')}
+			aria-label={isSoundOn ? t('header.soundDisableAria') : t('header.soundEnableAria')}
 		>
 			{#if isSoundOn}
 				<Volume2 class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -367,8 +388,8 @@
 			class="p-1 rounded-md transition-colors cursor-pointer {isFullscreenActive
 				? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40'
 				: 'text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30'}"
-			title={isFullscreenActive ? 'Quitter le plein écran (Échap / F)' : 'Passer en plein écran (F)'}
-			aria-label={isFullscreenActive ? 'Quitter le plein écran' : 'Passer en plein écran'}
+			title={isFullscreenActive ? t('header.fullscreenExitTitle') : t('header.fullscreenEnterTitle')}
+			aria-label={isFullscreenActive ? t('header.fullscreenExitAria') : t('header.fullscreenEnterAria')}
 		>
 			{#if isFullscreenActive}
 				<Minimize class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -383,35 +404,56 @@
 				type="button"
 				onclick={() => (isSettingsOpen = !isSettingsOpen)}
 				class="p-1 rounded-md text-[var(--kato-text-secondary)] hover:text-[var(--kato-text-primary)] hover:bg-slate-800/30 transition-colors cursor-pointer"
-				title="Changer le thème et les paramètres"
-				aria-label="Sélecteur de paramètres et thème"
+				title={t('header.settingsTitle')}
+				aria-label={t('header.settingsAria')}
 				aria-expanded={isSettingsOpen}
 			>
 				<Settings class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
 			</button>
 
 			{#if isSettingsOpen}
-				<!-- Dropdown sélecteur de thème et paramètres -->
+				<!-- Dropdown sélecteur de langue, thème et paramètres -->
 				<div
 					class="absolute right-0 top-full mt-2 w-60 max-h-[80vh] overflow-y-auto rounded-lg bg-[var(--kato-bg-secondary)] border border-[var(--kato-border)] shadow-2xl py-1 z-50 text-xs font-sans"
 				>
+					<!-- Section Langue -->
+					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)] flex items-center justify-between">
+						<span>{t('settings.sectionLanguage')}</span>
+					</div>
+					{#each LOCALE_OPTIONS as opt (opt.id)}
+						<button
+							type="button"
+							onclick={() => {
+								setLocale(opt.id);
+							}}
+							class="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {activeLocale === opt.id ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
+						>
+							<div class="flex items-center gap-2">
+								<span>{opt.flag}</span>
+								<span>{opt.label}</span>
+							</div>
+							{#if activeLocale === opt.id}
+								<Check class="w-3.5 h-3.5 text-emerald-400" />
+							{/if}
+						</button>
+					{/each}
 					<!-- Section Affichage / Plein écran -->
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-b border-[var(--kato-border)] flex items-center justify-between">
-						<span>Affichage</span>
+						<span>{t('settings.sectionDisplay')}</span>
 					</div>
 					<button
 						type="button"
 						onclick={() => void toggleFullscreen()}
 						class="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {isFullscreenActive ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
-						aria-label={isFullscreenActive ? 'Quitter le plein écran' : 'Passer en plein écran'}
+						aria-label={isFullscreenActive ? t('header.fullscreenExitAria') : t('header.fullscreenEnterAria')}
 					>
 						<div class="flex items-center gap-2">
 							{#if isFullscreenActive}
 								<Minimize class="w-3.5 h-3.5 text-emerald-400" />
-								<span>Plein écran (Actif - F)</span>
+								<span>{t('settings.fullscreenActive')}</span>
 							{:else}
 								<Maximize class="w-3.5 h-3.5" />
-								<span>Plein écran (F)</span>
+								<span>{t('settings.fullscreenInactive')}</span>
 							{/if}
 						</div>
 						{#if isFullscreenActive}
@@ -420,7 +462,7 @@
 					</button>
 
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)]">
-						Thème
+						{t('settings.sectionTheme')}
 					</div>
 					{#each themeOptions as opt (opt.id)}
 						<button
@@ -442,7 +484,7 @@
 
 					<!-- Section Réglage Vitesse Limite Défilement Incidents -->
 					<div class="px-3 py-1.5 mt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
-						<span>Défilement incidents</span>
+						<span>{t('settings.sectionMarquee')}</span>
 						<span class="font-mono text-emerald-400">{currentMarqueeDuration}s</span>
 					</div>
 
@@ -453,11 +495,11 @@
 								setMarqueeSpeed(key as MarqueeSpeed);
 							}}
 							class="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-800/30 transition-colors cursor-pointer {currentMarqueeSpeed === key ? 'text-emerald-400 font-medium' : 'text-[var(--kato-text-primary)]'}"
-							title={preset.description}
+							title={key === 'slow' ? t('settings.marqueeSlowDesc') : key === 'normal' ? t('settings.marqueeNormalDesc') : t('settings.marqueeFastDesc')}
 						>
 							<div class="flex items-center gap-2">
 								<span>{preset.icon}</span>
-								<span>{preset.label} ({preset.duration}s)</span>
+								<span>{key === 'slow' ? t('settings.marqueeSlow') : key === 'normal' ? t('settings.marqueeNormal') : t('settings.marqueeFast')} ({preset.duration}s)</span>
 							</div>
 							{#if currentMarqueeSpeed === key}
 								<Check class="w-3.5 h-3.5 text-emerald-400" />
@@ -468,7 +510,7 @@
 					<!-- Curseur de réglage fin de la vitesse limite -->
 					<div class="px-3 py-2 border-t border-[var(--kato-border)] flex flex-col gap-1.5 bg-slate-950/20">
 						<div class="flex items-center justify-between text-[11px] text-[var(--kato-text-secondary)]">
-							<span>Vitesse limite :</span>
+							<span>{t('settings.marqueeLimit')}</span>
 							<span class="font-mono font-bold text-[var(--kato-text-primary)]">{currentMarqueeDuration}s</span>
 						</div>
 						<input
@@ -482,29 +524,29 @@
 								if (!isNaN(val)) setMarqueeDuration(val);
 							}}
 							class="w-full accent-emerald-500 cursor-pointer h-1.5 rounded-lg bg-slate-700"
-							aria-label="Réglage de la durée du défilement des incidents"
+							aria-label={t('settings.marqueeAria')}
 						/>
 						<div class="flex justify-between text-[9px] text-[var(--kato-text-secondary)]">
-							<span>Rapide (15s)</span>
-							<span>Lent (120s)</span>
+							<span>{t('settings.marqueeFastLabel')}</span>
+							<span>{t('settings.marqueeSlowLabel')}</span>
 						</div>
 					</div>
 
 					<!-- Section Horloge & Fuseau horaire -->
 					<div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--kato-text-secondary)] border-t border-b border-[var(--kato-border)] flex items-center justify-between">
-						<span>Horloge</span>
+						<span>{t('settings.sectionClock')}</span>
 						<span class="font-mono text-emerald-400">{clockConfig.format}</span>
 					</div>
 
 					<!-- Format 24h / 12h -->
 					<div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
-						<span class="text-[var(--kato-text-secondary)]">Format :</span>
+						<span class="text-[var(--kato-text-secondary)]">{t('settings.clockFormat')}</span>
 						<div class="flex items-center gap-1 bg-slate-900/60 p-0.5 rounded border border-[var(--kato-border)]">
 							<button
 								type="button"
 								onclick={() => setTimeFormat('24h')}
 								class="px-2 py-0.5 rounded font-mono text-[11px] transition-colors cursor-pointer {clockConfig.format === '24h' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'text-slate-400 hover:text-white'}"
-								aria-label="Format 24 heures"
+								aria-label={t('settings.clock24hAria')}
 							>
 								24h
 							</button>
@@ -512,7 +554,7 @@
 								type="button"
 								onclick={() => setTimeFormat('12h')}
 								class="px-2 py-0.5 rounded font-mono text-[11px] transition-colors cursor-pointer {clockConfig.format === '12h' ? 'bg-emerald-600 text-white font-bold shadow-xs' : 'text-slate-400 hover:text-white'}"
-								aria-label="Format 12 heures AM/PM"
+								aria-label={t('settings.clock12hAria')}
 							>
 								12h
 							</button>
@@ -521,18 +563,18 @@
 
 					<!-- Afficher / masquer les secondes -->
 					<div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
-						<span class="text-[var(--kato-text-secondary)]">Secondes :</span>
+						<span class="text-[var(--kato-text-secondary)]">{t('settings.clockSeconds')}</span>
 						<button
 							type="button"
 							onclick={() => setShowSeconds(!clockConfig.showSeconds)}
 							class="px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer flex items-center gap-1 border border-[var(--kato-border)] {clockConfig.showSeconds ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60' : 'bg-slate-800/40 text-slate-400'}"
-							aria-label={clockConfig.showSeconds ? 'Masquer les secondes' : 'Afficher les secondes'}
+							aria-label={clockConfig.showSeconds ? t('settings.secondsHideAria') : t('settings.secondsShowAria')}
 						>
 							{#if clockConfig.showSeconds}
 								<Check class="w-3 h-3 text-emerald-400" />
-								<span>Affichées</span>
+								<span>{t('settings.secondsShown')}</span>
 							{:else}
-								<span>Masquées</span>
+								<span>{t('settings.secondsHidden')}</span>
 							{/if}
 						</button>
 					</div>
@@ -540,14 +582,14 @@
 					<!-- Fuseau horaire -->
 					<div class="px-3 py-1.5 pb-2 flex flex-col gap-1 text-xs">
 						<label for="timezone-select" class="text-[var(--kato-text-secondary)] text-[11px]">
-							Fuseau horaire :
+							{t('settings.clockTimezone')}
 						</label>
 						<select
 							id="timezone-select"
 							value={clockConfig.timeZone}
 							onchange={(e) => setTimeZone((e.target as HTMLSelectElement).value)}
 							class="w-full rounded bg-slate-900 border border-[var(--kato-border)] px-2 py-1 text-xs text-[var(--kato-text-primary)] font-sans focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-							aria-label="Sélectionner le fuseau horaire"
+							aria-label={t('settings.timezoneSelectAria')}
 						>
 							{#each TIME_ZONE_PRESETS as tz (tz.id)}
 								<option value={tz.id}>{tz.label}</option>

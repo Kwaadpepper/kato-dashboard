@@ -2,25 +2,53 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
+	import type { LayoutData } from './$types';
 	import { getInitialTheme, applyTheme, onThemeChange, type Theme, type ResolvedTheme } from '$lib/utils/theme';
+	import { initLocale, onLocaleChange, type SupportedLocale } from '$lib/i18n';
+	import { initClockConfig } from '$lib/utils/clock';
+	import { initSound } from '$lib/utils/sounds';
+	import { initMarqueeConfig } from '$lib/utils/marquee';
 
-	let { children } = $props();
+	let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
+
 	let currentTheme = $state<Theme>('dark');
 	let currentResolved = $state<ResolvedTheme>('dark');
+	let currentLocale = $state<SupportedLocale>('fr');
 
 	onMount(() => {
-		// Initialise le thème stocké ou par défaut
-		const initial = getInitialTheme();
-		applyTheme(initial);
-		currentTheme = initial;
+		const defaults = data.defaultSettings;
 
-		// S'abonne aux bascules de thème et aux changements prefers-color-scheme en mode 'auto'
-		const unsubscribe = onThemeChange((theme, resolved) => {
+		// 1. Initialise la langue (localStorage > BFF env vars > repli 'fr')
+		const initialLoc = initLocale(defaults?.locale);
+		currentLocale = initialLoc;
+		const unsubLocale = onLocaleChange((loc) => {
+			currentLocale = loc;
+		});
+
+		// 2. Initialise le thème (localStorage > BFF env vars > repli 'dark')
+		const initialTheme = getInitialTheme(defaults?.theme);
+		applyTheme(initialTheme);
+		currentTheme = initialTheme;
+		const unsubTheme = onThemeChange((theme, resolved) => {
 			currentTheme = theme;
 			currentResolved = resolved;
 		});
 
-		return unsubscribe;
+		// 3. Initialise l'horloge, le son et le défilement avec les valeurs du BFF
+		if (defaults) {
+			initClockConfig({
+				format: defaults.timeFormat,
+				timeZone: defaults.timeZone,
+				showSeconds: defaults.showSeconds
+			});
+			initSound(defaults.soundEnabled);
+			initMarqueeConfig(defaults.marqueeSpeed);
+		}
+
+		return () => {
+			unsubLocale();
+			unsubTheme();
+		};
 	});
 </script>
 
@@ -33,6 +61,7 @@
 	class="min-h-screen w-full flex flex-col transition-colors duration-200 bg-[var(--kato-bg-primary)] text-[var(--kato-text-primary)]"
 	data-theme={currentResolved}
 	data-theme-mode={currentTheme}
+	data-lang={currentLocale}
 >
 	{@render children()}
 </div>

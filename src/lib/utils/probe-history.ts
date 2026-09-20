@@ -21,17 +21,21 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Durée d'une heure en millisecondes */
 const HOUR_MS = 60 * 60 * 1000;
 
+import type { SupportedLocale } from '$lib/types';
+
 /**
  * Construit les 24 créneaux horaires représentant les 24 dernières heures
  * (de H-24 jusqu'à maintenant).
  *
  * @param incidents  Liste des incidents affectant la sonde.
  * @param nowInput   Date de référence (défaut : Date.now()).
+ * @param locale     Langue pour les libellés (défaut : 'fr').
  * @returns          Tableau de 24 UptimeBarSlot ordonnés chronologiquement (slot 0 = H-24).
  */
 export function build24hSlots(
 	incidents: NormalizedIncident[],
-	nowInput: Date | number = Date.now()
+	nowInput: Date | number = Date.now(),
+	locale: SupportedLocale = 'fr'
 ): UptimeBarSlot[] {
 	const nowMs = typeof nowInput === 'number' ? nowInput : nowInput.getTime();
 	const windowStartMs = nowMs - DAY_MS;
@@ -86,11 +90,14 @@ export function build24hSlots(
 		const startFormatted = slotStartDate.toLocaleTimeString([], timeFormat);
 		const endFormatted = slotEndDate.toLocaleTimeString([], timeFormat);
 
-		let statusLabel = '100% opérationnel';
+		const isFr = locale === 'fr';
+		let statusLabel = isFr ? '100% opérationnel' : '100% operational';
 		if (status === 'down') {
-			statusLabel = `Panne (${formatDurationCompact(downtimeSeconds)})`;
+			const dStr = formatDurationCompact(downtimeSeconds, locale);
+			statusLabel = isFr ? `Panne (${dStr})` : `Outage (${dStr})`;
 		} else if (status === 'degraded') {
-			statusLabel = `Dégradé (${formatDurationCompact(downtimeSeconds)})`;
+			const dStr = formatDurationCompact(downtimeSeconds, locale);
+			statusLabel = isFr ? `Dégradé (${dStr})` : `Degraded (${dStr})`;
 		}
 
 		const label = `${startFormatted} – ${endFormatted} : ${statusLabel}`;
@@ -232,9 +239,9 @@ export function computeProbeHistoryStats(
 
 /**
  * Formate une durée en secondes sous une forme compacte et lisible.
- * Exemples : "45s", "3m 12s", "2h 15m", "1j 4h".
+ * Exemples : "45s", "3m 12s", "2h 15m", "1j 4h" (FR) ou "1d 4h" (EN).
  */
-export function formatDurationCompact(seconds: number): string {
+export function formatDurationCompact(seconds: number, locale: SupportedLocale = 'fr'): string {
 	if (!seconds || seconds <= 0) return '0s';
 
 	const sec = Math.floor(seconds);
@@ -256,16 +263,19 @@ export function formatDurationCompact(seconds: number): string {
 
 	const days = Math.floor(hours / 24);
 	const remainingHours = hours % 24;
-	return remainingHours > 0 ? `${days}j ${remainingHours}h` : `${days}j`;
+	const dayUnit = locale === 'en' ? 'd' : 'j';
+	return remainingHours > 0 ? `${days}${dayUnit} ${remainingHours}h` : `${days}${dayUnit}`;
 }
 
 /**
  * Formate une date ISO en heure et jour relatifs lisibles.
- * Exemples : "Aujourd'hui à 14:30", "Hier à 22:15", "19/09 à 14:30".
+ * Exemples : "Aujourd'hui à 14:30", "Hier à 22:15", "19/09 à 14:30" (FR)
+ * ou "Today at 14:30", "Yesterday at 22:15", "09/19 at 14:30" (EN).
  */
 export function formatEventDateTime(
 	isoString: string,
-	nowInput: Date | number = Date.now()
+	nowInput: Date | number = Date.now(),
+	locale: SupportedLocale = 'fr'
 ): string {
 	if (!isoString) return '—';
 
@@ -290,6 +300,14 @@ export function formatEventDateTime(
 		minute: '2-digit',
 		hour12: false
 	});
+
+	if (locale === 'en') {
+		if (isToday) return `Today at ${timeStr}`;
+		if (isYesterday) return `Yesterday at ${timeStr}`;
+		const day = String(date.getDate()).padStart(2, '0');
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		return `${month}/${day} at ${timeStr}`;
+	}
 
 	if (isToday) {
 		return `Aujourd'hui à ${timeStr}`;

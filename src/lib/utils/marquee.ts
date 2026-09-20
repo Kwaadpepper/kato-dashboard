@@ -57,10 +57,10 @@ function notifyListeners(): void {
 }
 
 /**
- * Récupère la vitesse initialement configurée depuis le localStorage (défaut: 'slow').
+ * Récupère la vitesse initialement configurée depuis le localStorage ou BFF (défaut: 'slow').
  */
-export function getInitialMarqueeSpeed(): MarqueeSpeed {
-	if (typeof window === 'undefined') return 'slow';
+export function getInitialMarqueeSpeed(bffDefault?: MarqueeSpeed): MarqueeSpeed {
+	if (typeof window === 'undefined') return bffDefault ?? 'slow';
 	try {
 		const saved = localStorage.getItem(MARQUEE_STORAGE_KEY) as MarqueeSpeed | null;
 		if (saved && saved in MARQUEE_SPEED_PRESETS) {
@@ -69,14 +69,20 @@ export function getInitialMarqueeSpeed(): MarqueeSpeed {
 	} catch (err) {
 		console.warn('[Marquee] Erreur lors de la lecture de localStorage:', err);
 	}
+	if (bffDefault && bffDefault in MARQUEE_SPEED_PRESETS) {
+		return bffDefault;
+	}
 	return 'slow';
 }
 
 /**
  * Récupère la durée de défilement initiale en secondes (défaut: 60s).
  */
-export function getInitialMarqueeDuration(): number {
-	if (typeof window === 'undefined') return 60;
+export function getInitialMarqueeDuration(bffDefaultSpeed?: MarqueeSpeed): number {
+	if (typeof window === 'undefined') {
+		const speed = bffDefaultSpeed ?? 'slow';
+		return MARQUEE_SPEED_PRESETS[speed]?.duration ?? 60;
+	}
 	try {
 		const savedDuration = localStorage.getItem(MARQUEE_DURATION_STORAGE_KEY);
 		if (savedDuration !== null) {
@@ -85,7 +91,7 @@ export function getInitialMarqueeDuration(): number {
 				return parsed;
 			}
 		}
-		const speed = getInitialMarqueeSpeed();
+		const speed = getInitialMarqueeSpeed(bffDefaultSpeed);
 		return MARQUEE_SPEED_PRESETS[speed].duration;
 	} catch (err) {
 		console.warn('[Marquee] Erreur lors de la lecture de la durée:', err);
@@ -94,11 +100,11 @@ export function getInitialMarqueeDuration(): number {
 }
 
 /**
- * Initialise l'état du défilement depuis le stockage local.
+ * Initialise l'état du défilement depuis le stockage local et le BFF.
  */
-export function initMarqueeConfig(): MarqueeConfig {
-	currentSpeed = getInitialMarqueeSpeed();
-	currentDuration = getInitialMarqueeDuration();
+export function initMarqueeConfig(bffDefault?: MarqueeSpeed): MarqueeConfig {
+	currentSpeed = getInitialMarqueeSpeed(bffDefault);
+	currentDuration = getInitialMarqueeDuration(bffDefault);
 	return { speed: currentSpeed, duration: currentDuration };
 }
 

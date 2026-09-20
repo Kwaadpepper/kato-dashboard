@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
+
 	let {
 		hasError = false
 	}: {
@@ -18,7 +20,7 @@
 		<!-- Formulaire d'authentification -->
 		<form method="POST" class="space-y-4">
 			<div>
-				<label for="password" class="sr-only">Mot de passe</label>
+				<label for="password" class="sr-only">{t('login.passwordLabel')}</label>
 				<!-- svelte-ignore a11y_autofocus -->
 				<input
 					id="password"
@@ -27,7 +29,7 @@
 					required
 					autofocus
 					autocomplete="current-password"
-					placeholder="••••••••••••"
+					placeholder={t('login.passwordPlaceholder')}
 					class="w-full rounded-lg bg-slate-700/50 border border-slate-600 px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono text-sm"
 				/>
 			</div>
@@ -36,7 +38,7 @@
 				type="submit"
 				class="w-full mt-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 px-4 py-3 font-medium text-white transition-colors duration-150 shadow-lg shadow-emerald-900/30 cursor-pointer"
 			>
-				Déverrouiller
+				{t('login.unlock')}
 			</button>
 
 			<!-- Message d'alerte en cas d'erreur de saisie -->
@@ -45,7 +47,7 @@
 					class="mt-4 p-3 rounded-lg bg-red-950/50 border border-red-800/60 text-xs font-semibold text-red-300 text-center animate-kato-pulse"
 					role="alert"
 				>
-					Mot de passe incorrect
+					{t('login.invalidPassword')}
 				</div>
 			{/if}
 		</form>

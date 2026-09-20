@@ -48,19 +48,30 @@ export function unlockAudio(): void {
 }
 
 /**
- * Vérifie si les notifications sonores sont activées (lecture depuis localStorage).
+ * Vérifie si les notifications sonores sont activées (lecture depuis localStorage ou BFF).
  */
-export function isSoundEnabled(): boolean {
-	if (typeof window === 'undefined') return false;
+export function isSoundEnabled(bffDefault?: boolean): boolean {
+	if (typeof window === 'undefined') return bffDefault ?? false;
 	try {
 		const saved = localStorage.getItem(SOUND_STORAGE_KEY);
 		if (saved !== null) {
 			soundEnabledState = saved === 'true';
+			return soundEnabledState;
 		}
 	} catch (err) {
 		console.warn('[Sounds] Erreur de lecture de localStorage:', err);
 	}
+	if (typeof bffDefault === 'boolean') {
+		soundEnabledState = bffDefault;
+	}
 	return soundEnabledState;
+}
+
+/**
+ * Initialise l'état sonore avec prise en compte du réglage par défaut BFF.
+ */
+export function initSound(bffDefault?: boolean): boolean {
+	return isSoundEnabled(bffDefault);
 }
 
 /**

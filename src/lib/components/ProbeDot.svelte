@@ -1,7 +1,15 @@
 <script lang="ts">
   import type { NormalizedProbe, ProbeStatus } from "$lib/types";
-  import { STATUS_COLORS } from "$lib/utils/colors";
+  import { STATUS_COLORS, getStatusLabel } from "$lib/utils/colors";
   import { getProbeDotSize } from "$lib/utils/probe-dot";
+  import {
+    t as translate,
+    getLocale,
+    onLocaleChange,
+    type SupportedLocale,
+    type TranslationKey
+  } from "$lib/i18n";
+  import { onMount } from "svelte";
 
   let {
     probe,
@@ -19,7 +27,14 @@
     onselect?: (probe: NormalizedProbe) => void;
   } = $props();
 
+  let activeLocale = $state<SupportedLocale>(getLocale());
+  const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+    translate(key, params, activeLocale);
+
+  onMount(() => onLocaleChange((loc) => activeLocale = loc));
+
   const color = $derived(STATUS_COLORS[probe.status] ?? STATUS_COLORS.up);
+  const statusLabel = $derived(getStatusLabel(probe.status, activeLocale));
   const isDown = $derived(probe.status === "down");
   const isDownOver1Min = $derived.by(() => {
     if (!isDown) return false;
@@ -80,7 +95,12 @@
 	tabindex="0"
 	onclick={handleClick}
 	onkeydown={handleKeydown}
-	aria-label="{probe.name} : {color.label}{probe.responseTime !== null ? `, latence ${probe.responseTime}ms` : ''}{probe.uptime24h !== null ? `, uptime ${probe.uptime24h}%` : ''}"
+	aria-label={t('probe.dotAria', {
+		name: probe.name,
+		status: statusLabel,
+		latency: probe.responseTime !== null ? `${probe.responseTime}ms` : '—',
+		uptime: probe.uptime24h !== null ? `${probe.uptime24h}%` : '—'
+	})}
 >
 	<div
 		style={dotStyle}
@@ -106,7 +126,7 @@
           : ""}
       </p>
       {#if probe.uptime24h !== null}
-        <p class="text-slate-400 text-[10px]">Uptime: {probe.uptime24h}%</p>
+        <p class="text-slate-400 text-[10px]">{t('probe.uptime24h')}: {probe.uptime24h}%</p>
       {/if}
     </div>
     <div

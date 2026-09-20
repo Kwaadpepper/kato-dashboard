@@ -32,8 +32,19 @@
 		playAlertCritical,
 		unlockAudio
 	} from '$lib/utils/sounds';
+	import {
+		t as translate,
+		onLocaleChange,
+		getLocale,
+		type SupportedLocale,
+		type TranslationKey
+	} from '$lib/i18n';
 
 	let { data }: { data: PageData } = $props();
+
+	let currentLocale = $state<SupportedLocale>(getLocale());
+	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+		translate(key, params, currentLocale);
 
 	// svelte-ignore state_referenced_locally
 	let probes = $state<NormalizedProbe[]>(data.initialState?.probes ? [...data.initialState.probes] : []);
@@ -368,12 +379,17 @@
 		window.addEventListener('pointerdown', unlockHandler, { once: true });
 		window.addEventListener('keydown', unlockHandler, { once: true });
 
+		const unsubLocale = onLocaleChange((loc) => {
+			currentLocale = loc;
+		});
+
 		return () => {
 			if (disconnectSSE) disconnectSSE();
 			if (flashTimer) clearTimeout(flashTimer);
 			if (debounceTimer) clearTimeout(debounceTimer);
 			if (observer) observer.disconnect();
 			unsubTv();
+			unsubLocale();
 			cleanupInactivity();
 			window.removeEventListener('probe-detail', handleCustomProbeDetail);
 			window.removeEventListener('pointerdown', unlockHandler);
@@ -435,7 +451,7 @@
 />
 
 <svelte:head>
-	<title>Kato Dashboard ({sortedProbes.length} sondes)</title>
+	<title>{currentLocale ? t('common.pageTitle', { count: sortedProbes.length }) : ''}</title>
 </svelte:head>
 
 <!-- Conteneur plein écran strict zéro scroll (100vw / 100vh) sur desktop -->
@@ -477,8 +493,8 @@
 			aria-live="assertive"
 		>
 			<span class="w-2 h-2 rounded-full bg-white animate-ping" aria-hidden="true"></span>
-			<span class="font-bold">Connexion perdue</span>
-			<span class="text-red-100 text-xs hidden sm:inline">— tentative de rétablissement en cours...</span>
+			<span class="font-bold">{t('common.connectionLost')}</span>
+			<span class="text-red-100 text-xs hidden sm:inline">{t('common.reconnecting')}</span>
 		</div>
 	{/if}
 
@@ -498,13 +514,13 @@
 			>
 				{#if isRefreshing}
 					<LoaderCircle class="w-4 h-4 text-emerald-400 animate-spin" />
-					<span class="text-slate-300">Actualisation des sondes...</span>
+					<span class="text-slate-300">{t('pullToRefresh.refreshing')}</span>
 				{:else if pullDistance >= 50}
 					<ArrowDown class="w-4 h-4 text-emerald-400 rotate-180 transition-transform duration-200" />
-					<span class="text-emerald-400 font-semibold">Relâchez pour actualiser</span>
+					<span class="text-emerald-400 font-semibold">{t('pullToRefresh.release')}</span>
 				{:else}
 					<ArrowDown class="w-4 h-4 text-slate-400 transition-transform duration-200" />
-					<span class="text-slate-400">Tirez pour actualiser ({pullDistance}px)</span>
+					<span class="text-slate-400">{t('pullToRefresh.pull', { distance: pullDistance })}</span>
 				{/if}
 			</div>
 		{/if}
@@ -520,7 +536,7 @@
 		{:else}
 			<div class="w-full h-full flex flex-col items-center justify-center text-slate-500 font-mono text-sm">
 				<span class="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></span>
-				Chargement des sondes de supervision...
+				{t('common.loading')}
 			</div>
 		{/if}
 	</main>

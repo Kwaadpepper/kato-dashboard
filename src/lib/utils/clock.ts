@@ -61,60 +61,72 @@ function notifyListeners(): void {
 }
 
 /**
- * Récupère le format initial depuis le localStorage (défaut : '24h').
+ * Récupère le format initial depuis le localStorage ou les réglages BFF (défaut : '24h').
  */
-export function getInitialTimeFormat(): TimeFormat {
-	if (typeof window === 'undefined') return '24h';
-	try {
-		const saved = localStorage.getItem(CLOCK_FORMAT_STORAGE_KEY);
-		if (saved === '12h' || saved === '24h') {
-			return saved;
+export function getInitialTimeFormat(bffDefault?: TimeFormat): TimeFormat {
+	if (typeof window !== 'undefined') {
+		try {
+			const saved = localStorage.getItem(CLOCK_FORMAT_STORAGE_KEY);
+			if (saved === '12h' || saved === '24h') {
+				return saved;
+			}
+		} catch (err) {
+			console.warn('[Clock] Erreur lecture format horloge:', err);
 		}
-	} catch (err) {
-		console.warn('[Clock] Erreur lecture format horloge:', err);
+	}
+	if (bffDefault === '12h' || bffDefault === '24h') {
+		return bffDefault;
 	}
 	return '24h';
 }
 
 /**
- * Récupère le fuseau horaire initial depuis le localStorage (défaut : 'local').
+ * Récupère le fuseau horaire initial depuis le localStorage ou les réglages BFF (défaut : 'local').
  */
-export function getInitialTimeZone(): string {
-	if (typeof window === 'undefined') return 'local';
-	try {
-		const saved = localStorage.getItem(CLOCK_TIMEZONE_STORAGE_KEY);
-		if (saved && typeof saved === 'string') {
-			return saved;
+export function getInitialTimeZone(bffDefault?: string): string {
+	if (typeof window !== 'undefined') {
+		try {
+			const saved = localStorage.getItem(CLOCK_TIMEZONE_STORAGE_KEY);
+			if (saved && typeof saved === 'string') {
+				return saved;
+			}
+		} catch (err) {
+			console.warn('[Clock] Erreur lecture fuseau horaire:', err);
 		}
-	} catch (err) {
-		console.warn('[Clock] Erreur lecture fuseau horaire:', err);
+	}
+	if (bffDefault && typeof bffDefault === 'string' && bffDefault.length > 0) {
+		return bffDefault;
 	}
 	return 'local';
 }
 
 /**
- * Récupère la préférence d'affichage des secondes depuis le localStorage (défaut : true).
+ * Récupère la préférence d'affichage des secondes depuis le localStorage ou BFF (défaut : true).
  */
-export function getInitialShowSeconds(): boolean {
-	if (typeof window === 'undefined') return true;
-	try {
-		const saved = localStorage.getItem(CLOCK_SHOW_SECONDS_STORAGE_KEY);
-		if (saved !== null) {
-			return saved === 'true';
+export function getInitialShowSeconds(bffDefault?: boolean): boolean {
+	if (typeof window !== 'undefined') {
+		try {
+			const saved = localStorage.getItem(CLOCK_SHOW_SECONDS_STORAGE_KEY);
+			if (saved !== null) {
+				return saved === 'true';
+			}
+		} catch (err) {
+			console.warn('[Clock] Erreur lecture affichage secondes:', err);
 		}
-	} catch (err) {
-		console.warn('[Clock] Erreur lecture affichage secondes:', err);
+	}
+	if (typeof bffDefault === 'boolean') {
+		return bffDefault;
 	}
 	return true;
 }
 
 /**
- * Initialise l'état de l'horloge depuis le stockage local.
+ * Initialise l'état de l'horloge depuis le stockage local et les réglages BFF.
  */
-export function initClockConfig(): ClockConfig {
-	currentFormat = getInitialTimeFormat();
-	currentTimeZone = getInitialTimeZone();
-	currentShowSeconds = getInitialShowSeconds();
+export function initClockConfig(bffDefaults?: Partial<ClockConfig>): ClockConfig {
+	currentFormat = getInitialTimeFormat(bffDefaults?.format);
+	currentTimeZone = getInitialTimeZone(bffDefaults?.timeZone);
+	currentShowSeconds = getInitialShowSeconds(bffDefaults?.showSeconds);
 	return {
 		format: currentFormat,
 		timeZone: currentTimeZone,
@@ -200,25 +212,28 @@ export function onClockConfigChange(listener: ClockListener): () => void {
 	};
 }
 
+import type { SupportedLocale } from '$lib/types';
+
 /**
  * Formate une date selon la configuration d'horloge spécifiée.
  *
  * @param date Objet Date à formater
  * @param config Configuration (format 12h/24h, timeZone et showSeconds)
- * @param options Options complémentaires (ex: forceNoSeconds, includeZoneSuffix)
+ * @param options Options complémentaires (ex: forceNoSeconds, includeZoneSuffix, locale)
  */
 export function formatClock(
 	date: Date,
 	config: ClockConfig,
-	options: { forceNoSeconds?: boolean; includeZoneSuffix?: boolean } = {}
+	options: { forceNoSeconds?: boolean; includeZoneSuffix?: boolean; locale?: SupportedLocale } = {}
 ): string {
-	const { forceNoSeconds = false, includeZoneSuffix = false } = options;
+	const { forceNoSeconds = false, includeZoneSuffix = false, locale } = options;
 	const is12h = config.format === '12h';
 	const ianaTimeZone = config.timeZone === 'local' ? undefined : config.timeZone;
 	const shouldIncludeSeconds = config.showSeconds && !forceNoSeconds;
+	const localeCode = locale ? (locale === 'fr' ? 'fr-FR' : 'en-US') : (is12h ? 'en-US' : 'fr-FR');
 
 	try {
-		const timeString = date.toLocaleTimeString(is12h ? 'en-US' : 'fr-FR', {
+		const timeString = date.toLocaleTimeString(localeCode, {
 			hour: '2-digit',
 			minute: '2-digit',
 			second: shouldIncludeSeconds ? '2-digit' : undefined,
@@ -235,7 +250,7 @@ export function formatClock(
 		return timeString;
 	} catch {
 		// Repli de secours en cas d'identifiant de fuseau invalide
-		return date.toLocaleTimeString(is12h ? 'en-US' : 'fr-FR', {
+		return date.toLocaleTimeString(localeCode, {
 			hour: '2-digit',
 			minute: '2-digit',
 			second: shouldIncludeSeconds ? '2-digit' : undefined,

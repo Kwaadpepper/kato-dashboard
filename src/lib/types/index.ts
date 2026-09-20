@@ -1,4 +1,13 @@
 // ============================================================================
+// LOCALISATION ET I18N
+// ============================================================================
+
+/**
+ * Langues supportées par l'application Kato.
+ */
+export type SupportedLocale = 'fr' | 'en';
+
+// ============================================================================
 // STATUTS ET CRITICITÉ
 // ============================================================================
 
@@ -133,6 +142,8 @@ export interface DashboardState {
   lastUpdate: string;
   /** Nom du fournisseur source actif */
   source: string;
+  /** Réglages client par défaut transmis par le serveur BFF */
+  defaultSettings?: ClientDefaultSettings;
 }
 
 /**
@@ -256,13 +267,47 @@ export type Theme = 'dark' | 'light' | 'amoled' | 'auto';
 export type TimeFormat = '24h' | '12h';
 
 /**
+ * Vitesse de défilement du bandeau d'incidents.
+ */
+export type MarqueeSpeed = 'slow' | 'normal' | 'fast';
+
+/**
+ * Mode de tri des sondes.
+ */
+export type SortMode = 'smart' | 'alpha' | 'group';
+
+/**
+ * Réglages client par défaut transmis par le serveur BFF (issus des variables d'environnement).
+ */
+export interface ClientDefaultSettings {
+  /** Langue active par défaut */
+  locale: SupportedLocale;
+  /** Thème d'affichage par défaut */
+  theme: Theme;
+  /** Format de l'horloge par défaut */
+  timeFormat: TimeFormat;
+  /** Fuseau horaire par défaut ('local', 'UTC', ou identifiant IANA) */
+  timeZone: string;
+  /** Affichage des secondes par défaut */
+  showSeconds: boolean;
+  /** Alertes sonores actives par défaut */
+  soundEnabled: boolean;
+  /** Vitesse de défilement du bandeau d'incidents */
+  marqueeSpeed: MarqueeSpeed;
+  /** Mode de tri des sondes par défaut */
+  sortMode: SortMode;
+}
+
+/**
  * Préférences utilisateur stockées côté client dans le LocalStorage.
  */
 export interface UserPreferences {
+  /** Langue sélectionnée */
+  locale?: SupportedLocale;
   /** Thème d'affichage sélectionné */
   theme: Theme;
   /** Mode de tri des sondes ('smart', 'alpha' ou 'group') */
-  sortMode: 'smart' | 'alpha' | 'group';
+  sortMode: SortMode;
   /** Activation ou coupure des notifications sonores */
   soundEnabled: boolean;
   /** Bascule automatique en plein écran en mode TV (?tv=1) */
@@ -273,6 +318,8 @@ export interface UserPreferences {
   timeZone?: string;
   /** Affiche ou masque les secondes */
   showSeconds?: boolean;
+  /** Vitesse de défilement du bandeau d'incidents */
+  marqueeSpeed?: MarqueeSpeed;
 }
 
 /**

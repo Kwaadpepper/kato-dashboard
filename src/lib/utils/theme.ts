@@ -34,17 +34,22 @@ export function resolveTheme(theme: Theme): ResolvedTheme {
 /**
  * Récupère le thème initialement configuré :
  * 1. Lit depuis localStorage('kato-theme')
- * 2. Si non trouvé ou invalide, retourne le thème par défaut 'dark'
+ * 2. Si non trouvé, utilise bffDefault si fourni et valide
+ * 3. Sinon, retourne le thème de repli 'dark'
  */
-export function getInitialTheme(): Theme {
-	if (typeof window === 'undefined') return 'dark';
-	try {
-		const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-		if (saved && VALID_THEMES.includes(saved)) {
-			return saved;
+export function getInitialTheme(bffDefault?: Theme): Theme {
+	if (typeof window !== 'undefined') {
+		try {
+			const saved = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
+			if (saved && VALID_THEMES.includes(saved)) {
+				return saved;
+			}
+		} catch (err) {
+			console.warn('[Theme] Erreur lors de la lecture de localStorage:', err);
 		}
-	} catch (err) {
-		console.warn('[Theme] Erreur lors de la lecture de localStorage:', err);
+	}
+	if (bffDefault && VALID_THEMES.includes(bffDefault)) {
+		return bffDefault;
 	}
 	return 'dark';
 }

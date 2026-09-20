@@ -7,7 +7,7 @@
  * - File d'attente tampon (pending queue) pour les nouveaux incidents ou résolutions
  */
 
-import type { NormalizedIncident } from '$lib/types';
+import type { NormalizedIncident, SupportedLocale } from '$lib/types';
 
 export interface DisplayedIncident {
 	id: string;
@@ -34,9 +34,13 @@ export type IncidentQueueListener = (state: IncidentQueueState) => void;
 
 /**
  * Formate la durée écoulée depuis startedAt de façon concise et lisible.
- * Ex: "2m 14s", "1h 05m 12s", "1j 3h 10m"
+ * Ex: "2m 14s", "1h 05m 12s", "1j 3h 10m" (FR) ou "1d 3h 10m" (EN)
  */
-export function formatIncidentDuration(startedAt: string, currentMs = Date.now()): string {
+export function formatIncidentDuration(
+	startedAt: string,
+	currentMs = Date.now(),
+	locale: SupportedLocale = 'fr'
+): string {
 	if (!startedAt) return '0s';
 	const startMs = new Date(startedAt).getTime();
 	if (isNaN(startMs)) return '0s';
@@ -45,19 +49,24 @@ export function formatIncidentDuration(startedAt: string, currentMs = Date.now()
 	const hours = Math.floor((diffSec % 86400) / 3600);
 	const mins = Math.floor((diffSec % 3600) / 60);
 	const secs = diffSec % 60;
+	const dayUnit = locale === 'en' ? 'd' : 'j';
 
-	if (days > 0) return `${days}j ${hours}h ${mins}m`;
+	if (days > 0) return `${days}${dayUnit} ${hours}h ${mins}m`;
 	if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
 	return `${mins}m ${secs}s`;
 }
 
-function snapshotIncident(inc: NormalizedIncident, nowMs = Date.now()): DisplayedIncident {
+function snapshotIncident(
+	inc: NormalizedIncident,
+	nowMs = Date.now(),
+	locale: SupportedLocale = 'fr'
+): DisplayedIncident {
 	return {
 		id: inc.id,
 		probeName: inc.probeName,
 		type: inc.type,
 		startedAt: inc.startedAt,
-		formattedDuration: formatIncidentDuration(inc.startedAt, nowMs)
+		formattedDuration: formatIncidentDuration(inc.startedAt, nowMs, locale)
 	};
 }
 
@@ -67,11 +76,27 @@ export class IncidentQueueManager {
 	private lastActiveIncidents: NormalizedIncident[] = [];
 	private isScrolling = false;
 	private cycleCount = 0;
+	private locale: SupportedLocale = 'fr';
 	private listeners = new Set<IncidentQueueListener>();
 
-	constructor(initialIncidents: NormalizedIncident[] = [], initialScrolling = false) {
+	constructor(
+		initialIncidents: NormalizedIncident[] = [],
+		initialScrolling = false,
+		locale: SupportedLocale = 'fr'
+	) {
+		this.locale = locale;
 		this.isScrolling = initialScrolling;
 		this.setIncidents(initialIncidents, initialScrolling);
+	}
+
+	public setLocale(locale: SupportedLocale): void {
+		this.locale = locale;
+		const now = Date.now();
+		this.displayed = this.displayed.map((item) => ({
+			...item,
+			formattedDuration: formatIncidentDuration(item.startedAt, now, this.locale)
+		}));
+		this.notify();
 	}
 
 	public getState(): IncidentQueueState {
@@ -120,7 +145,7 @@ export class IncidentQueueManager {
 		// Mise à jour immédiate sans file d'attente
 		if (!shouldAnimate) {
 			const now = Date.now();
-			this.displayed = active.map((inc) => snapshotIncident(inc, now));
+			this.displayed = active.map((inc) => snapshotIncident(inc, now, this.locale));
 			this.pendingQueue = null;
 			this.isScrolling = false;
 			this.notify();
@@ -132,7 +157,7 @@ export class IncidentQueueManager {
 			// Rien ne défile actuellement : démarrer immédiatement avec les incidents actifs
 			if (active.length > 0) {
 				const now = Date.now();
-				this.displayed = active.map((inc) => snapshotIncident(inc, now));
+				this.displayed = active.map((inc) => snapshotIncident(inc, now, this.locale));
 				this.isScrolling = true;
 				this.cycleCount++;
 				this.pendingQueue = null;
@@ -162,7 +187,7 @@ export class IncidentQueueManager {
 		if (this.pendingQueue !== null) {
 			// La file contient une mise à jour d'événements
 			if (this.pendingQueue.length > 0) {
-				this.displayed = this.pendingQueue.map((inc) => snapshotIncident(inc, now));
+				this.displayed = this.pendingQueue.map((inc) => snapshotIncident(inc, now, this.locale));
 				this.isScrolling = true;
 				this.cycleCount++;
 				this.pendingQueue = null;
@@ -178,7 +203,7 @@ export class IncidentQueueManager {
 			// Aucun changement dans la file : rafraîchir les durées de panne pour le cycle suivant
 			this.displayed = this.displayed.map((item) => ({
 				...item,
-				formattedDuration: formatIncidentDuration(item.startedAt, now)
+				formattedDuration: formatIncidentDuration(item.startedAt, now, this.locale)
 			}));
 			this.cycleCount++;
 			this.notify();
@@ -191,7 +216,7 @@ export class IncidentQueueManager {
 	public flush(): void {
 		const now = Date.now();
 		const target = this.pendingQueue !== null ? this.pendingQueue : this.lastActiveIncidents;
-		this.displayed = target.map((inc) => snapshotIncident(inc, now));
+		this.displayed = target.map((inc) => snapshotIncident(inc, now, this.locale));
 		this.pendingQueue = null;
 		this.isScrolling = this.displayed.length > 0;
 		this.notify();
@@ -215,7 +240,8 @@ export class IncidentQueueManager {
  */
 export function createIncidentQueue(
 	initialIncidents: NormalizedIncident[] = [],
-	initialScrolling = false
+	initialScrolling = false,
+	locale: SupportedLocale = 'fr'
 ): IncidentQueueManager {
-	return new IncidentQueueManager(initialIncidents, initialScrolling);
+	return new IncidentQueueManager(initialIncidents, initialScrolling, locale);
 }

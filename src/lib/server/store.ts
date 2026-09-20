@@ -1,9 +1,5 @@
-import type {
-	DashboardDelta,
-	DashboardState,
-	NormalizedIncident,
-	NormalizedProbe
-} from '$lib/types';
+import type { DashboardDelta, DashboardState, NormalizedIncident, NormalizedProbe } from '$lib/types';
+import { getDefaultClientSettings } from './config.ts';
 
 /** Durée de la fenêtre glissante des incidents conservés en RAM (24h en ms) */
 const INCIDENT_ROLLING_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -54,7 +50,8 @@ class DashboardStore {
 			probes: Array.from(this.probes.values()),
 			incidents: this.getIncidents(),
 			lastUpdate: this.lastUpdate,
-			source: this.sourceName
+			source: this.sourceName,
+			defaultSettings: getDefaultClientSettings()
 		};
 	}
 

@@ -6,6 +6,13 @@
 		formatIncidentDuration,
 		type IncidentQueueState
 	} from '$lib/utils/incident-queue';
+	import {
+		t as translate,
+		getLocale,
+		onLocaleChange,
+		type SupportedLocale,
+		type TranslationKey
+	} from '$lib/i18n';
 	import ChevronUp from 'lucide-svelte/icons/chevron-up';
 	import ChevronDown from 'lucide-svelte/icons/chevron-down';
 	import { onMount } from 'svelte';
@@ -18,13 +25,17 @@
 		tvMode?: boolean;
 	} = $props();
 
+	let activeLocale = $state<SupportedLocale>(getLocale());
+	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
+		translate(key, params, activeLocale);
+
 	let marqueeDuration = $state(getInitialMarqueeDuration());
 	let isExpanded = $state(false);
 	let drawerNow = $state(Date.now());
 
 	// File d'attente FIFO et gestionnaire d'isolation de performance
 	// svelte-ignore state_referenced_locally
-	const queueManager = createIncidentQueue(incidents, tvMode);
+	const queueManager = createIncidentQueue(incidents, tvMode, getLocale());
 	let queueState = $state<IncidentQueueState>(queueManager.getState());
 
 	onMount(() => {
@@ -33,8 +44,16 @@
 			marqueeDuration = config.duration;
 		});
 
+		// Abonnement aux changements de langue
+		const unsubLocale = onLocaleChange((loc) => {
+			activeLocale = loc;
+			queueManager.setLocale(loc);
+			queueState = queueManager.getState();
+		});
+
 		return () => {
 			unsubMarquee();
+			unsubLocale();
 			queueManager.reset();
 		};
 	});
@@ -92,7 +111,7 @@
 	>
 		<span class="text-[var(--kato-text-secondary)] text-xs sm:text-sm font-medium flex items-center gap-2">
 			<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-			✓ Aucun incident actif
+			{t('incidentBar.noIncidents')}
 		</span>
 	</footer>
 {:else}
@@ -118,13 +137,13 @@
 				class="flex items-center gap-1.5 sm:gap-2 font-bold text-[11px] sm:text-xs uppercase tracking-wider text-red-300 shrink-0 pr-2.5 sm:pr-4 border-r border-red-800/60 mr-2 sm:mr-4"
 			>
 				<span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-500"></span>
-				Incidents ({queueState.activeCount})
+				{t('incidentBar.incidentsCount', { count: queueState.activeCount })}
 				{#if queueState.pendingCount > 0}
 					<span
 						class="text-[9px] px-1 py-0.2 rounded bg-amber-900/60 text-amber-300 font-mono font-semibold"
-						title="Événements en attente dans la file (défileront au prochain cycle)"
+						title={t('incidentBar.inQueueTooltip')}
 					>
-						+{queueState.pendingCount} en file
+						{t('incidentBar.inQueue', { count: queueState.pendingCount })}
 					</span>
 				{/if}
 			</div>
@@ -177,7 +196,7 @@
 						toggleExpand();
 					}}
 					class="sm:hidden p-1 text-red-300 hover:text-white shrink-0 ml-2"
-					aria-label={isExpanded ? 'Réduire les incidents' : 'Déplier les incidents'}
+					aria-label={isExpanded ? t('incidentBar.collapseAria') : t('incidentBar.expandAria')}
 				>
 					{#if isExpanded}
 						<ChevronDown class="w-4 h-4" />
@@ -202,7 +221,7 @@
 								{incident.type}
 							</span>
 							<span class="text-red-300 text-[11px]">
-								{formatIncidentDuration(incident.startedAt, drawerNow)}
+								{formatIncidentDuration(incident.startedAt, drawerNow, activeLocale)}
 							</span>
 						</div>
 					</div>

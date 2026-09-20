@@ -1,4 +1,5 @@
-import type { ProbeStatus } from '$lib/types';
+import type { ProbeStatus, SupportedLocale } from '$lib/types';
+import { t } from '../i18n/index.ts';
 
 /**
  * Configuration chromatique et utilitaires Tailwind pour un statut de sonde donné.
@@ -111,3 +112,11 @@ export function getStatusIcon(status: ProbeStatus): string {
 			return 'Wrench';
 	}
 }
+
+/**
+ * Retourne le libellé traduit du statut selon la langue active ou la locale passée.
+ */
+export function getStatusLabel(status: ProbeStatus, locale?: SupportedLocale): string {
+	return t(`status.${status}`, undefined, locale);
+}
+
