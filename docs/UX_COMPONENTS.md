@@ -228,10 +228,12 @@ export function computeGridParameters(totalProbes: number): GridParameters {
 
 ## 3. ProbeCell (`ProbeCell.svelte`) — Mode Large (1-6 sondes)
 
-Le mode Large s'active lorsque le cluster comporte entre 1 et 6 sondes. Il fournit le niveau de détail maximal.
+Le mode Large s'active lorsque le cluster comporte entre 1 et 12 sondes (ou sur résolutions très larges). Il fournit le niveau de détail maximal dans une structure équilibrée en 3 zones.
 
 ### 3.1 Carte & Habillage selon le Statut
-- **Boîte principale** : `rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200`.
+- **Boîte principale** : `rounded-xl p-3.5 sm:p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden select-none transition-colors duration-150`.
+- **Conteneur `@container`** : Défini avec `container-type: inline-size` pour une mise à l'échelle fluide de la typographie via container query units (`cqi`).
+- **Survol** : Éclaircissement doux de la bordure (`hover:border-[var(--probe-card-hover-border)]`) sans scale ni déplacement.
 - **Nuancier de bordure et de fond selon le statut** :
   - **`up`** : `bg-emerald-900/30 border border-emerald-700/50`
   - **`down`** : `bg-red-900/40 border border-red-500/60`
@@ -240,33 +242,43 @@ Le mode Large s'active lorsque le cluster comporte entre 1 et 6 sondes. Il fourn
   - **`pending`** : `bg-blue-900/30 border border-blue-600/40`
   - **`maintenance`** : `bg-violet-900/30 border border-violet-600/40`
 
-### 3.2 Contenu Détaillé
-1. **Coin supérieur droit** : Icône de statut ou pastille lumineuse (`w-3.5 h-3.5 rounded-full shadow-sm`).
-2. **Nom complet** : `text-base font-semibold text-white truncate pr-6`.
-3. **URL cible tronquée** : `text-xs text-slate-400 font-mono truncate mt-0.5`.
-4. **Uptime %** : Métrique dominante en `text-2xl font-bold font-mono tracking-tight text-white`.
-5. **Response time** : `text-sm font-mono text-slate-300` (ex: `42 ms`).
-6. **Mini sparkline** (optionnel) : Tracé SVG discret de 24px de haut en bas de carte matérialisant les 15 dernières latences.
+### 3.2 Structure en 3 Zones
+1. **Zone 1 — En-tête** :
+   - URL cible nettoyée (protocole `https://` retiré, ex: `edge-lon.kato-cdn.net`) : `text-[11px] font-mono text-[var(--kato-text-secondary)] truncate`.
+   - Indicateur de statut unique et épuré (icône Lucide sans doublon de pastille) : `CircleCheck`, `CircleX`, `TriangleAlert`, etc.
+2. **Zone 2 — Cœur / Centre** :
+   - Nom complet sur 2 à 3 lignes (`line-clamp-3 break-words`) : centré verticalement (`my-auto`) pour occuper harmonieusement l'espace sans laisser de vide.
+   - Typographie adaptative : `font-size: clamp(0.95rem, 5.5cqi, 1.4rem); line-height: 1.25; font-semibold text-white`.
+3. **Zone 3 — Pied de carte** :
+   - Mini-pills translucides (`.kato-pill`) pour l'Uptime 24h et la Latence :
+     - Fond sombre subtil, bordure fine translucide, label discret en minuscules capitales.
+     - Valeur en police monospace contrastée.
 
 ```html
 <!-- Exemple DOM Mode Large -->
-<article class="rounded-xl p-4 shadow-lg bg-emerald-900/30 border border-emerald-700/50 flex flex-col justify-between h-full">
-  <div class="flex justify-between items-start">
-    <div class="min-w-0 pr-3">
-      <h3 class="text-base font-semibold text-white truncate">Cluster Kubernetes Core</h3>
-      <p class="text-xs text-slate-400 font-mono truncate">https://k8s.internal.infra/healthz</p>
-    </div>
-    <span class="w-3.5 h-3.5 rounded-full bg-emerald-400 shrink-0 mt-1 shadow-sm"></span>
+<article class="probe-card rounded-xl p-4 shadow-lg flex flex-col justify-between h-full border">
+  <!-- Zone 1 : En-tête -->
+  <div class="flex justify-between items-center gap-2 min-w-0">
+    <span class="text-[11px] font-mono text-slate-400 truncate">k8s.internal.infra/healthz</span>
+    <CircleCheck class="w-4 h-4 text-emerald-400" />
   </div>
 
-  <div class="mt-4 flex items-end justify-between">
-    <div>
-      <span class="text-xs text-slate-400 uppercase tracking-wider block font-sans">Uptime 30j</span>
-      <span class="text-2xl font-bold font-mono text-emerald-300">99.98%</span>
+  <!-- Zone 2 : Cœur -->
+  <div class="my-auto py-2 flex items-center">
+    <h2 class="font-semibold text-white line-clamp-3 break-words" style="font-size: clamp(0.95rem, 5.5cqi, 1.4rem);">
+      Cluster Kubernetes Core
+    </h2>
+  </div>
+
+  <!-- Zone 3 : Pied -->
+  <div class="flex items-center justify-between gap-1.5 pt-1">
+    <div class="kato-pill">
+      <span class="kato-pill-label">Uptime 24h</span>
+      <span class="kato-pill-value text-xs sm:text-sm">99.98%</span>
     </div>
-    <div class="text-right">
-      <span class="text-xs text-slate-400 uppercase tracking-wider block font-sans">Latence</span>
-      <span class="text-sm font-mono text-slate-200">18 ms</span>
+    <div class="kato-pill">
+      <span class="kato-pill-label">Latence</span>
+      <span class="kato-pill-value text-xs sm:text-sm">18 ms</span>
     </div>
   </div>
 </article>
@@ -274,61 +286,68 @@ Le mode Large s'active lorsque le cluster comporte entre 1 et 6 sondes. Il fourn
 
 ---
 
-## 4. ProbeCell — Mode Medium (7-24 sondes)
+## 4. ProbeCell — Mode Medium (13-48 sondes)
 
-Le mode Medium optimise l'occupation de surface pour des clusters intermédiaires (7 à 24 sondes) en condensant les informations tout en conservant les métriques clés.
+Le mode Medium optimise l'occupation de surface pour des clusters intermédiaires (13 à 48 sondes) en conservant la structure en 3 zones et les métriques clés.
 
 ### 4.1 Spécifications
-- **Carte** : `rounded-lg p-3 flex flex-col justify-between border shadow-md relative overflow-hidden`.
+- **Carte** : `rounded-lg p-2.5 sm:p-3 flex flex-col justify-between border shadow-md relative overflow-hidden`.
 - **Fonds & bordures** : Identiques aux classes par statut définies en Section 3.
-- **Contenu** :
-  - **Ligne supérieure** :
-    - Nom de la sonde : `text-sm font-medium text-white truncate pr-2`.
-    - Pastille de statut : `w-2 h-2 rounded-full shrink-0` (ex: `bg-emerald-400`, `bg-red-500`).
-  - **Ligne inférieure** :
-    - Uptime % : `text-lg font-bold font-mono text-slate-100`.
-    - Response time : `text-xs font-mono text-slate-300`.
+- **Structure en 3 zones** :
+  - **Zone 1 — En-tête** : Pastille de statut unique (`w-2.5 h-2.5 rounded-full`) alignée à droite.
+  - **Zone 2 — Cœur** : Nom de la sonde sur 2 lignes (`line-clamp-2 break-words`, `font-size: clamp(0.78rem, 5.2cqi, 1.05rem)`).
+  - **Zone 3 — Pied** : Mini-pills compacts Uptime + Latence côte à côte (`kato-pill text-[11px]`).
 
 ```html
 <!-- Exemple DOM Mode Medium -->
-<article class="rounded-lg p-3 bg-emerald-900/30 border border-emerald-700/50 flex flex-col justify-between">
-  <div class="flex items-center justify-between gap-2">
-    <h3 class="text-sm font-medium text-white truncate">Elasticsearch Cluster</h3>
-    <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+<article class="probe-card rounded-lg p-3 flex flex-col justify-between h-full border">
+  <div class="flex items-center justify-end">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
   </div>
-  <div class="mt-2 flex items-baseline justify-between">
-    <span class="text-lg font-bold font-mono text-emerald-300">100%</span>
-    <span class="text-xs font-mono text-slate-300">23 ms</span>
+  <div class="my-auto py-1">
+    <h2 class="font-medium text-white line-clamp-2 break-words" style="font-size: clamp(0.78rem, 5.2cqi, 1.05rem);">
+      Elasticsearch Cluster
+    </h2>
+  </div>
+  <div class="flex items-center justify-between gap-1 w-full pt-1">
+    <div class="kato-pill text-[11px] py-0.5 px-1.5">
+      <span class="kato-pill-label text-[9px]">Uptime 24h</span>
+      <span class="kato-pill-value text-[11px] sm:text-xs">100%</span>
+    </div>
+    <div class="kato-pill text-[11px] py-0.5 px-1.5">
+      <span class="kato-pill-value text-[11px] sm:text-xs">23 ms</span>
+    </div>
   </div>
 </article>
 ```
 
 ---
 
-## 5. ProbeCell — Mode Compact (25-80 sondes)
+## 5. ProbeCell — Mode Compact (49-120 sondes)
 
-Le mode Compact maximise la visibilité d'ensemble pour les parcs denses (25 à 80 sondes) en adoptant un format ultra-synthétique.
+Le mode Compact maximise la visibilité d'ensemble pour les parcs denses (49 à 120 sondes) grâce à une disposition verticale empilée évitant tout écrasement horizontal.
 
 ### 5.1 Spécifications
-- **Carte** : `rounded-md p-2 relative flex items-center justify-between overflow-hidden border shadow-sm`.
-- **Fond teinté** : Le fond entier adopte la couleur du statut à opacité modérée :
-  - UP : `bg-emerald-950/40 border-emerald-800/40`
-  - DOWN : `bg-red-950/50 border-red-800/60`
-  - DEGRADED : `bg-amber-950/40 border-amber-800/40`
-  - PAUSED : `bg-slate-850/50 border-slate-700/40`
-- **Bande latérale de couleur** : Une bande colorée pleine est plaquée sur la gauche :
-  - Classes : `w-1 h-full rounded-full absolute left-0 top-0 bottom-0`.
-  - Couleur : `bg-emerald-500` (UP), `bg-red-500` (DOWN), `bg-amber-500` (DEGRADED), `bg-slate-500` (PAUSED).
-- **Contenu textuel** :
-  - Nom : `text-xs font-medium text-white truncate pl-2`.
-  - Latence compacte : `text-[11px] font-mono text-slate-300 shrink-0 ml-1`.
+- **Carte** : `rounded-md p-2 relative flex flex-col justify-between h-full overflow-hidden border shadow-xs`.
+- **Disposition verticale empilée** :
+  - **Zone 1 — En-tête** : Pastille de statut discrète (`w-2 h-2 rounded-full`) dans le coin supérieur droit.
+  - **Zone 2 — Cœur** : Nom du service sur 2 lignes centré (`line-clamp-2 break-words text-center`, `font-size: clamp(0.68rem, 5cqi, 0.85rem)`).
+  - **Zone 3 — Pied** : Latence chiffrée centrée en typographie monospace (`text-[10px] sm:text-[11px] font-mono text-slate-400`).
 
 ```html
-<!-- Exemple DOM Mode Compact -->
-<article class="rounded-md p-2 relative flex items-center justify-between overflow-hidden bg-emerald-950/40 border border-emerald-800/40">
-  <div class="w-1 h-full rounded-full absolute left-0 top-0 bottom-0 bg-emerald-500"></div>
-  <span class="text-xs font-medium text-white truncate pl-2">Redis-Master-01</span>
-  <span class="text-[11px] font-mono text-slate-300 shrink-0 ml-1">2 ms</span>
+<!-- Exemple DOM Mode Compact (Empilé verticalement) -->
+<article class="probe-card rounded-md p-2 relative flex flex-col justify-between h-full overflow-hidden border">
+  <div class="flex items-center justify-end w-full">
+    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+  </div>
+  <div class="my-auto py-0.5 flex items-center justify-center text-center px-0.5">
+    <h2 class="font-medium text-white line-clamp-2 break-words text-center" style="font-size: clamp(0.68rem, 5cqi, 0.85rem);">
+      Redis-Master-01
+    </h2>
+  </div>
+  <div class="flex items-center justify-center w-full">
+    <span class="text-[10px] sm:text-[11px] font-mono text-slate-400">2 ms</span>
+  </div>
 </article>
 ```
 

@@ -78,8 +78,8 @@
     style={gridStyle}
   >
     {#each probes as probe, index (probe.id)}
-      <div class="w-full h-full flex items-center justify-center">
-        {#if layout.density === "large" || layout.density === "medium" || layout.density === "compact"}
+      {#if layout.density === "large" || layout.density === "medium" || layout.density === "compact"}
+        <div class="w-full h-full">
           <ProbeCell
             {probe}
             prevStatus={previousStatuses?.[probe.id]}
@@ -92,7 +92,9 @@
             }}
             {onselect}
           />
-        {:else}
+        </div>
+      {:else}
+        <div class="w-full h-full flex items-center justify-center">
           <ProbeDot
             {probe}
             prevStatus={previousStatuses?.[probe.id]}
@@ -105,8 +107,8 @@
             }}
             {onselect}
           />
-        {/if}
-      </div>
+        </div>
+      {/if}
     {/each}
   </div>
 </div>

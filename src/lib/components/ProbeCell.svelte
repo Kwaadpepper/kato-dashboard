@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GridDensity, NormalizedProbe, ProbeStatus } from '$lib/types';
 	import { STATUS_COLORS, getStatusLabel } from '$lib/utils/colors';
+	import { cleanDisplayUrl } from '$lib/utils/url-cleaner';
 	import {
 		t as translate,
 		getLocale,
@@ -40,7 +41,7 @@
 	const t = (key: TranslationKey | string, params?: Record<string, string | number>) =>
 		translate(key, params, activeLocale);
 
-	onMount(() => onLocaleChange((loc) => activeLocale = loc));
+	onMount(() => onLocaleChange((loc) => (activeLocale = loc)));
 
 	const color = $derived(STATUS_COLORS[probe.status] ?? STATUS_COLORS.up);
 	const statusLabel = $derived(getStatusLabel(probe.status, activeLocale));
@@ -87,53 +88,58 @@
 		probe.uptime24h !== null ? `${probe.uptime24h.toFixed(2)}%` : '—'
 	);
 
+	const displayUrl = $derived(cleanDisplayUrl(probe.url));
+
 	// Classes d'arrière-plan et de bordure basées sur les CSS Custom Properties pour les 3 thèmes
-	const cardStyleClasses = $derived(
-		`probe-card probe-card-${probe.status} border`
-	);
+	const cardStyleClasses = $derived(`probe-card probe-card-${probe.status} border`);
 
 	// Classes d'arrière-plan et bordure pour le mode compact
-	const compactStyleClasses = $derived(
-		`probe-card probe-card-${probe.status} border`
-	);
+	const compactStyleClasses = $derived(`probe-card probe-card-${probe.status} border`);
 </script>
 
 {#if density === 'large'}
 	<!-- ===================================================================== -->
-	<!-- MODE LARGE (1-12 sondes) : Carte détaillée maximale                   -->
+	<!-- MODE LARGE (1-12 sondes) : Carte détaillée structurée en 3 zones      -->
 	<!-- ===================================================================== -->
 	<div
 		id={`probe-cell-${probe.id}`}
-		class="rounded-xl p-4 shadow-lg flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {cardStyleClasses} {isDown
+		class="w-full h-full rounded-xl p-3.5 sm:p-4 shadow-lg flex flex-col justify-between relative overflow-hidden select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash
+			? 'animate-kato-border-flash'
+			: ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex={tabIndex}
 		role="button"
-		aria-label={t('probe.cellAria', { name: probe.name, status: statusLabel, uptime: uptimeDisplay, latency: responseTimeDisplay })}
+		aria-label={t('probe.cellAria', {
+			name: probe.name,
+			status: statusLabel,
+			uptime: uptimeDisplay,
+			latency: responseTimeDisplay
+		})}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 		onfocus={oncellfocus}
 	>
-		<!-- En-tête de la carte : Nom + URL + Icône statut -->
-		<div class="flex justify-between items-start gap-2 min-w-0">
-			<div class="min-w-0 flex-1">
-				<h2 class="text-base font-semibold text-[var(--kato-text-primary)] truncate" title={probe.name}>
-					{probe.name}
-				</h2>
-				{#if probe.url}
-					<p class="text-xs text-[var(--kato-text-secondary)] font-mono truncate mt-0.5" title={probe.url}>
-						{probe.url}
-					</p>
-				{/if}
-			</div>
+		<!-- Zone 1 : En-tête (URL épurée à gauche + Indicateur statut unique à droite) -->
+		<div class="flex justify-between items-center gap-2 min-w-0">
+			{#if displayUrl}
+				<span
+					class="text-[11px] text-[var(--kato-text-secondary)] font-mono truncate max-w-[75%]"
+					title={probe.url}
+				>
+					{displayUrl}
+				</span>
+			{:else}
+				<span></span>
+			{/if}
 
-			<!-- Icône de statut Lucide -->
-			<div class="shrink-0 flex items-center gap-1.5 mt-0.5" aria-hidden="true">
+			<!-- Indicateur statut unique sans doublon -->
+			<div class="shrink-0 flex items-center" aria-hidden="true">
 				{#if probe.status === 'up'}
 					<CircleCheck class="w-4 h-4 text-emerald-400" />
 				{:else if probe.status === 'down'}
-					<CircleX class="w-4 h-4 text-red-400" />
+					<CircleX class="w-4 h-4 text-red-400 animate-pulse" />
 				{:else if probe.status === 'degraded'}
 					<TriangleAlert class="w-4 h-4 text-amber-400" />
 				{:else if probe.status === 'paused'}
@@ -143,76 +149,96 @@
 				{:else if probe.status === 'maintenance'}
 					<Wrench class="w-4 h-4 text-violet-400" />
 				{/if}
-				<span class="w-2.5 h-2.5 rounded-full {color.bgClass} shadow-xs"></span>
 			</div>
 		</div>
 
-		<!-- Corps / Bas de carte : Métriques Uptime & Latence -->
-		<div class="mt-4 flex items-end justify-between gap-2">
-			<div>
-				<span class="text-[10px] text-[var(--kato-text-secondary)] uppercase tracking-wider block font-sans">
-					{t('probe.uptime24h')}
-				</span>
-				<span class="text-2xl font-bold font-mono tracking-tight text-[var(--kato-text-primary)]">
-					{uptimeDisplay}
-				</span>
+		<!-- Zone 2 : Cœur / Centre (Nom du service mis en valeur sur 2 à 3 lignes) -->
+		<div class="my-auto py-2 flex items-center">
+			<h2
+				class="font-semibold text-[var(--kato-text-primary)] line-clamp-3 break-words"
+				style="font-size: clamp(0.95rem, 5.5cqi, 1.4rem); line-height: 1.25;"
+				title={probe.name}
+			>
+				{probe.name}
+			</h2>
+		</div>
+
+		<!-- Zone 3 : Pied de carte (Mini-pills Uptime 24h & Latence) -->
+		<div class="flex items-center justify-between gap-1.5 pt-1">
+			<div class="kato-pill">
+				<span class="kato-pill-label">{t('probe.uptime24h')}</span>
+				<span class="kato-pill-value text-xs sm:text-sm">{uptimeDisplay}</span>
 			</div>
-			<div class="text-right">
-				<span class="text-[10px] text-[var(--kato-text-secondary)] uppercase tracking-wider block font-sans">
-					{t('probe.latency')}
-				</span>
-				<span class="text-sm font-mono text-[var(--kato-text-secondary)]">
-					{responseTimeDisplay}
-				</span>
+			<div class="kato-pill">
+				<span class="kato-pill-label">{t('probe.latency')}</span>
+				<span class="kato-pill-value text-xs sm:text-sm">{responseTimeDisplay}</span>
 			</div>
 		</div>
 	</div>
 
 {:else if density === 'medium'}
 	<!-- ===================================================================== -->
-	<!-- MODE MEDIUM (13-48 sondes) : Carte intermédiaire compacte             -->
+	<!-- MODE MEDIUM (13-48 sondes) : Carte intermédiaire compacte en 3 zones  -->
 	<!-- ===================================================================== -->
 	<div
 		id={`probe-cell-${probe.id}`}
-		class="rounded-lg p-3 flex flex-col justify-between h-full relative overflow-hidden shadow-md transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {cardStyleClasses} {isDown
+		class="w-full h-full rounded-lg p-2.5 sm:p-3 flex flex-col justify-between relative overflow-hidden shadow-md select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {cardStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash
+			? 'animate-kato-border-flash'
+			: ''}"
 		title="{probe.name} ({probe.status.toUpperCase()})"
 		tabindex={tabIndex}
 		role="button"
-		aria-label={t('probe.cellAria', { name: probe.name, status: statusLabel, uptime: uptimeDisplay, latency: responseTimeDisplay })}
+		aria-label={t('probe.cellAria', {
+			name: probe.name,
+			status: statusLabel,
+			uptime: uptimeDisplay,
+			latency: responseTimeDisplay
+		})}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 		onfocus={oncellfocus}
 	>
-		<!-- Ligne supérieure : Nom + Pastille -->
-		<div class="flex items-center justify-between gap-2 min-w-0">
-			<h2 class="text-sm font-medium text-[var(--kato-text-primary)] truncate" title={probe.name}>
-				{probe.name}
-			</h2>
+		<!-- Zone 1 : En-tête (Indicateur statut unique) -->
+		<div class="flex items-center justify-end min-w-0">
 			<span class="w-2.5 h-2.5 rounded-full shrink-0 {color.bgClass} shadow-xs" aria-hidden="true"></span>
 		</div>
 
-		<!-- Ligne inférieure : Uptime + Latence -->
-		<div class="mt-2 flex items-baseline justify-between gap-2">
-			<span class="text-lg font-bold font-mono text-[var(--kato-text-primary)]">
-				{uptimeDisplay}
-			</span>
-			<span class="text-xs font-mono text-[var(--kato-text-secondary)]">
-				{responseTimeDisplay}
-			</span>
+		<!-- Zone 2 : Cœur / Centre (Nom sur 2 lignes) -->
+		<div class="my-auto py-1 flex items-center">
+			<h2
+				class="font-medium text-[var(--kato-text-primary)] line-clamp-2 break-words"
+				style="font-size: clamp(0.78rem, 5.2cqi, 1.05rem); line-height: 1.25;"
+				title={probe.name}
+			>
+				{probe.name}
+			</h2>
+		</div>
+
+		<!-- Zone 3 : Pied de carte (Mini-pills Uptime + Latence) -->
+		<div class="flex items-center justify-between gap-1 w-full pt-1">
+			<div class="kato-pill text-[11px] py-0.5 px-1.5">
+				<span class="kato-pill-label text-[9px]">{t('probe.uptime24h')}</span>
+				<span class="kato-pill-value text-[11px] sm:text-xs">{uptimeDisplay}</span>
+			</div>
+			<div class="kato-pill text-[11px] py-0.5 px-1.5">
+				<span class="kato-pill-value text-[11px] sm:text-xs">{responseTimeDisplay}</span>
+			</div>
 		</div>
 	</div>
 
 {:else}
 	<!-- ===================================================================== -->
-	<!-- MODE COMPACT (49-120 sondes) : Cellule ultra-synthétique en ligne     -->
+	<!-- MODE COMPACT (49-120 sondes) : Cellule verticale empilée              -->
 	<!-- ===================================================================== -->
 	<div
 		id={`probe-cell-${probe.id}`}
-		class="rounded-md p-2 relative flex items-center justify-between h-full overflow-hidden border shadow-xs transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {compactStyleClasses} {isDown
+		class="w-full h-full rounded-md p-2 relative flex flex-col justify-between overflow-hidden border shadow-xs select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--kato-focus-ring)] focus-visible:ring-offset-2 {compactStyleClasses} {isDown
 			? 'animate-kato-pulse'
-			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash ? 'animate-kato-border-flash' : ''}"
+			: ''} {isDownOver1Min ? 'kato-glow-red' : ''} {shouldFlash
+			? 'animate-kato-border-flash'
+			: ''}"
 		title="{probe.name} — {probe.status.toUpperCase()} ({responseTimeDisplay})"
 		tabindex={tabIndex}
 		role="button"
@@ -221,17 +247,27 @@
 		onkeydown={handleKeydown}
 		onfocus={oncellfocus}
 	>
-		<!-- Bande couleur verticale plaquée à gauche -->
-		<div class="w-1 h-full rounded-full absolute left-0 top-0 bottom-0 {color.bgClass}" aria-hidden="true"></div>
+		<!-- Zone 1 : En-tête (Indicateur statut dans le coin supérieur) -->
+		<div class="flex items-center justify-end w-full">
+			<span class="w-2 h-2 rounded-full shrink-0 {color.bgClass} shadow-xs" aria-hidden="true"></span>
+		</div>
 
-		<!-- Nom tronqué avec padding gauche pour la bande -->
-		<h2 class="text-xs font-medium text-[var(--kato-text-primary)] truncate pl-2" title={probe.name}>
-			{probe.name}
-		</h2>
+		<!-- Zone 2 : Cœur / Centre (Nom sur 2 lignes centré) -->
+		<div class="my-auto py-0.5 flex items-center justify-center text-center px-0.5">
+			<h2
+				class="font-medium text-[var(--kato-text-primary)] line-clamp-2 break-words text-center"
+				style="font-size: clamp(0.68rem, 5cqi, 0.85rem); line-height: 1.15;"
+				title={probe.name}
+			>
+				{probe.name}
+			</h2>
+		</div>
 
-		<!-- Temps de réponse ou badge statut -->
-		<span class="text-[11px] font-mono text-[var(--kato-text-secondary)] shrink-0 ml-1.5">
-			{responseTimeDisplay}
-		</span>
+		<!-- Zone 3 : Pied de carte (Latence en mono centrée) -->
+		<div class="flex items-center justify-center w-full">
+			<span class="text-[10px] sm:text-[11px] font-mono text-[var(--kato-text-secondary)]">
+				{responseTimeDisplay}
+			</span>
+		</div>
 	</div>
 {/if}
