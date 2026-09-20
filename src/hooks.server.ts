@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { MockAdapter } from '$lib/server/adapters/mock.adapter';
 import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
 import { store } from '$lib/server/store';
