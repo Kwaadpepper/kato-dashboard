@@ -66,7 +66,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/votre-orga/kato-dashboard.git
+git clone https://github.com/Kwaadpepper/kato-dashboard.git
 cd kato-dashboard
 
 # Install dependencies
@@ -75,6 +75,24 @@ npm install
 # Create environment configuration
 cp .env.example .env
 ```
+
+### 🐳 Docker (recommended)
+
+The easiest way to run Kato — no Node.js required:
+
+```bash
+# Copy and edit configuration
+cp .env.example .env
+
+# Pull the pre-built image and start
+docker compose up -d
+```
+
+The app will be available at `http://localhost:3000`.
+
+> To build the image locally instead of pulling from the registry, replace `image:` with `build: .` in `docker-compose.yml`.
+
+Published image: `ghcr.io/kwaadpepper/kato-dashboard:latest`
 
 ### Development Server
 
