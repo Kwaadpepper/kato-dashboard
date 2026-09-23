@@ -1,5 +1,4 @@
 <script lang="ts">
-  import favicon from "$lib/assets/favicon.svg";
   import { initLocale, onLocaleChange, type SupportedLocale } from "$lib/i18n";
   import { initClockConfig } from "$lib/utils/clock";
   import { initMarqueeConfig } from "$lib/utils/marquee";
@@ -62,7 +61,6 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={favicon} />
   <title>Kato — High-Density Wallboard Monitoring</title>
 </svelte:head>
 

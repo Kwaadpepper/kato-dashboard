@@ -62,7 +62,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (!isAuthEnabled()) return resolve(event);
 
 	const { pathname } = event.url;
-	if (pathname.startsWith('/_app/') || pathname === '/favicon.svg') return resolve(event);
+	if (pathname.startsWith('/_app/') || pathname === '/favicon.svg' || pathname === '/favicon.ico' || pathname === '/robots.txt') return resolve(event);
 
 	const sessionToken = event.cookies.get(SESSION_COOKIE_NAME);
 	const authenticated = isValidSession(sessionToken);
