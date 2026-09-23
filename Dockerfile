@@ -17,9 +17,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm install --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force && chown -R node:node /app
 
-COPY --from=builder /app/build ./build
+COPY --from=builder --chown=node:node /app/build ./build
+
+USER node
 
 EXPOSE 3000
 
