@@ -1,7 +1,11 @@
 services:
   kato:
-    # Pour builder localement, remplacer 'image' par 'build: .'
+    # Option A: Run published image
     image: ghcr.io/kwaadpepper/kato-dashboard:latest
+    # Option B: Build locally from source
+    # build: .
+    # image: kato-dashboard:local
+    container_name: kato-dashboard
     ports:
       - "${PORT:-3000}:3000"
     env_file:

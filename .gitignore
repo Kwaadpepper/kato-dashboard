@@ -24,3 +24,10 @@ vite.config.ts.timestamp-*
 
 # Local tools & scripts
 /tools/
+
+# Docker Compose
+docker-compose.yml
+docker-compose.*.yml
+docker-compose.override.yml
+!docker-compose.example.yml
+
