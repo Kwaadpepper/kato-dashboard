@@ -17,9 +17,9 @@ describe('RGAA and Keyboard Accessibility Conformance', () => {
 	it('should verify app.css defines high-contrast focus rings and :focus-visible rules (RGAA 10.7)', () => {
 		const appCss = readFileSync(resolve(process.cwd(), 'src/app.css'), 'utf-8');
 		// Dark theme focus ring token
-		assert.match(appCss, /--kato-focus-ring:\s*#38BDF8;/, 'Dark theme must define --kato-focus-ring');
+		assert.match(appCss, /--kato-focus-ring:\s*#38BDF8;/i, 'Dark theme must define --kato-focus-ring');
 		// Light theme focus ring token
-		assert.match(appCss, /--kato-focus-ring:\s*#0284C7;/, 'Light theme must define high-contrast --kato-focus-ring');
+		assert.match(appCss, /--kato-focus-ring:\s*#0284C7;/i, 'Light theme must define high-contrast --kato-focus-ring');
 		// Global :focus-visible rule
 		assert.match(appCss, /:focus-visible\s*\{[^}]*outline:/, 'app.css must have explicit :focus-visible outline rule');
 		// Skip link utility classes
@@ -74,7 +74,7 @@ describe('RGAA and Keyboard Accessibility Conformance', () => {
 		assert.match(loginForm, /aria-invalid=\{hasError\}/, 'Password input must have aria-invalid');
 		assert.match(
 			loginForm,
-			/aria-describedby=\{hasError \? 'login-error' : undefined\}/,
+			/aria-describedby=\{hasError \? ['"]login-error['"] : undefined\}/,
 			'Password input must link to error message'
 		);
 		assert.match(loginForm, /id="login-error"/, 'Error alert must have id="login-error"');
