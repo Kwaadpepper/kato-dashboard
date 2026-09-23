@@ -122,7 +122,8 @@ Configure your installation using environment variables:
 
 | Variable                     |   Type    |  Default   | Description                                                       |
 | :--------------------------- | :-------: | :--------: | :---------------------------------------------------------------- |
-| `KATO_ADAPTER`               | `string`  |   `mock`   | Active monitoring provider (`mock`, `uptimerobot`, or `uptimekuma`). |
+| `KATO_ADAPTER`               | `string`  |   `mock`   | Active monitoring provider (`mock`, `uptimerobot`, `uptimekuma`, or comma-separated list e.g. `uptimerobot,uptimekuma`). |
+| `KATO_ADAPTERS`              | `string`  |    `""`    | Named multi-instance adapter list (e.g. `kuma_prod,kuma_lan,robot_main`). Configured via `ADAPTER_<NAME>_*`. |
 | `KATO_MOCK_COUNT`            | `number`  |    `50`    | Total number of simulated probes in mock mode.                    |
 | `KATO_AUTH_ENABLED`          | `boolean` |  `false`   | Enable password protection for dashboard access.                  |
 | `KATO_AUTH_PASSWORD`         | `string`  | `changeme` | Required password if authentication is enabled.                   |
