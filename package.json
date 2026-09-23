@@ -1,7 +1,7 @@
 {
 	"name": "kato-dashboard",
 	"private": true,
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "High-density wallboard monitoring dashboard for desktop and TV screens with zero scroll",
 	"license": "MIT",
 	"type": "module",
