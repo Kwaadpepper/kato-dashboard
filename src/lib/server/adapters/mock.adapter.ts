@@ -66,13 +66,18 @@ const CRITICALITIES: Criticality[] = ['critical', 'high', 'medium', 'low'];
  * Produces a configurable set of realistic probes with controlled dynamic transitions.
  */
 export class MockAdapter implements MonitoringAdapter {
-	readonly name = 'mock';
+	readonly name: string;
+	readonly type = 'mock';
 
 	private config: AdapterConfig = {};
 	private probeCount = 50;
 	private probes: Map<string, NormalizedProbe> = new Map();
 	private incidents: Map<string, NormalizedIncident> = new Map();
 	private initialized = false;
+
+	constructor(name = 'mock') {
+		this.name = name;
+	}
 
 	/**
 	 * Initializes adapter with provided configuration.
@@ -166,7 +171,7 @@ export class MockAdapter implements MonitoringAdapter {
 		const now = Date.now();
 
 		for (let i = 1; i <= this.probeCount; i++) {
-			const id = `mock:${i}`;
+			const id = `${this.name}:${i}`;
 			const blueprint = this.resolveBlueprint(i);
 			const status = this.resolveInitialStatus(i);
 			const responseTime = this.computeResponseTime(status);
@@ -205,7 +210,7 @@ export class MockAdapter implements MonitoringAdapter {
 		}
 
 		// Inject realistic historical resolved incidents within last 24h
-		const probeOne = this.probes.get('mock:1') ?? Array.from(this.probes.values())[0];
+		const probeOne = this.probes.get(`${this.name}:1`) ?? Array.from(this.probes.values())[0];
 		if (probeOne) {
 			const pastIncidentId = `inc:${probeOne.id}:${now - 7200000}`;
 			this.incidents.set(pastIncidentId, {
@@ -221,7 +226,7 @@ export class MockAdapter implements MonitoringAdapter {
 		}
 
 		// Past incident on mock:3 (12 min outage resolved)
-		const probeThree = this.probes.get('mock:3');
+		const probeThree = this.probes.get(`${this.name}:3`);
 		if (probeThree) {
 			const pastIncId3 = `inc:${probeThree.id}:${now - 18000000}`;
 			this.incidents.set(pastIncId3, {
@@ -237,7 +242,7 @@ export class MockAdapter implements MonitoringAdapter {
 		}
 
 		// Degraded incident on mock:7 (25 min instability resolved)
-		const probeSeven = this.probes.get('mock:7');
+		const probeSeven = this.probes.get(`${this.name}:7`);
 		if (probeSeven) {
 			const pastIncId7 = `inc:${probeSeven.id}:${now - 32400000}`;
 			this.incidents.set(pastIncId7, {

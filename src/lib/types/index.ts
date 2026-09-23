@@ -178,22 +178,78 @@ export type SSEEvent =
   | { type: 'heartbeat'; data: { timestamp: string } };
 
 // ============================================================================
-// MONITORING ADAPTER CONTRACT
+// MONITORING ADAPTER CONTRACT & INSTANCE CONFIGURATIONS
 // ============================================================================
+
+/**
+ * Supported monitoring provider types.
+ */
+export type AdapterProviderType = 'mock' | 'uptimerobot' | 'uptimekuma';
+
+/**
+ * Base repeatable configuration for any adapter instance.
+ */
+export interface BaseAdapterInstanceConfig {
+  /** Unique instance identifier / alias (e.g. 'kuma_prod', 'robot_main', 'mock') */
+  id: string;
+  /** Provider type */
+  type: AdapterProviderType;
+  /** Polling interval in milliseconds (optional, falls back to provider default) */
+  pollInterval?: number;
+}
+
+/**
+ * Configuration for a Mock adapter instance.
+ */
+export interface MockAdapterInstanceConfig extends BaseAdapterInstanceConfig {
+  type: 'mock';
+  /** Number of simulated probes to generate (default: 50) */
+  count?: number;
+}
+
+/**
+ * Configuration for an Uptime Robot adapter instance.
+ */
+export interface UptimeRobotAdapterInstanceConfig extends BaseAdapterInstanceConfig {
+  type: 'uptimerobot';
+  /** Uptime Robot API Key (read-only or full-access) */
+  apiKey: string;
+}
+
+/**
+ * Configuration for an Uptime Kuma adapter instance.
+ */
+export interface UptimeKumaAdapterInstanceConfig extends BaseAdapterInstanceConfig {
+  type: 'uptimekuma';
+  /** Base URL of the Uptime Kuma server (e.g. https://kuma.example.com) */
+  baseUrl: string;
+  /** Bearer token / API key (required if API keys are configured in Kuma) */
+  apiKey?: string;
+}
+
+/**
+ * Discriminated union of repeatable adapter instance configurations.
+ */
+export type AdapterInstanceConfig =
+  | MockAdapterInstanceConfig
+  | UptimeRobotAdapterInstanceConfig
+  | UptimeKumaAdapterInstanceConfig;
 
 /**
  * Generic configuration dictionary passed to monitoring adapters.
  */
 export interface AdapterConfig {
-  [key: string]: string | number | boolean;
+  [key: string]: string | number | boolean | undefined;
 }
 
 /**
  * Interface contract required for all monitoring adapters.
  */
 export interface MonitoringAdapter {
-  /** Unique adapter identifier (e.g. "mock", "uptimerobot") */
+  /** Unique adapter identifier or alias (e.g. "kuma_prod", "uptimerobot") */
   readonly name: string;
+  /** Provider type (e.g. "uptimekuma", "uptimerobot", "mock") */
+  readonly type?: string;
   /** Initializes the adapter with provider configuration */
   initialize(config: AdapterConfig): Promise<void>;
   /** Fetches all probes mapped to the normalized data model */
@@ -211,11 +267,29 @@ export interface MonitoringAdapter {
 // ============================================================================
 
 /**
- * Main application instance configuration.
+ * Global application instance configuration.
+ */
+export interface KatoAppConfig {
+  /** Configured adapter instances */
+  adapters: AdapterInstanceConfig[];
+  /** Whether password protection is enabled */
+  authEnabled: boolean;
+  /** Master password hash/value (null when auth is disabled) */
+  authPassword: string | null;
+  /** HTTP server listen port */
+  port: number;
+  /** Network interface bind address */
+  host: string;
+  /** Default client configuration */
+  defaultSettings: ClientDefaultSettings;
+}
+
+/**
+ * Main application instance configuration (legacy compatibility).
  */
 export interface KatoConfig {
   /** Active monitoring adapter */
-  adapter: 'uptimerobot' | 'mock';
+  adapter: string;
   /** Whether password protection is enabled */
   authEnabled: boolean;
   /** Master password hash/value (null when auth is disabled) */

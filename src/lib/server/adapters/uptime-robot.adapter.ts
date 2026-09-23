@@ -11,12 +11,15 @@ import type {
  */
 interface URMonitor {
 	id: number | string;
-	friendly_name: string;
+	friendly_name?: string;
+	friendlyName?: string;
+	name?: string;
 	url?: string;
-	type?: number;
-	status: number;
+	type?: number | string;
+	status: number | string;
 	interval?: number;
 	create_datetime?: string;
+	createDateTime?: string;
 }
 
 /**
@@ -61,11 +64,20 @@ interface RequestError extends Error {
  * - Fault tolerance: 401 captured without crash, backoff on 429, retry on timeout >10s, preserve last state on network failure
  */
 export class UptimeRobotAdapter implements MonitoringAdapter {
-	readonly name = 'uptimerobot';
+	readonly name: string;
+	readonly type = 'uptimerobot';
 
 	private config: AdapterConfig = {};
 	private apiKey = '';
 	private baseUrl = 'https://api.uptimerobot.com/v3';
+
+	constructor(name = 'uptimerobot') {
+		this.name = name;
+	}
+
+	private get idPrefix(): string {
+		return this.name === 'uptimerobot' ? 'ur' : this.name;
+	}
 
 	/** Last known probes cache (served on network outage) */
 	private cachedProbes: Map<string, NormalizedProbe> = new Map();
@@ -151,15 +163,16 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 			const currentDownProbeIds = new Set<string>();
 
 			for (const m of monitors) {
-				const probeId = `ur:${m.id}`;
+				const probeId = `${this.idPrefix}:${m.id}`;
 				const status = this.mapStatus(m.status);
-				const { group, name } = this.parseNameAndGroup(m.friendly_name);
+				const rawName = m.friendlyName || m.friendly_name || m.name || m.url || '';
+				const { group, name } = this.parseNameAndGroup(rawName);
 
 				if (status === 'down') {
 					currentDownProbeIds.add(probeId);
 					if (!this.downMonitors.has(probeId)) {
 						this.downMonitors.set(probeId, {
-							incidentId: `ur:inc:${m.id}:${Date.now()}`,
+							incidentId: `${this.idPrefix}:inc:${m.id}:${Date.now()}`,
 							startedAt: nowIso,
 							probeName: name
 						});
@@ -281,7 +294,7 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 	 * with fallback to memory on error or rate-limiting.
 	 */
 	async fetchProbeHistory(probeId: string): Promise<NormalizedIncident[]> {
-		const numericId = probeId.replace('ur:', '');
+		const numericId = probeId.replace(`${this.idPrefix}:`, '');
 		const sinceMs = Date.now() - 24 * 60 * 60 * 1000;
 		const sinceIso = new Date(sinceMs).toISOString();
 		const incidents: NormalizedIncident[] = [];
@@ -317,7 +330,7 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 					const cause = causeCode || causeDetail ? `${causeCode}${causeCode && causeDetail ? ' - ' : ''}${causeDetail}` : undefined;
 
 					incidents.push({
-						id: `ur:inc:${numericId}:${startMs}`,
+						id: `${this.idPrefix}:inc:${numericId}:${startMs}`,
 						probeId,
 						probeName,
 						type: 'down',
@@ -416,8 +429,31 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 	 * 8 -> degraded
 	 * 9 -> down
 	 */
-	private mapStatus(statusCode: number): ProbeStatus {
-		switch (statusCode) {
+	private mapStatus(status: number | string): ProbeStatus {
+		if (typeof status === 'string') {
+			const normalized = status.trim().toUpperCase();
+			switch (normalized) {
+				case 'UP':
+				case '2':
+					return 'up';
+				case 'DOWN':
+				case '9':
+					return 'down';
+				case 'PAUSED':
+				case '0':
+					return 'paused';
+				case 'PENDING':
+				case '1':
+					return 'pending';
+				case 'DEGRADED':
+				case '8':
+					return 'degraded';
+				default:
+					return 'up';
+			}
+		}
+
+		switch (status) {
 			case 0:
 				return 'paused';
 			case 1:
@@ -429,7 +465,7 @@ export class UptimeRobotAdapter implements MonitoringAdapter {
 			case 9:
 				return 'down';
 			default:
-				return 'degraded';
+				return 'up';
 		}
 	}
 

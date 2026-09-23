@@ -37,11 +37,20 @@ interface RequestError extends Error {
  * - Fault tolerance: network errors preserve last known state
  */
 export class UptimeKumaAdapter implements MonitoringAdapter {
-	readonly name = 'uptimekuma';
+	readonly name: string;
+	readonly type = 'uptimekuma';
 
 	private config: AdapterConfig = {};
 	private apiKey = '';
 	private baseUrl = '';
+
+	constructor(name = 'uptimekuma') {
+		this.name = name;
+	}
+
+	private get idPrefix(): string {
+		return this.name === 'uptimekuma' ? 'uk' : this.name;
+	}
 
 	/** Last known probes cache (served on network outage) */
 	private cachedProbes: Map<string, NormalizedProbe> = new Map();
@@ -95,7 +104,7 @@ export class UptimeKumaAdapter implements MonitoringAdapter {
 			const currentDownIds = new Set<string>();
 
 			for (const [key, metric] of Object.entries(statuses)) {
-				const probeId = `uk:${key}`;
+				const probeId = `${this.idPrefix}:${key}`;
 				const status: ProbeStatus = metric.value === 1 ? 'up' : 'down';
 				const responseTime = responseTimes[key]?.value ?? null;
 
@@ -232,7 +241,7 @@ export class UptimeKumaAdapter implements MonitoringAdapter {
 		if (status === 'down') {
 			if (!this.downMonitors.has(probeId)) {
 				this.downMonitors.set(probeId, {
-					incidentId: `uk:inc:${probeId}:${Date.now()}`,
+					incidentId: `${this.idPrefix}:inc:${probeId}:${Date.now()}`,
 					startedAt: nowIso,
 					probeName
 				});

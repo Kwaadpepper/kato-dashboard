@@ -1,10 +1,9 @@
 import { env } from '$env/dynamic/private';
-import { setActiveAdapter } from '$lib/server/adapter';
-import { MockAdapter } from '$lib/server/adapters/mock.adapter';
-import { UptimeKumaAdapter } from '$lib/server/adapters/uptime-kuma.adapter';
-import { UptimeRobotAdapter } from '$lib/server/adapters/uptime-robot.adapter';
+import { registerAdapter, setActiveAdapter } from '$lib/server/adapter';
+import { createAndInitAdapter } from '$lib/server/adapters/factory';
 import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/auth';
-import { startPolling } from '$lib/server/poller';
+import { loadAdaptersConfig } from '$lib/server/config';
+import { startMultiPolling } from '$lib/server/poller';
 import { store } from '$lib/server/store';
 import type { MonitoringAdapter } from '$lib/types';
 import { redirect, type Handle } from '@sveltejs/kit';
@@ -14,59 +13,41 @@ import { redirect, type Handle } from '@sveltejs/kit';
 // ============================================================================
 
 /**
- * Reads environment variable KATO_ADAPTER (or ADAPTER_TYPE) to select the adapter.
- * Supported values: "uptimerobot", "mock" (default).
- */
-const adapterType = (env.KATO_ADAPTER || env.ADAPTER_TYPE || 'mock').toLowerCase();
-
-/**
- * Instantiates and initializes the monitoring adapter at startup.
- * The handle hook is not meant for one-time global async init;
- * an async IIFE runs once when the server module loads.
+ * Instantiates, initializes and starts background polling for all configured adapters.
  */
 async function bootstrap(): Promise<void> {
-	let adapter: MonitoringAdapter;
+	const adapterConfigs = loadAdaptersConfig(env as unknown as Record<string, string | undefined>);
+	console.log(`[Kato] Loading ${adapterConfigs.length} configured adapter instance(s)...`);
 
-	// Select and instantiate adapter based on configuration
-	if (adapterType === 'uptimerobot') {
-		adapter = new UptimeRobotAdapter();
-		console.log(`[Kato] Selected adapter: uptimerobot`);
+	const initializedAdapters: MonitoringAdapter[] = [];
 
-		const apiKey = env.UPTIMEROBOT_API_KEY ?? '';
-		const pollInterval = env.UPTIMEROBOT_POLL_INTERVAL
-			? Number.parseInt(env.UPTIMEROBOT_POLL_INTERVAL, 10)
-			: 30000;
-
-		await adapter.initialize({ apiKey, pollInterval });
-	} else if (adapterType === 'uptimekuma') {
-		adapter = new UptimeKumaAdapter();
-		console.log(`[Kato] Selected adapter: uptimekuma`);
-
-		const baseUrl = env.UPTIME_KUMA_URL ?? '';
-		const apiKey = env.UPTIME_KUMA_API_KEY ?? '';
-		const pollInterval = env.UPTIME_KUMA_POLL_INTERVAL
-			? Number.parseInt(env.UPTIME_KUMA_POLL_INTERVAL, 10)
-			: 60000;
-
-		await adapter.initialize({ baseUrl, apiKey, pollInterval });
-	} else {
-		adapter = new MockAdapter();
-		console.log(`[Kato] Selected adapter: mock`);
-
-		const count = Number.parseInt(env.KATO_MOCK_COUNT ?? '50', 10);
-		await adapter.initialize({ count });
+	for (const config of adapterConfigs) {
+		try {
+			const adapter = await createAndInitAdapter(config);
+			registerAdapter(adapter);
+			initializedAdapters.push(adapter);
+			console.log(`[Kato] Adapter initialized: "${adapter.name}" (type: ${config.type})`);
+		} catch (err) {
+			console.error(`[Kato] Failed to initialize adapter "${config.id}" (${config.type}):`, err);
+		}
 	}
 
-	console.log(`[Kato] Adapter initialized — type: ${adapter.name}`);
+	if (initializedAdapters.length === 0) {
+		console.warn('[Kato] No adapters could be initialized. Falling back to default mock adapter.');
+		const fallback = await createAndInitAdapter({ id: 'mock', type: 'mock', count: 50 });
+		registerAdapter(fallback);
+		initializedAdapters.push(fallback);
+	}
 
-	// Register adapter for individual lookup endpoints
-	setActiveAdapter(adapter);
+	// Set primary adapter for legacy endpoints
+	setActiveAdapter(initializedAdapters[0]);
 
-	// Start background polling (publishes updates to the store)
-	startPolling(adapter, store);
+	// Start independent background pollers
+	startMultiPolling(initializedAdapters, store);
+	console.log(`[Kato] Multi-polling active for ${initializedAdapters.length} adapter(s).`);
 }
 
-// Await at module level so every request is served after the adapter is ready
+// Await at module level so every request is served after adapters are ready
 await bootstrap();
 
 // ============================================================================

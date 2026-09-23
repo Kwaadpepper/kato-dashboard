@@ -95,3 +95,31 @@ export function startPolling(adapter: MonitoringAdapter, store: DashboardStore):
 
 	return stop;
 }
+
+/**
+ * Starts independent polling cycles for multiple monitoring adapters.
+ *
+ * Each adapter runs on its own schedule matching its individual quota and interval.
+ * Updates are continuously fed into the shared DashboardStore.
+ *
+ * @param adapters List of monitoring adapters to poll.
+ * @param store    In-memory store to update.
+ * @returns        A unified stop() function to gracefully stop all pollers.
+ */
+export function startMultiPolling(
+	adapters: MonitoringAdapter[],
+	store: DashboardStore
+): StopPolling {
+	const stoppers: StopPolling[] = adapters.map((adapter) => startPolling(adapter, store));
+
+	return function stopAll(): void {
+		for (const stop of stoppers) {
+			try {
+				stop();
+			} catch (err) {
+				console.error('[Poller] Error stopping poller instance:', err);
+			}
+		}
+	};
+}
+

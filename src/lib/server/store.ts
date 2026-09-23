@@ -28,8 +28,8 @@ class DashboardStore {
 	/** Incident index for active + resolved within 24h */
 	private incidents: Map<string, NormalizedIncident> = new Map();
 
-	/** Active source provider name */
-	private sourceName = 'unknown';
+	/** Active source provider names */
+	private activeSources: Set<string> = new Set();
 
 	/** Timestamp of last update */
 	private lastUpdate = new Date().toISOString();
@@ -42,6 +42,13 @@ class DashboardStore {
 	// ============================================================================
 
 	/**
+	 * Retrieves an individual probe by ID.
+	 */
+	getProbe(id: string): NormalizedProbe | undefined {
+		return this.probes.get(id);
+	}
+
+	/**
 	 * Returns a complete snapshot of the dashboard's current state.
 	 * Used for the `init` SSE event when a new client connects.
 	 */
@@ -50,7 +57,7 @@ class DashboardStore {
 			probes: Array.from(this.probes.values()),
 			incidents: this.getIncidents(),
 			lastUpdate: this.lastUpdate,
-			source: this.sourceName,
+			source: Array.from(this.activeSources).join(', ') || 'unknown',
 			defaultSettings: getDefaultClientSettings()
 		};
 	}
@@ -93,7 +100,7 @@ class DashboardStore {
 	 */
 	updateProbes(probes: NormalizedProbe[], source?: string): DashboardDelta | null {
 		if (source) {
-			this.sourceName = source;
+			this.activeSources.add(source);
 		}
 
 		const now = Date.now();
@@ -286,6 +293,17 @@ class DashboardStore {
 				console.error('[Store] Error in SSE subscriber callback:', err);
 			}
 		}
+	}
+
+	/**
+	 * Clears the store state (useful in test suites).
+	 */
+	reset(): void {
+		this.probes.clear();
+		this.incidents.clear();
+		this.activeSources.clear();
+		this.subscribers.clear();
+		this.lastUpdate = new Date().toISOString();
 	}
 }
 

@@ -1,4 +1,4 @@
-import { getActiveAdapter } from '$lib/server/adapter';
+import { getAdapterForProbe } from '$lib/server/adapter';
 import { isAuthEnabled, isValidSession, SESSION_COOKIE_NAME } from '$lib/server/auth';
 import { store } from '$lib/server/store';
 import type { NormalizedIncident } from '$lib/types';
@@ -43,7 +43,7 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 	}
 
 	let incidents: NormalizedIncident[] = [];
-	const adapter = getActiveAdapter();
+	const adapter = getAdapterForProbe(probeId, store);
 
 	// 2. Query adapter if unit history method is available
 	if (adapter && typeof adapter.fetchProbeHistory === 'function') {
